@@ -42,6 +42,7 @@ from functools import wraps
 import logging
 logging.basicConfig(stream=sys.stderr)
 import pprint
+import paho.mqtt.client
 from datetime import datetime
 from authlibs.db_models import db, User, Role, UserRoles
 

@@ -30,3 +30,19 @@ Token: sk_live_1234
 
 [Smartwaiver]
 Apikey: abcd
+
+[MQTT]
+SSL=True
+LogLevel=DEBUG
+BrokerHost=devel
+BrokerPort=1883
+ReconnectTime=1000
+BaseTopic=ratt
+
+[SSL]
+Enabled=True
+CaCertFile=/data/certs/ca.crt
+ClientCertFile=/data/certs/client.crt
+ClientKeyFile=/data/certs/client.key
+
+

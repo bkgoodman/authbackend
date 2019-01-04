@@ -9,9 +9,11 @@ Some rough documentation as of December 2018.
 `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
 
 `pip install flask-login`
+`pip install flask-user`
 `pip install stripe`
 `pip install apiclient`
 `pip install --upgrade google-api-python-client`
+`pip install paho-mqtt`
 
 ## Creating stub database
 
