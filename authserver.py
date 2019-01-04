@@ -77,6 +77,9 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 waiversystem = {}
 waiversystem['Apikey'] = Config.get('Smartwaiver','Apikey')
 
+# RULE - only call this from web APIs - not internal functions
+# Reason: If we have calls or scripts that act on many records,
+# we probably shouldn't generate a million messages
 def kick_backend(Config):
     """
     client = paho.mqtt,client.Client()
@@ -103,7 +106,7 @@ def kick_backend(Config):
         opts['auth']=auth
         
     try:
-      mqtt_pub.single(base_topic+"/readacls", "read", hostname=host,port=port,**opts)
+      mqtt_pub.single(base_topic+"/acl/update", "", hostname=host,port=port,**opts)
     except BaseException as e:
         current_app.logger.warning("Publish fail "+str(e))
 
@@ -215,7 +218,6 @@ def clearAccess(mid):
     sqlstr = "DELETE from accessbymember where member = '%s'" % mid
     execute_db(sqlstr)
     get_db().commit()
-    kick_backend(Config)
 
 def addAccess(mid,access):
     """Add access permissions from a list for a given, known safe member id"""
@@ -227,7 +229,6 @@ def addAccess(mid,access):
     cur = get_db().cursor()
     cur.executemany('INSERT into accessbymember (resource,member,enabled,updated_date) VALUES (?,?,?,?)', perms)
     get_db().commit()
-    kick_backend(Config)
 
 def expireMember(memberid):
     """Mark a user inactive due to expiration"""
@@ -306,6 +307,7 @@ def _addPaymentData(subs,paytype):
     cur = get_db().cursor()
     cur.executemany('INSERT into payments (member,email,paysystem,plan,customerid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?)', users)
     get_db().commit()
+    kick_backend(Config)
 
 def _getResourceUsers(resource):
     """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
@@ -369,6 +371,7 @@ def _deactivateMembers():
     sqlstr = "update members set active='false', updated_date=Datetime('now')"
     execute_db(sqlstr)
     get_db().commit()
+    kick_backend(Config)
 
 def _syncMemberPlans():
     """Update Members table with currently paid-for plan from Payments"""
@@ -376,6 +379,7 @@ def _syncMemberPlans():
             where member in (select member from payments)"""
     execute_db(sqlstr)
     get_db().commit()
+    kick_backend(Config)
 
 def _activatePaidMembers():
     """Set users who are not expired to active state"""
@@ -384,6 +388,7 @@ def _activatePaidMembers():
             where member in (select member from payments where expires_date > Datetime('now'))"""
     execute_db(sqlstr)
     get_db().commit()
+    kick_backend(Config)
 
 def _updateMembersFromPayments(subs):
     """Bring Members table and up to date with latest user payment information. Requires Subscriber dict"""
@@ -391,6 +396,7 @@ def _updateMembersFromPayments(subs):
     _deactivateMembers()
     _syncMemberPlans()
     _activatePaidMembers()
+    kick_backend(Config)
     return True
 
 def _updatePaymentsData():
@@ -637,6 +643,7 @@ def create_routes():
         clearAccess(mid)
         addAccess(mid,access)
         flash("Member access updated")
+        kick_backend(Config)
         return redirect(url_for('member_editaccess',id=mid))
 
     @app.route('/members/<string:id>/tags', methods = ['GET'])
