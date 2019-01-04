@@ -1,11 +1,13 @@
 [General]
 Debug: False
 Database: makeit.db
-AdminUser: admin
+AdminUser: admin@makeitlabs.com
 AdminPassword: admin
 SecretKey: secret
 ServerHost: 0.0.0.0
 ServerPort: 5000
+; Deployment should be "Production" for real use - something different for test/devel servers
+Deployment: Production
 
 [Payments]
 Modules: stripe

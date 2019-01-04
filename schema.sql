@@ -34,7 +34,7 @@ CREATE TABLE subscriptions (
 	customerid VARCHAR(50), 
 	name VARCHAR(50), 
 	email VARCHAR(50), 
-	"plan" VARCHAR(50), 
+	plan VARCHAR(50), 
 	expires_date DATETIME, 
 	created_date DATETIME, 
 	updated_date DATETIME, 

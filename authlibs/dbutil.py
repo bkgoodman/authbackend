@@ -100,7 +100,7 @@ def _addSubscriptionData(subs,paytype):
         else:
             users.append((sub['name'],sub['active'],sub['email'],paytype,sub['planname'],sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
     cur = get_db().cursor()
-    cur.executemany('INSERT into subscriptions (name,active,email,paysystem,planname,plantype,customerid,subid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', users)
+    cur.executemany('INSERT into subscriptions (name,active,email,paysystem,plan,plantype,customerid,subid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', users)
     get_db().commit()
 
 

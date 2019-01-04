@@ -1,4 +1,5 @@
 """
+vim:tabstop=4:expandtab
 MakeIt Labs Authorization System, v0.4
 Author: bill.schongar@makeitlabs.com
 
@@ -56,6 +57,7 @@ ServerPort = Config.getint('General','ServerPort')
 Database = Config.get('General','Database')
 AdminUser = Config.get('General','AdminUser')
 AdminPasswd = Config.get('General','AdminPassword')
+DeployType = Config.get('General','Deployment')
 DEBUG = Config.getboolean('General','Debug')
 
 # Flask-User Settings
@@ -275,18 +277,18 @@ def _getResourceUsers(resource):
     # - this could be done with raw calcs on the dates, if future editors are less comfortable with the SQL syntaxes used
 	# Note: The final left join is to account for "max(expires_date)" equivalence without neededing a subquery
 	# - yes, it's kind of odd, but it works
-    sqlstr = """select t.member,t.tagid,m.plan,m.nickname,l.last_accessed,m.access_enabled as enabled, m.access_reason as reason,s.expires_date,a.resource,
+    sqlstr = """select t.member,t.tag_id,m.plan,m.nickname,l.last_accessed,m.access_enabled as enabled, m.access_reason as reason,s.expires_date,a.resource,
         (case when a.resource is not null then 'allowed' else 'denied' end) as allowed,
         (case when s.expires_date < Datetime('now','-14 day') then 'true' else 'false' end) as past_due,
         (case when s.expires_date < Datetime('now') AND s.expires_date > Datetime('now','-13 day') then 'true' else 'false' end) as grace_period,
         (case when s.expires_date < Datetime('now','+2 day') then 'true' else 'false' end) as expires_soon,
         (case when a.level is not null then a.level else '0' end) as level
-        from tagsbymember t join members m on t.member=m.member
+        from tags_by_member t join members m on t.member=m.member
         left outer join accessbymember a on a.member=t.member and a.resource='%s'
         left outer join (select member,MAX(event_date) as last_accessed from logs where resource='%s' group by member) l on t.member = l.member
         left outer join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email
 		left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
-		group by t.tagid""" % (resource,resource)
+		group by t.tag_id""" % (resource,resource)
     users = query_db(sqlstr)
     return users
 
@@ -322,7 +324,7 @@ def getAccessControlList(resource):
         elif u['grace_period'] == 'true':
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
-        jsonarr.append({'tagid':u['tagid'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level']})
+        jsonarr.append({'tagid':u['tag_id'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level']})
     return json_dump(jsonarr)
 
 
@@ -366,13 +368,13 @@ def _updatePaymentsData():
     _addPaymentData(fsubs['valid'],'pinpayments')
     return fsubs
 
-def add_member_tag(mid,htag,tagtype,tagname):
+def add_member_tag(mid,htag,tag_type,tag_name):
     """Associate a tag with a Member, given a known safe set of values"""
-    sqlstr = "select tagid from tagsbymember where tagid = '%s' and tagtype = '%s'" % (htag,tagtype)
+    sqlstr = "select tag_id from tags_by_member where tag_id = '%s' and tag_type = '%s'" % (htag,tag_type)
     etags = query_db(sqlstr)
     if not etags:
-        sqlstr = """insert into tagsbymember (member,tagid,tagname,tagtype,updated_date)
-                    values ('%s','%s','%s','%s',DATETIME('now'))""" % (mid,htag,tagname,tagtype)
+        sqlstr = """insert into tags_by_member (member,tag_id,tag_name,tag_type,updated_date)
+                    values ('%s','%s','%s','%s',DATETIME('now'))""" % (mid,htag,tagname,tag_type)
         execute_db(sqlstr)
         get_db().commit()
         return True
@@ -397,7 +399,7 @@ def getDataDiscrepancies():
     stats['access_nomembers'] = query_db(sqlstr)
     sqlstr = """select distinct(resource) as resource from accessbymember where resource not in (select name from resources)"""
     stats['access_noresource'] = query_db(sqlstr)
-    sqlstr = "select DISTINCT(member) from tagsbymember where member not in (select member from members) order by member"
+    sqlstr = "select DISTINCT(member) from tags_by_member where member not in (select member from members) order by member"
     stats['tags_nomembers'] = query_db(sqlstr)
     sqlstr = """select DISTINCT(a.member), p.expires_date from accessbymember a join payments p on a.member=p.member where
             p.expires_date < Datetime('now')"""
@@ -514,8 +516,8 @@ def create_routes():
     @app.route('/members', methods = ['GET'])
     @login_required
     def members():
-    	members = {}
-    	return render_template('members.html',members=members)
+      members = {}
+      return render_template('members.html',members=members)
 
     @app.route('/members', methods= ['POST'])
     @login_required
@@ -559,10 +561,13 @@ def create_routes():
        access = {}
        mid = safestr(id)
        sqlstr = """select m.member, m.name, m.phone, m.updated_date, m.access_enabled,
-                m.access_reason, m.active, m.alt_email, s.expires_date, s.planname as plan, s.updated_date as payment_date
+                m.access_reason, m.active, m.alt_email, s.expires_date, s.plan as plan, s.updated_date as payment_date
                 from members m left join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email where m.member='%s'""" % mid
+       app.logger.debug(str(sqlstr))
        member = query_db(sqlstr,"",True)
-       member = dict(member)
+       #member = dict(member)
+       app.logger.debug(str(member))
+     
        sqlstr = """select r.description, a.updated_date from resources r left join accessbymember a
                 on r.name=a.resource and a.member='%s' where a.enabled='1'""" % mid
        access = query_db(sqlstr)
@@ -573,7 +578,7 @@ def create_routes():
     def member_editaccess(id):
         """Controller method to display gather current access details for a member and display the editing interface"""
         mid = safestr(id)
-        sqlstr = "select tagid,tagtype,tagname from tagsbymember where member = '%s'" % mid
+        sqlstr = "select tag_id,tag_type,tag_name from tags_by_member where member_id = '%s'" % mid
         tags = query_db(sqlstr)
         sqlstr = """select r.name,r.description,r.owneremail,a.member as id,a.enabled from resources r
                 left join accessbymember a on r.name = a.resource AND a.member = '%s'""" % mid
@@ -603,7 +608,7 @@ def create_routes():
     def member_tags(id):
         """Controller method to gather and display tags associated with a memberid"""
         mid = safestr(id)
-        sqlstr = "select tagid,tagtype,tagname from tagsbymember where member = '%s'" % mid
+        sqlstr = "select tag_id,tag_type,tag_name from tags_by_member where member = '%s'" % mid
         tags = query_db(sqlstr)
         return render_template('member_tags.html',mid=mid,tags=tags)
 
@@ -629,13 +634,13 @@ def create_routes():
                 flash("Error: That tag is already associated with a user")
         return redirect(url_for('member_tags',id=mid))
 
-    @app.route('/members/<string:id>/tags/delete/<string:tagid>', methods = ['GET'])
+    @app.route('/members/<string:id>/tags/delete/<string:tag_id>', methods = ['GET'])
     @login_required
-    def member_tagdelete(id,tagid):
+    def member_tagdelete(id,tag_id):
         """(Controller) Delete a Tag from a Member (HTTP GET, for use from a href link)"""
         mid = safestr(id)
-        tid = safestr(tagid)
-        sqlstr = "delete from tagsbymember where tagid = '%s' and member = '%s'" % (tid,mid)
+        tid = safestr(tag_id)
+        sqlstr = "delete from tags_by_member where tag_id = '%s' and member = '%s'" % (tid,mid)
         execute_db(sqlstr)
         get_db().commit()
         flash("If that tag was associated with the current user, it was removed")
@@ -1078,7 +1083,7 @@ def create_routes():
         if outformat == 'csv':
             outstr = "username,key,value,allowed,hashedCard,lastAccessed"
             for u in users:
-                outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
+                outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tag_id'],'2011-06-21T05:12:25')
             return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
     @app.route('/api/v1/logs/<string:id>', methods=['POST'])
@@ -1121,13 +1126,14 @@ def init_db(app):
     # DB Models in db_models.py, init'd to SQLAlchemy
     db.init_app(app)
 
-def createDefaultUsers():
+def createDefaultUsers(app):
     # Create default admin role and user if not present
     admin_role = Role.query.filter(Role.name=='Admin').first()
     if not admin_role:
         admin_role = Role(name='Admin')
     if not User.query.filter(User.email == AdminUser).first():
         user = User(email=AdminUser,password=user_manager.hash_password(AdminPasswd),email_confirmed_at=datetime.utcnow())
+        app.logger.debug("ADD USER "+str(user))
         db.session.add(user)
         user.roles.append(admin_role)
         db.session.commit()
@@ -1142,6 +1148,9 @@ if __name__ == '__main__':
         # Extensions like Flask-SQLAlchemy now know what the "current" app
         # is while within this block. Therefore, you can now run........
         db.create_all()
-        createDefaultUsers()
+        createDefaultUsers(app)
+        g.config=Config
+        if DeployType.lower() != "production":
+          app.jinja_env.globals['DEPLOYTYPE'] = DeployType
     create_routes()
     app.run(host=ServerHost, port=ServerPort, debug=True)

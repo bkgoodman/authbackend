@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#
+# vim:tabstop=2:expandtab
 # Membership-related functions, to decouple from UI
 
 import config
@@ -9,6 +9,7 @@ import random
 from collections import defaultdict
 import config
 import sys
+from flask import current_app
 
 import logging
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ def syncWithSubscriptions():
 def searchMembers(searchstr):
   sstr = "%" + searchstr + "%"
   sqlstr = "SELECT member as id, name, alt_email, active, plan, updated_date, access_enabled as enabled from members where name LIKE '%s' OR member LIKE '%s'" % (sstr, sstr)
+  current_app.logger.debug(sqlstr)
   return dbutil.query_db(sqlstr)
 
 
