@@ -34,17 +34,22 @@ Token: sk_live_1234
 Apikey: abcd
 
 [MQTT]
-SSL=True
+SSL=False
 LogLevel=DEBUG
-BrokerHost=devel
+BrokerHost=localhost
 BrokerPort=1883
-ReconnectTime=1000
-BaseTopic=ratt
+keepalive=1000
+BaseTopic=test/topic
+; To enable auth - specify username and password
+;username=
+;password=
 
-[SSL]
-Enabled=True
-CaCertFile=/data/certs/ca.crt
-ClientCertFile=/data/certs/client.crt
-ClientKeyFile=/data/certs/client.key
+;Set SSL=True in MQTT to use (Commented ones are optional)
+[MQTT_SSL]
+ca_certs=/data/certs/ca.crt
+certfile=/data/certs/client.crt
+keyfile=/data/certs/client.key
+;tls_version
+;ciphers
 
 

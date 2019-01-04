@@ -23,7 +23,7 @@ import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
 # NEwer login functionality
-from flask_user import current_user, login_required, roles_required, UserManager, UserMixin
+from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_sqlalchemy import SQLAlchemy
 #; older login functionality
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
@@ -43,7 +43,7 @@ from functools import wraps
 import logging
 logging.basicConfig(stream=sys.stderr)
 import pprint
-import paho.mqtt.client
+import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
 from authlibs.db_models import db, User, Role, UserRoles
 
@@ -76,6 +76,36 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # Load Waiver system data from file
 waiversystem = {}
 waiversystem['Apikey'] = Config.get('Smartwaiver','Apikey')
+
+def kick_backend(Config):
+    """
+    client = paho.mqtt,client.Client()
+    client.tls_set(ca_certs=None, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED,
+      tls_version=ssl.PROTOCOL_TLS, ciphers=None)
+    client.connect(host, port=1883, keepalive=60, bind_address="")
+    client.publish(topic, payload=None, qos=0, retain=False)
+    """
+    opts={}
+    ka=None
+    base_topic = Config.get("MQTT","BaseTopic")
+    host = Config.get("MQTT","BrokerHost")
+    port = Config.getint("MQTT","BrokerPort")
+    if Config.has_option("MQTT","keepalive"):
+        opts['keepalive']=Config.getint("MQTT","keepalive")
+    if Config.has_option("MQTT","SSL") and Config.getboolean("MQTT","SSL"):
+        tls={}
+        for (k,v) in Config.items("MQTT_SSL"):
+            tls[k]=v
+        opts['tls']=tls
+
+    if Config.has_option("MQTT","username"):
+        auth={'username':Config.get("MQTT","username"),'password':Config.get("MQTT","password")}
+        opts['auth']=auth
+        
+    try:
+      mqtt_pub.single(base_topic+"/readacls", "read", hostname=host,port=port,**opts)
+    except BaseException as e:
+        current_app.logger.warning("Publish fail "+str(e))
 
 def create_app():
     # App setup
@@ -185,6 +215,7 @@ def clearAccess(mid):
     sqlstr = "DELETE from accessbymember where member = '%s'" % mid
     execute_db(sqlstr)
     get_db().commit()
+    kick_backend(Config)
 
 def addAccess(mid,access):
     """Add access permissions from a list for a given, known safe member id"""
@@ -196,6 +227,7 @@ def addAccess(mid,access):
     cur = get_db().cursor()
     cur.executemany('INSERT into accessbymember (resource,member,enabled,updated_date) VALUES (?,?,?,?)', perms)
     get_db().commit()
+    kick_backend(Config)
 
 def expireMember(memberid):
     """Mark a user inactive due to expiration"""
@@ -205,6 +237,7 @@ def expireMember(memberid):
     sqlstr = "update members set active='false' where member='%s'" % m
     execute_db(sqlstr)
     get_db().commit()
+    kick_backend(Config)
 
 def unexpireMember(memberid):
     """Mark a user active"""
@@ -213,12 +246,14 @@ def unexpireMember(memberid):
     sqlstr = "update members set active='true' where member='%s'" % m
     execute_db(sqlstr)
     get_db().commit()
+    kick_backend(Config)
 
 def _expirationSync():
     """Make sure all expirations match what's in the Payments database"""
     sqlstr = "update members set active='true',updated_date=DATETIME('now') where member in (select member from payments where expires_date < date('now'))"
     execute_db(sqlstr)
     get_db().commit()
+    kick_backend(Config)
 
 def _createMember(m):
     """Add a member entry to the database"""
@@ -233,6 +268,7 @@ def _createMember(m):
         execute_db(sqlstr)
         get_db().commit()
     return {'status':'success','message':'Member %s was created' % m['memberid']}
+    kick_backend(Config)
 
 def _createResource(r):
     """Add a resource to the database"""
@@ -629,6 +665,7 @@ def create_routes():
             flash("ERROR: The specified RFID tag is invalid, must be all-numeric")
         else:
             if add_member_tag(mid,htag,ntagtype,ntagname):
+                kick_backend(Config)
                 flash("Tag added.")
             else:
                 flash("Error: That tag is already associated with a user")
@@ -643,6 +680,7 @@ def create_routes():
         sqlstr = "delete from tags_by_member where tag_id = '%s' and member = '%s'" % (tid,mid)
         execute_db(sqlstr)
         get_db().commit()
+        kick_backend(Config)
         flash("If that tag was associated with the current user, it was removed")
         return redirect(url_for('member_tags',id=mid))
 
@@ -997,6 +1035,12 @@ def create_routes():
     #        /members -  List of all memberids, supports filtering and output formats
     # ----------------------------------------------------------------
 
+    @app.route('/api/v1/reloadacl', methods=['GET'])
+    @requires_auth
+    def api_v1_reloadacl():
+        kick_backend(Config)
+        return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
+
     @app.route('/api/v3/test', methods=['GET'])
     @requires_auth
     def api_v3_test():
@@ -1152,5 +1196,6 @@ if __name__ == '__main__':
         g.config=Config
         if DeployType.lower() != "production":
           app.jinja_env.globals['DEPLOYTYPE'] = DeployType
+          kick_backend(Config)
     create_routes()
     app.run(host=ServerHost, port=ServerPort, debug=True)
