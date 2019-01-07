@@ -22,7 +22,7 @@
 	  </tr>
 	  <tr>
 		<td><div>Plan</div></td>
-		<td>{{ member.planname }}</td>
+		<td>{{ member.plan }}</td>
 	  </tr>
 	   <tr>
 		<td><div>Phone</div></td>
@@ -33,8 +33,12 @@
 		<td>{{ member.alt_email }}</td>
 	  </tr>
 	   <tr>
+		<td><div>Slack ID:</div></td>
+		<td>{{ member.slack }}</td>
+	  </tr>
+	   <tr>
 		<td><div>Last updated:</div></td>
-		<td>{{ member.updated_date }}</td>
+		<td>{{ member.time_updated }}</td>
 	  </tr> 
 	</table>
 	<div class="sectionhead">Current Access (<a href="{{ url_for('member_editaccess',id=member.member) }}">Edit</a>):</div>
@@ -43,7 +47,7 @@
 	  <i> No current access defined for this user</i>
 	{% else %}
 	  {% for a in access %}
-		<li>{{ a.description }}, Updated: {{ a.updated_date }} </li>
+		<li>{{ a.description }}, Updated: {{ a.time_updated }} </li>
 	  {% endfor %}
 	{% endif %}
 	</ul>

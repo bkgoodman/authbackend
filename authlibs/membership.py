@@ -24,7 +24,7 @@ def syncWithSubscriptions():
 
 def searchMembers(searchstr):
   sstr = "%" + searchstr + "%"
-  sqlstr = "SELECT member as id, name, alt_email, active, plan, updated_date, access_enabled as enabled from members where name LIKE '%s' OR member LIKE '%s'" % (sstr, sstr)
+  sqlstr = "SELECT * FROM  members WHERE name LIKE '%s' OR member LIKE '%s'" % (sstr, sstr)
   current_app.logger.debug(sqlstr)
   return dbutil.query_db(sqlstr)
 

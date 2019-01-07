@@ -27,7 +27,7 @@
 			<td>{{ a.name }}</td>
 			<td>{{ a.description }}</td>
 			<td>{{ a.owneremail }}</td>
-			<td><input type="checkbox" name="access_{{ a.name }}" {{ 'checked' if (a.enabled == '1') else '' }} /></td>			
+			<td><input type="checkbox" name="access_{{ a.name }}" {{ 'checked' if (a.is_active == 1) else '' }} /></td>			
 		  </tr>
 	    {% endfor %}
 	  </table>

@@ -1,0 +1,159 @@
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE roles (
+	id INTEGER NOT NULL, 
+	name VARCHAR(50), 
+	PRIMARY KEY (id), 
+	UNIQUE (name)
+);
+INSERT INTO "roles" VALUES(1,'Admin');
+CREATE TABLE subscriptions (
+	id INTEGER NOT NULL, 
+	paysystem VARCHAR(50), 
+	subid VARCHAR(50), 
+	customerid VARCHAR(50), 
+	name VARCHAR(50), 
+	email VARCHAR(50), 
+	"plan" VARCHAR(50), 
+	expires_date DATETIME, 
+	created_date DATETIME, 
+	updated_date DATETIME, 
+	checked_date DATETIME, 
+	active INTEGER, 
+	PRIMARY KEY (id)
+);
+CREATE TABLE blacklist (
+	id INTEGER NOT NULL, 
+	entry VARCHAR(50), 
+	entrytype VARCHAR(50), 
+	reason VARCHAR(50), 
+	updated_date DATETIME, 
+	PRIMARY KEY (id)
+);
+CREATE TABLE members (
+	id INTEGER NOT NULL, 
+	member VARCHAR(50), 
+	email VARCHAR(50), 
+	alt_email VARCHAR(50), 
+	firstname VARCHAR(50), 
+	slack VARCHAR(50), 
+	lastname VARCHAR(50), 
+	phone VARCHAR(50), 
+	"plan" VARCHAR(50), 
+	access_enabled INTEGER, 
+	access_reason VARCHAR(50), 
+	active INTEGER, 
+	nickname VARCHAR(50), 
+	name VARCHAR(50), 
+	time_created DATETIME DEFAULT CURRENT_TIMESTAMP, 
+	time_updated DATETIME, 
+	PRIMARY KEY (id), 
+	UNIQUE (member)
+);
+INSERT INTO "members" VALUES(1,'brad.goodman',"brad@bradgoodman.com","brad.goodman@makeitlabs.com",'Brad',"brad",'Goodman','6173201472','Hobbiest',1,NULL,1,'',NULL,'2019-01-07 19:14:26',NULL);
+INSERT INTO "members" VALUES(2,'john.smith',"jsmith@yexample.com","john.smith@makeitlabs.com",'John',"johnsmith",'Smith','1234567890','Hobbiest',1,NULL,0,'',NULL,'2019-01-07 19:17:26',NULL);
+INSERT INTO "members" VALUES(3,'guy.smiley',"guy@sessame.com","guy.smiley@makeitlabs.com",'Guy',"g.smi",'Smiley','5555551212','Pro',0,NULL,0,'',NULL,'2019-01-07 19:18:26',NULL);
+CREATE TABLE resources (
+	id INTEGER NOT NULL, 
+	name VARCHAR(50), 
+	description VARCHAR(50), 
+	owneremail VARCHAR(50), 
+	last_updated DATETIME, 
+	PRIMARY KEY (id), 
+	UNIQUE (name)
+);
+INSERT INTO "resources" VALUES(1,'laser','rabbit','brad@bradgoodman.com',NULL);
+INSERT INTO "resources" VALUES(2,'frontdoor','The Front Door','info@makeitlabs.com',NULL);
+INSERT INTO "resources" VALUES(3,'fullspectrum','Full Spectrum 40W Laser','brad@bradgoodman.com',NULL);
+INSERT INTO "resources" VALUES(4,'autolift','The Auto Lift','info@makeitlabs.com',NULL);
+CREATE TABLE users (
+	id INTEGER NOT NULL, 
+	is_active BOOLEAN DEFAULT '1' NOT NULL, 
+	email VARCHAR(25) DEFAULT '' NOT NULL, 
+	email_confirmed_at DATETIME, 
+	password VARCHAR(255) NOT NULL, 
+	created_by VARCHAR(25) DEFAULT 'admin' NOT NULL, 
+	created_on DATETIME DEFAULT CURRENT_TIMESTAMP, 
+	comment VARCHAR(255) DEFAULT '', 
+	api_key VARCHAR(255) DEFAULT 'BJO7IC7O7WF3', 
+	PRIMARY KEY (id), 
+	CHECK (is_active IN (0, 1)), 
+	UNIQUE (email)
+);
+INSERT INTO "users" VALUES(1,1,'admin@makeitlabs.com','2019-01-07 19:11:05.291519','$2b$12$DXhwzaV1C4TRbWpSnu11G.P2wuRx5DJGWszt.kGbsuOba6gGP3Wgy','admin','2019-01-07 19:11:05','','BJO7IC7O7WF3');
+CREATE TABLE resourcealiases (
+	id INTEGER NOT NULL, 
+	alias VARCHAR(50), 
+	resource_id INTEGER, 
+	PRIMARY KEY (id), 
+	UNIQUE (alias), 
+	FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
+);
+CREATE TABLE tags_by_member (
+	id INTEGER NOT NULL, 
+	tag_id VARCHAR(50), 
+	tag_type VARCHAR(50), 
+	tag_name VARCHAR(50), 
+	updated_date DATETIME, 
+	member VARCHAR(50), 
+	member_id INTEGER, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE
+);
+CREATE TABLE logs (
+	id INTEGER NOT NULL, 
+	user_id INTEGER, 
+	resource_id INTEGER, 
+	doneby_id INTEGER, 
+	event_type VARCHAR(50), 
+	message VARCHAR(100), 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE, 
+	FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE, 
+	FOREIGN KEY(doneby_id) REFERENCES users (id) ON DELETE CASCADE
+);
+CREATE TABLE user_roles (
+	id INTEGER NOT NULL, 
+	user_id INTEGER, 
+	role_id INTEGER, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE, 
+	FOREIGN KEY(role_id) REFERENCES roles (id) ON DELETE CASCADE
+);
+INSERT INTO "user_roles" VALUES(1,1,1);
+CREATE TABLE waivers (
+	id INTEGER NOT NULL, 
+	waiver_id VARCHAR(50), 
+	firstname VARCHAR(50), 
+	lastname VARCHAR(50), 
+	email VARCHAR(50), 
+	member_id INTEGER, 
+	created_date DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(member_id) REFERENCES members (id)
+);
+CREATE TABLE accessbymember (
+	id INTEGER NOT NULL, 
+	user_id INTEGER, 
+	resource_id INTEGER, 
+	is_active BOOLEAN DEFAULT '1' NOT NULL, 
+	time_created DATETIME DEFAULT CURRENT_TIMESTAMP, 
+	time_updated DATETIME, 
+	comment VARCHAR(255) DEFAULT '', 
+	lockouts VARCHAR(255) DEFAULT '', 
+	permissions VARCHAR(255) DEFAULT '', 
+	created_by VARCHAR(25) DEFAULT 'admin' NOT NULL, 
+	level INTEGER, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE, 
+	FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE, 
+	CHECK (is_active IN (0, 1))
+);
+
+INSERT INTO "accessbymember" VALUES(1,1,1,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+INSERT INTO "accessbymember" VALUES(2,1,2,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+INSERT INTO "accessbymember" VALUES(3,1,3,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+INSERT INTO "accessbymember" VALUES(4,2,1,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+INSERT INTO "accessbymember" VALUES(5,2,2,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+INSERT INTO "accessbymember" VALUES(6,3,1,1,'2019-01-07 19:11:05.291519','2019-01-07 19:11:05.291519',"Comment","","","Brad",0);
+COMMIT;

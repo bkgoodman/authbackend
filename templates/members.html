@@ -44,7 +44,7 @@
 	  <tr>
 		  <td>
 			<img src="static/create3.png" height="20" width="20" alt="Edit member" />
-			<a href="{{ url_for('member_show',id=m.id) }}">{{ m.name }} ({{ m.id }})
+			<a href="{{ url_for('member_show',id=m.member) }}">{{ m.firstname }} {{m.lastname}} ({{ m.member }})
 			</a>
 		  </td>
 		  <td>

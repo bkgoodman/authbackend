@@ -263,8 +263,8 @@ def _createMember(m):
     if members:
         return {'status': 'error','message':'That User ID already exists'}
     else:
-        sqlstr = """insert into members (member,firstname,lastname,phone,plan,nickname,updated_date,access_enabled,active)
-                    VALUES ('%s','%s','%s','%s','','%s',DATETIME('now'),'0','0')
+        sqlstr = """insert into members (member,firstname,lastname,phone,plan,nickname,access_enabled,active)
+                    VALUES ('%s','%s','%s','%s','','%s',0,0)
                  """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['nickname'])
         execute_db(sqlstr)
         get_db().commit()
@@ -602,16 +602,18 @@ def create_routes():
        #TODO: Move member query functions to membership module
        access = {}
        mid = safestr(id)
-       sqlstr = """select m.member, m.name, m.phone, m.updated_date, m.access_enabled,
+       sqlstr = """select m.id, m.member, m.name, m.phone, m.time_updated, m.access_enabled, m.plan, m.slack,
                 m.access_reason, m.active, m.alt_email, s.expires_date, s.plan as plan, s.updated_date as payment_date
                 from members m left join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email where m.member='%s'""" % mid
        app.logger.debug(str(sqlstr))
        member = query_db(sqlstr,"",True)
        #member = dict(member)
+       app.logger.debug(dir(member))
+       app.logger.debug(dict(member))
        app.logger.debug(str(member))
      
-       sqlstr = """select r.description, a.updated_date from resources r left join accessbymember a
-                on r.name=a.resource and a.member='%s' where a.enabled='1'""" % mid
+       sqlstr = """select r.description, a.time_updated from resources r left join accessbymember a
+                on r.id=a.resource_id and a.user_id=%d where a.is_active=1""" % member['id']
        access = query_db(sqlstr)
        return render_template('member_show.html',member=member,access=access)
 
@@ -622,12 +624,17 @@ def create_routes():
         mid = safestr(id)
         sqlstr = "select tag_id,tag_type,tag_name from tags_by_member where member_id = '%s'" % mid
         tags = query_db(sqlstr)
-        sqlstr = """select r.name,r.description,r.owneremail,a.member as id,a.enabled from resources r
-                left join accessbymember a on r.name = a.resource AND a.member = '%s'""" % mid
+        sqlstr = """
+            SELECT r.name,r.description,r.owneremail,a.is_active FROM resources as r
+            LEFT JOIN accessbymember a ON r.id = a.resource_id
+            INNER JOIN members m ON m.id = a.user_id
+            WHERE m.member='%s';""" % mid
+        app.logger.debug(sqlstr)
         m = query_db(sqlstr)
         member = {}
         member['id'] = mid
         member['access']= m
+        #app.logger.debug("MEMBER IS",str(member))
         return render_template('member_access.html',member=member,tags=tags)
 
     @app.route('/members/<string:id>/access', methods = ['POST'])
