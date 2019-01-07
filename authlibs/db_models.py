@@ -57,21 +57,20 @@ class UserRoles(db.Model):
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     role_id = db.Column(db.Integer(), db.ForeignKey('roles.id', ondelete='CASCADE'))
 
-class Resources(db.Model):
+class Resource(db.Model):
     __tablename__ = 'resources'
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(50), unique=True)
     description = db.Column(db.String(50))
     owneremail = db.Column(db.String(50))
-    last_updated = db.Column(db.DateTime())
+    last_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
 
-class blacklist(db.Model):
-    __tablename__ = 'blacklist'
+class ResourceAlias(db.Model):
+    __tablename__ = 'resourcealiases'
     id = db.Column(db.Integer(), primary_key=True)
-    entry = db.Column(db.String(50))
-    entrytype = db.Column(db.String(50))
-    reason = db.Column(db.String(50))
-    updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
+    alias = db.Column(db.String(50), unique=True)
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+
 
 # Members and their data
 class Member(db.Model):
@@ -85,7 +84,6 @@ class Member(db.Model):
     lastname = db.Column(db.String(50))
     phone = db.Column(db.String(50))
     plan = db.Column(db.String(50))
-    updated_date = db.Column(db.DateTime())
     access_enabled = db.Column(db.Integer())
     access_reason = db.Column(db.String(50))
     active = db.Column(db.Integer())
@@ -106,7 +104,7 @@ class Subscription(db.Model):
     plan = db.Column(db.String(50))
     expires_date = db.Column(db.DateTime())
     created_date = db.Column(db.DateTime())
-    updated_date = db.Column(db.DateTime())
+    updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
     checked_date = db.Column(db.DateTime())
     active = db.Column(db.Integer())
 
@@ -129,5 +127,16 @@ class MemberTag(db.Model):
     tag_id = db.Column(db.String(50))
     tag_type = db.Column(db.String(50))
     tag_name = db.Column(db.String(50))
-    updated_date = db.Column(db.DateTime())
+    updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
+    member = db.Column(db.String(50))
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    # member_id MIGHT not exist if user is gone, but "member" should be ok
+
+class Blacklist(db.Model):
+    # TODO: Handle change from tagsbymember
+    __tablename__ = 'blacklist'
+    id = db.Column(db.Integer(), primary_key=True)
+    entry = db.Column(db.String(50))
+    entrytype = db.Column(db.String(50))
+    reason = db.Column(db.String(50))
+    updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())

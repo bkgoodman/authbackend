@@ -48,7 +48,7 @@ logging.basicConfig(stream=sys.stderr)
 import pprint
 import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
-from authlibs.db_models import db, User, Role, UserRoles, Member
+from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver
 
 
 # Load general configuration from file
@@ -445,12 +445,13 @@ if __name__ == '__main__':
                 mem.nickname = first
                 mem.name = first+" "+last
                 mem.time_created = created
-                print mem
+                #print mem
                 #print x[0],x[1],first,last,x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],created
            
-                db.session.add(mem)
-        db.session.flush()
-        db.session.commit()
+                #db.session.add(mem)
+        #db.session.flush()
+        #db.session.commit()
+
         """
         mem.member = db.Column(db.String(50), unique=True)
         mem.email = db.Column(db.String(50))
@@ -469,5 +470,173 @@ if __name__ == '__main__':
         mem.time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
         mem.time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
         """
+        #
+        # RESOURCES
+        #
 
+        dbr = {}
+        mc = ",".join(resource_cols)
+        print mc
+        rez = query_source_db("select "+mc+" from resources;")
+
+        for x in rez:
+            #print x
+            resources = Resource()
+            resources.name = x[0]
+            resources.description = x[1]
+            resources.owneremail = x[2]
+            #print resources
+            #db.session.add(resources)
+        #db.session.flush()
+        #db.session.commit()
+
+        #
+        # TAGS by member
+        dbr = {}
+        mc = ",".join(tagsbymember_cols)
+        print mc
+        recs = query_source_db("select "+mc+" from tagsbymember;")
+
+        # "member","tagtype","tagid","updated_date","tagname"
+        good=0
+        bad=0
+        for x in recs:
+            newtag = MemberTag()
+            mid = Member.query.filter(Member.member==x[0]).first()
+            newtag.member_id=None
+            if mid:
+                newtag.member_id=mid.id
+                good+=1
+            else:
+                #print "NO RECORD FOR",x
+                bad+=1
+            newtag.member=x[0]
+            newtag.tag_type=x[1]
+            newtag.tag_id=x[2]
+            #newtag.updated_date
+            newtag.tag_name=x[4]
+            try:
+                lastupdate= datetime.strptime(x[3],"%Y-%m-%d %H:%M:%S")
+                local_dt = local.localize(lastupdate, is_dst=None)
+            except:
+                lastupdate= datetime.strptime(x[3],"%Y-%m-%d")
+                local_dt = local.localize(lastupdate, is_dst=None)
+            #print newtag,x,lastupdate
+            #db.session.add(newtag)
+        #db.session.flush()
+        #db.session.commit()
+
+        print "FOBs migrated",good,"failed",bad
+
+        ##
+        ## AccessByMember
+        ##
+
+        # member
+        # resource
+        # enabled
+        # updated_date
+        # level
+        mc = ",".join(accessbymember_cols)
+        print mc
+        recs = query_source_db("select "+mc+" from accessbymember;")
+        good=0
+        bad=0
+        for x in recs:
+            acc = AccessByMember()
+            mid = Member.query.filter(Member.member==x[0]).first()
+            rid = Resource.query.filter(Resource.name==x[1]).first()
+            if not mid or not rid:
+                #print x,mid,rid
+                bad+=1
+            else:
+                acc.member=mid.id
+                acc.resource=rid.id
+                good+=1
+            acc.enabled=x[2]
+            acc.level=0
+            try:
+                acc.updated_date= datetime.strptime(x[3],"%Y-%m-%d %H:%M:%S")
+                local_dt = local.localize(lastupdate, is_dst=None)
+            except:
+                # Sat Jan 21 11:46:19 2017
+                try:
+                    acc.updated_date= datetime.strptime(x[3],"%a %b %d %H:%M:%S %Y")
+                    local_dt = local.localize(lastupdate, is_dst=None)
+                except:
+                    acc.updated_date= datetime.strptime(x[3],"%Y-%m-%d")
+                    local_dt = local.localize(lastupdate, is_dst=None)
+            #db.session.add(acc)
+        #db.session.flush()
+        #db.session.commit()
+        print "AccessByMember migrated",good,"failed",bad
+
+
+        ##
+        ## Blacklist
+        ##
+
+        mc = ",".join(['entry','entrytype','reason','updated_date'])
+        print mc
+        recs = query_source_db("select "+mc+" from blacklist;")
+        for x in recs:
+            print x
+            bl = Blacklist()
+            bl.entry=x[0]
+            bl.entrytype=x[1]
+            bl.reason=x[2]
+            try:
+                bl.updated_date= datetime.strptime(x[3],"%Y-%m-%d %H:%M:%S")
+                local_dt = local.localize(lastupdate, is_dst=None)
+            except:
+                # Sat Jan 21 11:46:19 2017
+                try:
+                    bl.updated_date= datetime.strptime(x[3],"%a %b %d %H:%M:%S %Y")
+                    local_dt = local.localize(lastupdate, is_dst=None)
+                except:
+                    bl.updated_date= datetime.strptime(x[3],"%Y-%m-%d")
+                    local_dt = local.localize(lastupdate, is_dst=None)
+            #db.session.add(bl)
+        #db.session.flush()
+        #db.session.commit()
+
+        ##
+        ## Waivers
+        ##
+
+        mc = ",".join(['waiverid','firstname','lastname','email','created_date'])
+        print mc
+        recs = query_source_db("select "+mc+" from waivers;")
+        good=0
+        bad=0
+        for x in recs:
+            mid = Member.query.filter(Member.firstname==x[1]).filter(Member.lastname==x[2]).first()
+            w = Waiver()
+            if mid:
+                #print "FOUND MATCH",mid.first().firstname,mid.first().lastname,x[1],x[2]
+                #print "FOUND MATCH",mid.firstname,mid.lastname,x[1],x[2],mid.id
+                w.memberid=mid.id
+                good+=1
+            else:
+                bad+=1
+            w.firstname=x[1]
+            w.lastname=x[2]
+            w.waiver_id=x[0]
+            w.email=x[3]
+            try:
+                w.created_date= datetime.strptime(x[4],"%Y-%m-%d %H:%M:%S")
+                local_dt = local.localize(lastupdate, is_dst=None)
+            except:
+                # Sat Jan 21 11:46:19 2017
+                try:
+                    w.created_date= datetime.strptime(x[4],"%a %b %d %H:%M:%S %Y")
+                    local_dt = local.localize(lastupdate, is_dst=None)
+                except:
+                    w.created_date= datetime.strptime(x[4],"%Y-%m-%d")
+                    local_dt = local.localize(lastupdate, is_dst=None)
+            found=False
+            #db.session.add(w)
+        #db.session.flush()
+        #db.session.commit()
+        print "waivers migrated",good,"nomatches",bad
 
