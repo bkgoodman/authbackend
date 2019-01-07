@@ -15,11 +15,34 @@ class User(db.Model,UserMixin):
     email = db.Column(db.String(25),nullable=False, unique=True, server_default='')
     email_confirmed_at = db.Column(db.DateTime())
     password = db.Column(db.String(255),nullable=False)
-    created_on = db.Column(db.String(50),nullable=False, server_default="now")
     created_by = db.Column(db.String(25), nullable=False, server_default='admin')
+    created_on = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     comment = db.Column(db.String(255), nullable=True, server_default='')
     api_key = db.Column(db.String(255), nullable=True, server_default=rnd_api_key)
     roles= db.relationship('Role', secondary = 'user_roles')
+
+class AccessByMember(db.Model):
+    __tablename__ = 'accessbymember'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    active = db.Column('is_active',db.Boolean(), nullable=False, server_default='1')
+    time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
+    comment = db.Column(db.String(255), nullable=True, server_default='')
+    lockouts = db.Column(db.String(255), nullable=True, server_default='')
+    permissions = db.Column(db.String(255), nullable=True, server_default='')
+    created_by = db.Column(db.String(25), nullable=False, server_default='admin')
+    level = db.Column(db.Integer(),default=0)
+    
+class Logs(db.Model):
+    __tablename__ = 'logs'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    doneby_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    event_type = db.Column(db.String(50))
+    message = db.Column(db.String(100))
 
 # Define roles
 class Role(db.Model):
@@ -34,6 +57,22 @@ class UserRoles(db.Model):
     user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     role_id = db.Column(db.Integer(), db.ForeignKey('roles.id', ondelete='CASCADE'))
 
+class Resources(db.Model):
+    __tablename__ = 'resources'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(50), unique=True)
+    description = db.Column(db.String(50))
+    owneremail = db.Column(db.String(50))
+    last_updated = db.Column(db.DateTime())
+
+class blacklist(db.Model):
+    __tablename__ = 'blacklist'
+    id = db.Column(db.Integer(), primary_key=True)
+    entry = db.Column(db.String(50))
+    entrytype = db.Column(db.String(50))
+    reason = db.Column(db.String(50))
+    updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
+
 # Members and their data
 class Member(db.Model):
     __tablename__ = 'members'
@@ -42,6 +81,7 @@ class Member(db.Model):
     email = db.Column(db.String(50))
     alt_email = db.Column(db.String(50))
     firstname = db.Column(db.String(50))
+    slack = db.Column(db.String(50))
     lastname = db.Column(db.String(50))
     phone = db.Column(db.String(50))
     plan = db.Column(db.String(50))
@@ -51,7 +91,8 @@ class Member(db.Model):
     active = db.Column(db.Integer())
     nickname = db.Column(db.String(50))
     name = db.Column(db.String(50))
-    created_date = db.Column(db.DateTime())
+    time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
 
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'

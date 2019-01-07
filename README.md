@@ -6,6 +6,7 @@ Some rough documentation as of December 2018.
 
 (Note: Ubuntu-flavored)
 
+`sudo apt install libcurl4-openssl-dev libssl-dev`
 `sudo apt install sqlite3 flask python-pycurl python-httplib2 python-auth2client`
 
 `pip install flask-login`
@@ -14,6 +15,8 @@ Some rough documentation as of December 2018.
 `pip install apiclient`
 `pip install --upgrade google-api-python-client`
 `pip install paho-mqtt`
+`pip install pytz`
+`pip install --upgrade oauth2client`
 
 ## Creating stub database
 

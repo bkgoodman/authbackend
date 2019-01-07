@@ -1,10 +1,10 @@
-CREATE TABLE accessbyid(resource,rfidtag,enabled,lastmodified);  // UNUSED?!??!
+CREATE TABLE accessbyid(resource,rfidtag,enabled,lastmodified);  // DIE
 
 CREATE TABLE resources (name,description,owneremail, last_updated text);
 
 CREATE TABLE blacklist (entry TEXT, entrytype text, reason TEXT, updated_date TEXT);
 
-CREATE TABLE payments (member TEXT, paysystem TEXT, plan TEXT, customerid TEXT, expires_date TEXT, updated_date TEXT, checked_date TEXT, created_date text, email text);
+CREATE TABLE payments (member TEXT, paysystem TEXT, plan TEXT, customerid TEXT, expires_date TEXT, updated_date TEXT, checked_date TEXT, created_date text, email text); // DIE
 
 CREATE TABLE accessbymember (member text, resource text, enabled text, updated_date text, level);
 
@@ -72,7 +72,7 @@ updated_date text,
 checked_date text, 
 active text
 
-);
+); // WILL REPOP - NO MIGRATE
 
 
 
