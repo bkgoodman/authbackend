@@ -17,28 +17,32 @@
 		<td>{{ member.active }} (<a href="{{ url_for('payments_member',id=member.member) }}">Expiration: {{ member.expires_date }})</a></td>
 	  </tr>
 	  <tr>
-		<td><div {{ 'class=errortext' if (member.access_enabled != 'true')  }}>Enabled:</div></td>
-		<td> {{ member.access_enabled }} {{ member.access_reason if (member.access_enabled != 'true') }}</td>
+			<td><div {{ 'class=errortext' if (member.access_enabled != 'true')  }}>Enabled:</div></td>
+			<td> {{ member.access_enabled }} {{ member.access_reason if (member.access_enabled != 'true') }}</td>
 	  </tr>
 	  <tr>
-		<td><div>Plan</div></td>
-		<td>{{ member.plan }}</td>
+			<td><div>Plan</div></td>
+			<td>{{ member.plan }}</td>
 	  </tr>
-	   <tr>
-		<td><div>Phone</div></td>
-		<td>{{ member.phone }}</td>
+	  <tr>
+			<td><div>Phone</div></td>
+			<td>{{ member.phone }}</td>
 	  </tr>
-	   <tr>
-		<td><div>Alternate email:</div></td>
-		<td>{{ member.alt_email }}</td>
+	  <tr>
+			<td><div>Alternate email:</div></td>
+			<td>{{ member.alt_email }}</td>
 	  </tr>
-	   <tr>
-		<td><div>Slack ID:</div></td>
-		<td>{{ member.slack }}</td>
+	  <tr>
+			<td><div>Slack ID:</div></td>
+			<td>{{ member.slack }}</td>
 	  </tr>
-	   <tr>
-		<td><div>Last updated:</div></td>
-		<td>{{ member.time_updated }}</td>
+	  <tr>
+			<td><div>Last updated:</div></td>
+			<td>{{ member.time_updated }}</td>
+	  </tr> 
+	  <tr>
+			<td><div>Waiver Completed</div></td>
+			<td>{{ member.waiver_id }}</td>
 	  </tr> 
 	</table>
 	<div class="sectionhead">Current Access (<a href="{{ url_for('member_editaccess',id=member.member) }}">Edit</a>):</div>

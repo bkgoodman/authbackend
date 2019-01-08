@@ -64,6 +64,8 @@ class Resource(db.Model):
     description = db.Column(db.String(50))
     owneremail = db.Column(db.String(50))
     last_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
+    slack_chan = db.Column(db.String(50))
+    slack_admin_chan = db.Column(db.String(50))
 
 class ResourceAlias(db.Model):
     __tablename__ = 'resourcealiases'

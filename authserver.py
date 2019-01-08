@@ -178,7 +178,7 @@ def connect_db():
 
 def safestr(unsafe_str):
     """Sanitize input strings used in some operations"""
-    keepcharacters = ('_','-','.')
+    keepcharacters = ('_','-','.','@')
     return "".join(c for c in unsafe_str if c.isalnum() or c in keepcharacters).rstrip()
 
 def safeemail(unsafe_str):
@@ -613,8 +613,10 @@ def create_routes():
        access = {}
        mid = safestr(id)
        sqlstr = """select m.id, m.member, m.name, m.phone, m.time_updated, m.access_enabled, m.plan, m.slack,
-                m.access_reason, m.active, m.alt_email, s.expires_date, s.plan as plan, s.updated_date as payment_date
-                from members m left join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email where m.member='%s'""" % mid
+                m.access_reason, m.active, m.alt_email, s.expires_date, s.plan as plan, s.updated_date as payment_date, w.waiver_id
+                from members m left join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email 
+                LEFT OUTER JOIN waivers w ON m.id == w.member_id
+                where m.member='%s'""" % mid
        app.logger.debug(str(sqlstr))
        member = query_db(sqlstr,"",True)
        #member = dict(member)
@@ -991,7 +993,7 @@ def create_routes():
     @app.route('/waivers', methods=['GET'])
     @login_required
     def waivers():
-        sqlstr = "select waiverid,email,firstname,lastname,created_date from waivers"
+        sqlstr = "select waiver_id,email,firstname,lastname,created_date from waivers"
         waivers = query_db(sqlstr)
         return render_template('waivers.html',waivers=waivers)
 

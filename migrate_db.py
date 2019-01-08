@@ -20,6 +20,7 @@ TODO:
 - More documentation
 """
 
+import argparse
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
@@ -177,7 +178,15 @@ def process_source_table(table,columns):
         print table, coldata,"Total Rows",len(rows)
 
 def get_slack_users():
-        slackdata=json.load(open("../slackcli/allusers.txt"))
+        try:
+          slackdata=json.load(open("../slackcli/allusers.txt"))
+        except:
+            print """
+    ***
+    *** no allusers.txt - no Slack data imported
+    ***
+            """
+            return {}
         slack_users={}
         discards=[]
         for x in slackdata['members']:
@@ -224,13 +233,49 @@ def get_slack_users():
         #    print x,slack_users[x]
         return slack_users
 
+def parsedt(dt):
+  tz=pytz.timezone("America/New_York")
+  try:
+    xx= datetime.strptime(dt,"%Y-%m-%dT%H:%M:%SZ")
+    result = pytz.utc.localize(xx, is_dst=None).astimezone(tz).replace(tzinfo=None)
+  except:
+    try:
+        result= datetime.strptime(dt,"%Y-%m-%d %H:%M:%S")
+    except:
+        # Sat Jan 21 11:46:19 2017
+        try:
+            result= datetime.strptime(dt,"%a %b %d %H:%M:%S %Y")
+        except:
+            result= datetime.strptime(dt,"%Y-%m-%d")
+  return result
+
+def testdt(a):
+    print a,parsedt(a)
+
+def dttest():
+    testdt("2018-01-02T03:04:05Z")
+    testdt("2018-01-02 03:04:05")
+    testdt("2018-01-02")
+    testdt("Sat Jan 21 11:46:19 2017")
+    
 if __name__ == '__main__':
-    WRITE_DATABASE=False
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--overwrite",help="Overwrite entire database with migrated data",action="store_true")
+    parser.add_argument("--testdt",help="Only test datetime functions",action="store_true")
+    (args,extras) = parser.parse_known_args(sys.argv[1:])
+
+    WRITE_DATABASE=args.overwrite
+
+    if args.testdt:
+        dttest()
+        sys.exit(0)
 
     if WRITE_DATABASE:
         print """
         ******
         ****** WRITING DATABASE
+        ******
+        ****** I will overwrite your ENTIRE DATABASE
         ******
         ****** PRESS CONTROL-C IF YOU DON'T WANT TO DESTROY IT!!!
         ******
@@ -321,9 +366,16 @@ if __name__ == '__main__':
 
         corrected_slack_ids={}
         slack_explicit_matches={}
-        for x in open("explicit_slack_ids.txt").readlines():
-            (a,b,c)=x.split()
-            slack_explicit_matches[b]=c
+        try:
+          for x in open("explicit_slack_ids.txt").readlines():
+              (a,b,c)=x.split()
+              slack_explicit_matches[b]=c
+        except:
+            print """
+        ***
+        *** explicit_slac_id_.txt not found - not importing
+        ***
+            """
 
         dbm = {}
         mc = ",".join(membercols)
@@ -488,7 +540,7 @@ if __name__ == '__main__':
 
         dbr = {}
         mc = ",".join(resource_cols)
-        print mc
+        #print mc
         rez = query_source_db("select "+mc+" from resources;")
 
         for x in rez:
@@ -506,7 +558,7 @@ if __name__ == '__main__':
         # TAGS by member
         dbr = {}
         mc = ",".join(tagsbymember_cols)
-        print mc
+        #print mc
         recs = query_source_db("select "+mc+" from tagsbymember;")
 
         # "member","tagtype","tagid","updated_date","tagname"
@@ -550,17 +602,17 @@ if __name__ == '__main__':
         # updated_date
         # level
         mc = ",".join(accessbymember_cols)
-        print mc
+        #print mc
         recs = query_source_db("select "+mc+" from accessbymember;")
         good=0
         bad=0
         for x in recs:
-            print "Access for ",x[0],x[1]
+            #print "Access for ",x[0],x[1]
             acc = AccessByMember()
             mid = Member.query.filter(Member.member==x[0]).first()
             rid = Resource.query.filter(Resource.name==x[1]).first()
             if mid == None or rid == None:
-                #print x,mid,rid
+                #print "FAILED FOB",x,mid,rid
                 bad+=1
             else:
                 acc.member_id=mid.id
@@ -590,10 +642,10 @@ if __name__ == '__main__':
         ##
 
         mc = ",".join(['entry','entrytype','reason','updated_date'])
-        print mc
+        #print mc
         recs = query_source_db("select "+mc+" from blacklist;")
         for x in recs:
-            print x
+            #print x
             bl = Blacklist()
             bl.entry=x[0]
             bl.entrytype=x[1]
@@ -618,7 +670,7 @@ if __name__ == '__main__':
         ##
 
         mc = ",".join(['waiverid','firstname','lastname','email','created_date'])
-        print mc
+        #print mc
         recs = query_source_db("select "+mc+" from waivers;")
         good=0
         bad=0
@@ -626,8 +678,9 @@ if __name__ == '__main__':
             mid = Member.query.filter(Member.firstname==x[1]).filter(Member.lastname==x[2]).first()
             w = Waiver()
             if mid:
-                #print "FOUND MATCH",mid.first().firstname,mid.first().lastname,x[1],x[2]
+                #print "FOUND MATCH",mid.firstname,mid.lastname,x[1],x[2]
                 #print "FOUND MATCH",mid.firstname,mid.lastname,x[1],x[2],mid.id
+                #print "AADD ID",mid.id
                 w.memberid=mid.id
                 good+=1
             else:
