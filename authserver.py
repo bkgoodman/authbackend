@@ -624,12 +624,7 @@ def create_routes():
         mid = safestr(id)
         sqlstr = "select tag_id,tag_type,tag_name from tags_by_member where member_id = '%s'" % mid
         tags = query_db(sqlstr)
-        sqlstr = """
-            SELECT r.name,r.description,r.owneremail,a.is_active FROM resources as r
-            LEFT JOIN accessbymember a ON r.id = a.resource_id
-            INNER JOIN members m ON m.id = a.user_id
-            WHERE m.member='%s';""" % mid
-        app.logger.debug(sqlstr)
+        sqlstr = """select * from resources r LEFT OUTER JOIN accessbymember a ON a.resource_id = r.id  AND a.user_id = (SELECT m.id FROM members m WHERE m.member='%s');""" % mid
         m = query_db(sqlstr)
         member = {}
         member['id'] = mid
