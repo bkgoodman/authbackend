@@ -24,8 +24,8 @@ class User(db.Model,UserMixin):
 class AccessByMember(db.Model):
     __tablename__ = 'accessbymember'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
-    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'),nullable=False)
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'),nullable=False)
     active = db.Column('is_active',db.Boolean(), nullable=False, server_default='1')
     time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
@@ -38,9 +38,9 @@ class AccessByMember(db.Model):
 class Logs(db.Model):
     __tablename__ = 'logs'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
-    doneby_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    doneby = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     event_type = db.Column(db.String(50))
     message = db.Column(db.String(100))
 
@@ -54,7 +54,7 @@ class Role(db.Model):
 class UserRoles(db.Model):
     __tablename__ = 'user_roles'
     id = db.Column(db.Integer(), primary_key=True)
-    user_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    member_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     role_id = db.Column(db.Integer(), db.ForeignKey('roles.id', ondelete='CASCADE'))
 
 class Resource(db.Model):

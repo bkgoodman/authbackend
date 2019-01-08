@@ -225,6 +225,18 @@ def get_slack_users():
         return slack_users
 
 if __name__ == '__main__':
+    WRITE_DATABASE=False
+
+    if WRITE_DATABASE:
+        print """
+        ******
+        ****** WRITING DATABASE
+        ******
+        ****** PRESS CONTROL-C IF YOU DON'T WANT TO DESTROY IT!!!
+        ******
+        """
+        time.sleep(5)
+
     app = create_app()
     db.init_app(app)
     user_manager = UserManager(app, db, User)
@@ -232,7 +244,7 @@ if __name__ == '__main__':
         # Extensions like Flask-SQLAlchemy now know what the "current" app
         # is while within this block. Therefore, you can now run........
         db.create_all()
-        createDefaultUsers(app)
+        if WRITE_DATABASE: createDefaultUsers(app)
 
         tables=[
         "accessbyid","logs","payments","waivers",
@@ -448,9 +460,9 @@ if __name__ == '__main__':
                 #print mem
                 #print x[0],x[1],first,last,x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],created
            
-                #db.session.add(mem)
-        #db.session.flush()
-        #db.session.commit()
+                if WRITE_DATABASE: db.session.add(mem)
+        if WRITE_DATABASE: db.session.flush()
+        if WRITE_DATABASE: db.session.commit()
 
         """
         mem.member = db.Column(db.String(50), unique=True)
@@ -486,9 +498,9 @@ if __name__ == '__main__':
             resources.description = x[1]
             resources.owneremail = x[2]
             #print resources
-            #db.session.add(resources)
-        #db.session.flush()
-        #db.session.commit()
+            if WRITE_DATABASE: db.session.add(resources)
+        if WRITE_DATABASE: db.session.flush()
+        if WRITE_DATABASE: db.session.commit()
 
         #
         # TAGS by member
@@ -522,9 +534,9 @@ if __name__ == '__main__':
                 lastupdate= datetime.strptime(x[3],"%Y-%m-%d")
                 local_dt = local.localize(lastupdate, is_dst=None)
             #print newtag,x,lastupdate
-            #db.session.add(newtag)
-        #db.session.flush()
-        #db.session.commit()
+            if WRITE_DATABASE: db.session.add(newtag)
+        if WRITE_DATABASE: db.session.flush()
+        if WRITE_DATABASE: db.session.commit()
 
         print "FOBs migrated",good,"failed",bad
 
@@ -543,32 +555,33 @@ if __name__ == '__main__':
         good=0
         bad=0
         for x in recs:
+            print "Access for ",x[0],x[1]
             acc = AccessByMember()
             mid = Member.query.filter(Member.member==x[0]).first()
             rid = Resource.query.filter(Resource.name==x[1]).first()
-            if not mid or not rid:
+            if mid == None or rid == None:
                 #print x,mid,rid
                 bad+=1
             else:
-                acc.member=mid.id
-                acc.resource=rid.id
+                acc.member_id=mid.id
+                acc.resource_id=rid.id
                 good+=1
-            acc.enabled=x[2]
-            acc.level=0
-            try:
-                acc.updated_date= datetime.strptime(x[3],"%Y-%m-%d %H:%M:%S")
-                local_dt = local.localize(lastupdate, is_dst=None)
-            except:
-                # Sat Jan 21 11:46:19 2017
+                acc.enabled=x[2]
+                acc.level=0
                 try:
-                    acc.updated_date= datetime.strptime(x[3],"%a %b %d %H:%M:%S %Y")
+                    acc.updated_date= datetime.strptime(x[3],"%Y-%m-%d %H:%M:%S")
                     local_dt = local.localize(lastupdate, is_dst=None)
                 except:
-                    acc.updated_date= datetime.strptime(x[3],"%Y-%m-%d")
-                    local_dt = local.localize(lastupdate, is_dst=None)
-            #db.session.add(acc)
-        #db.session.flush()
-        #db.session.commit()
+                    # Sat Jan 21 11:46:19 2017
+                    try:
+                        acc.updated_date= datetime.strptime(x[3],"%a %b %d %H:%M:%S %Y")
+                        local_dt = local.localize(lastupdate, is_dst=None)
+                    except:
+                        acc.updated_date= datetime.strptime(x[3],"%Y-%m-%d")
+                        local_dt = local.localize(lastupdate, is_dst=None)
+                if WRITE_DATABASE: db.session.add(acc)
+                if WRITE_DATABASE: db.session.flush()
+        if WRITE_DATABASE: db.session.commit()
         print "AccessByMember migrated",good,"failed",bad
 
 
@@ -596,9 +609,9 @@ if __name__ == '__main__':
                 except:
                     bl.updated_date= datetime.strptime(x[3],"%Y-%m-%d")
                     local_dt = local.localize(lastupdate, is_dst=None)
-            #db.session.add(bl)
-        #db.session.flush()
-        #db.session.commit()
+            if WRITE_DATABASE: db.session.add(bl)
+        if WRITE_DATABASE: db.session.flush()
+        if WRITE_DATABASE: db.session.commit()
 
         ##
         ## Waivers
@@ -635,8 +648,15 @@ if __name__ == '__main__':
                     w.created_date= datetime.strptime(x[4],"%Y-%m-%d")
                     local_dt = local.localize(lastupdate, is_dst=None)
             found=False
-            #db.session.add(w)
-        #db.session.flush()
-        #db.session.commit()
+            if WRITE_DATABASE: db.session.add(w)
+        if WRITE_DATABASE: db.session.flush()
+        if WRITE_DATABASE: db.session.commit()
         print "waivers migrated",good,"nomatches",bad
+
+    if not WRITE_DATABASE:
+        print """
+        ******
+        ****** WRITING DATABASE WAS DISABLED
+        ******
+        """
 

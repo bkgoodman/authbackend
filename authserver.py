@@ -45,7 +45,7 @@ logging.basicConfig(stream=sys.stderr)
 import pprint
 import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
-from authlibs.db_models import db, User, Role, UserRoles
+from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember
 
 
 # Load general configuration from file
@@ -215,20 +215,30 @@ def execute_db(query):
 
 def clearAccess(mid):
     """Remove all existing access permissions for a given, known safe member id"""
-    sqlstr = "DELETE from accessbymember where member = '%s'" % mid
+    sqlstr = "DELETE from accessbymember where member_id = (SELECT m.id FROM members m WHERE member='%s');" % mid
     execute_db(sqlstr)
     get_db().commit()
 
 def addAccess(mid,access):
     """Add access permissions from a list for a given, known safe member id"""
-    perms = []
+    # perms = []
+    # Member.query.filter(Member.member=="0").first()
+    uid = Member.query.filter(Member.member==mid).with_entities(Member.id)
     for resource in access:
-        print("Adding %s for %s" % (resource,mid))
-        perms.append((resource, mid, '1', time.strftime("%c")))
-    print perms
+        #print("Adding %s for %s" % (resource,mid))
+        acc = AccessByMember()
+        acc.member_id=uid
+        acc.resource_id = Resource.query.filter(Resource.name==resource).with_entities(Resource.id)
+        db.session.add(acc)
+    db.session.commit()
+    db.session.flush()
+
+    
+    """
     cur = get_db().cursor()
     cur.executemany('INSERT into accessbymember (resource,member,enabled,updated_date) VALUES (?,?,?,?)', perms)
     get_db().commit()
+    """
 
 def expireMember(memberid):
     """Mark a user inactive due to expiration"""
@@ -613,7 +623,7 @@ def create_routes():
        app.logger.debug(str(member))
      
        sqlstr = """select r.description, a.time_updated from resources r left join accessbymember a
-                on r.id=a.resource_id and a.user_id=%d where a.is_active=1""" % member['id']
+                on r.id=a.resource_id and a.member_id=%d where a.is_active=1""" % member['id']
        access = query_db(sqlstr)
        return render_template('member_show.html',member=member,access=access)
 
@@ -624,7 +634,7 @@ def create_routes():
         mid = safestr(id)
         sqlstr = "select tag_id,tag_type,tag_name from tags_by_member where member_id = '%s'" % mid
         tags = query_db(sqlstr)
-        sqlstr = """select * from resources r LEFT OUTER JOIN accessbymember a ON a.resource_id = r.id  AND a.user_id = (SELECT m.id FROM members m WHERE m.member='%s');""" % mid
+        sqlstr = """select * from resources r LEFT OUTER JOIN accessbymember a ON a.resource_id = r.id  AND a.member_id = (SELECT m.id FROM members m WHERE m.member='%s');""" % mid
         m = query_db(sqlstr)
         member = {}
         member['id'] = mid
@@ -759,8 +769,11 @@ def create_routes():
     def resource_showusers(resource):
         """(Controller) Display users who are authorized to use this resource"""
         rid = safestr(resource)
-        sqlstr = "select member from accessbymember where resource='%s'" % rid
+        #sqlstr = "select member from accessbymember where resource='%s'" % rid
+        #authusers = query_db(sqlstr)
+        sqlstr = "select a.id,a.member_id,m.member AS member from accessbymember a LEFT JOIN Members m ON m.id == a.member_id WHERE a.resource_id = (SELECT id FROM resources WHERE name='%s');" % rid
         authusers = query_db(sqlstr)
+        print "AUTHUSERS",authusers
         return render_template('resource_users.html',resource=rid,users=authusers)
 
     #TODO: Create safestring converter to replace string; converter?
