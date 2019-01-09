@@ -597,13 +597,30 @@ def create_routes():
         else:
             return redirect(url_for('members'))
 
-    @app.route('/members/<string:id>/edit', methods = ['GET'])
+    # memberedit
+    @app.route('/members/<string:id>/edit', methods = ['GET','POST'])
     @login_required
     def member_edit(id):
         mid = safestr(id)
         member = {}
 
-        return "Show the user editing form now, then call member_update"
+        if request.method=="POST" and  request.form['SaveChanges'] == "Save":
+            flash ("Changes Saved (Please Review!)")
+            m=Member.query.filter(Member.member==mid).first()
+            f=request.form
+            m.firstname= f['firstname']
+            m.lastname= f['lastname']
+            if f['phone'] == "None" or f['phone'].strip() == "":
+                m.phone=None
+            else:
+              m.phone= f['phone']
+            m.slack= f['slack']
+            m.alt_email= f['alt_email']
+            db.session.commit()
+            
+        member=Member.query.filter(Member.member==mid).first()
+        return render_template('member_edit.html',member=member)
+
 
     @app.route('/members/<string:id>', methods = ['GET'])
     @login_required
