@@ -46,7 +46,7 @@ def getSubscriptions(status=None):
         status = "all"
     subscriptions = []
     logger.info("Getting Stripe subscriptions with status '%s'" % status)
-    subs = stripe.Subscription.all(status=status,limit=50)
+    subs = stripe.Subscription.list(status=status,limit=50)
     for s in subs.auto_paging_iter():
         subscriptions.append(s)
         #print(s)

@@ -334,7 +334,7 @@ def _getResourceUsers(resource):
         from tags_by_member t join members m on t.member=m.member
         left outer join accessbymember a on a.member=t.member and a.resource='%s'
         left outer join (select member,MAX(event_date) as last_accessed from logs where resource='%s' group by member) l on t.member = l.member
-        left outer join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email
+        left outer join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email
 		left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
 		group by t.tag_id""" % (resource,resource)
     users = query_db(sqlstr)
@@ -612,9 +612,10 @@ def create_routes():
        #TODO: Move member query functions to membership module
        access = {}
        mid = safestr(id)
-       sqlstr = """select m.id, m.member, m.name, m.phone, m.time_updated, m.access_enabled, m.plan, m.slack,
-                m.access_reason, m.active, m.alt_email, s.expires_date, s.plan as plan, s.updated_date as payment_date, w.waiver_id
-                from members m left join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email 
+       sqlstr = """select m.id, m.member, m.stripe_name, m.phone, m.time_updated, m.access_enabled, m.plan, m.slack,
+                m.access_reason, m.active, m.alt_email, s.expires_date, s.plan as plan, s.updated_date as payment_date, 
+                m.firstname, m.lastname, w.created_date AS waiver_date
+                from members m left join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email 
                 LEFT OUTER JOIN waivers w ON m.id == w.member_id
                 where m.member='%s'""" % mid
        app.logger.debug(str(sqlstr))
@@ -891,9 +892,8 @@ def create_routes():
         sqlstr = """select p.member, m.firstname, m.lastname, p.email, p.paysystem, p.plan, p.customerid,
                 p.expires_date, p.updated_date, p.checked_date, p.created_date from payments p join
                 members m on m.member=p.member where p.member='%s'""" % pid
-        user = query_db(sqlstr)
+        #user = Subscription.query.filter(
         return render_template('payments_member.html',user=user)
-
     @app.route('/payments/reports', methods = ['GET'])
     @login_required
     def payments_reports():
@@ -1074,7 +1074,7 @@ def create_routes():
     @login_required
     def api_v1_members():
         """(API) Return a list of all members. either in CSV or JSON"""
-        sqlstr = "select m.member,m.plan,m.updated_date,s.expires_date from members m inner join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email"
+        sqlstr = "select m.member,m.plan,m.updated_date,s.expires_date from members m inner join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email"
         outformat = request.args.get('output','json')
         filters = {}
         filters['active'] = safestr(request.args.get('active',''))
@@ -1122,7 +1122,7 @@ def create_routes():
         mid = safestr(id)
         outformat = request.args.get('output','json')
         sqlstr = """select m.member, m.plan, m.alt_email, m.firstname, m.lastname, m.phone, s.expires_date
-                from members m inner join subscriptions s on lower(s.name)=lower(m.name) and s.email=m.alt_email where m.member='%s'""" % mid
+                from members m inner join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email where m.member='%s'""" % mid
         m = query_db(sqlstr,"",True)
         if outformat == 'json':
             output = {'member': m['member'],'plan': m['plan'],'alt_email': m['plan'],

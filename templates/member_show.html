@@ -10,7 +10,11 @@
 	  </tr>
 	   <tr>
 		<td><div>Name:</div></td>
-		<td>{{ member.name }}</td>
+		<td>{{ member.lastname }}, {{ member.firstname }}</td>
+	  </tr>
+	   <tr>
+		<td><div>Name appearing in Stripe (payment sytem):</div></td>
+		<td>{{ member.stripe_name }}</td>
 	  </tr>
 		<tr>
 		<td><div {{ 'class=errortext' if (member.active != 'true')  }}>Active:</div></td>
@@ -42,7 +46,7 @@
 	  </tr> 
 	  <tr>
 			<td><div>Waiver Completed</div></td>
-			<td>{{ member.waiver_id }}</td>
+			<td>{{ member.waiver_date }}</td>
 	  </tr> 
 	</table>
 	<div class="sectionhead">Current Access (<a href="{{ url_for('member_editaccess',id=member.member) }}">Edit</a>):</div>

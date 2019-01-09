@@ -202,7 +202,8 @@ def get_slack_users():
                     #print x['real_name_normlized']
                     pass
                 else:
-                    print "NO REAL NAME FOR",x['name']
+                    #print "NO REAL NAME FOR",x['name']
+                    pass
                 pass
             if x['deleted']==False  and x['is_app_user']==False and x['is_bot'] == False and 'email' in x['profile']:
                 u["email"]=x["profile"]["email"]
@@ -357,9 +358,11 @@ if __name__ == '__main__':
 
         # Find odd slack users
         su = get_slack_users()
+        """
         for x in su:
             vv=x.split(".")
             if (len(vv)!=2): print x
+        """
 
         # Members to Slack IDs
 
@@ -457,6 +460,7 @@ if __name__ == '__main__':
         ## Okay build new "member" table..
         ##
 
+      
         for x in  members:
             slack=None
             if x[0] in corrected_slack_ids:
@@ -481,19 +485,9 @@ if __name__ == '__main__':
                     first=""
                     last=""
 
-            # 2019-01-03T18:35:22Z
-            # 2017-06-12 13:44:39
             created=None
             if (x[12]):
-                try:
-                    created= datetime.strptime(x[12],"%Y-%m-%dT%H:%M:%SZ")
-                    # TODO CONFIRT
-                except BaseException as e:
-                    print "ERROR",e
-                    local = pytz.timezone ("America/New_York")
-                    created= datetime.strptime(x[12],"%Y-%m-%d %H:%M:%S")
-                    local_dt = local.localize(created, is_dst=None)
-                    utc_dt = local_dt.astimezone(pytz.utc)
+                created=parsedt(x[12])
 
                 mem.member = x[0]
                 mem.email = x[0]+"@makeitlabs.com"
@@ -507,7 +501,7 @@ if __name__ == '__main__':
                 mem.access_reason = x[8]
                 mem.active = x[9]
                 mem.nickname = first
-                mem.name = first+" "+last
+                mem.stripe_name = x[11]
                 mem.time_created = created
                 #print mem
                 #print x[0],x[1],first,last,x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],created
@@ -579,12 +573,7 @@ if __name__ == '__main__':
             newtag.tag_id=x[2]
             #newtag.updated_date
             newtag.tag_name=x[4]
-            try:
-                lastupdate= datetime.strptime(x[3],"%Y-%m-%d %H:%M:%S")
-                local_dt = local.localize(lastupdate, is_dst=None)
-            except:
-                lastupdate= datetime.strptime(x[3],"%Y-%m-%d")
-                local_dt = local.localize(lastupdate, is_dst=None)
+            lastupdate=parsedt(x[3])
             #print newtag,x,lastupdate
             if WRITE_DATABASE: db.session.add(newtag)
         if WRITE_DATABASE: db.session.flush()
@@ -620,17 +609,7 @@ if __name__ == '__main__':
                 good+=1
                 acc.enabled=x[2]
                 acc.level=0
-                try:
-                    acc.updated_date= datetime.strptime(x[3],"%Y-%m-%d %H:%M:%S")
-                    local_dt = local.localize(lastupdate, is_dst=None)
-                except:
-                    # Sat Jan 21 11:46:19 2017
-                    try:
-                        acc.updated_date= datetime.strptime(x[3],"%a %b %d %H:%M:%S %Y")
-                        local_dt = local.localize(lastupdate, is_dst=None)
-                    except:
-                        acc.updated_date= datetime.strptime(x[3],"%Y-%m-%d")
-                        local_dt = local.localize(lastupdate, is_dst=None)
+                acc.updated_date=x[3]
                 if WRITE_DATABASE: db.session.add(acc)
                 if WRITE_DATABASE: db.session.flush()
         if WRITE_DATABASE: db.session.commit()
@@ -650,17 +629,7 @@ if __name__ == '__main__':
             bl.entry=x[0]
             bl.entrytype=x[1]
             bl.reason=x[2]
-            try:
-                bl.updated_date= datetime.strptime(x[3],"%Y-%m-%d %H:%M:%S")
-                local_dt = local.localize(lastupdate, is_dst=None)
-            except:
-                # Sat Jan 21 11:46:19 2017
-                try:
-                    bl.updated_date= datetime.strptime(x[3],"%a %b %d %H:%M:%S %Y")
-                    local_dt = local.localize(lastupdate, is_dst=None)
-                except:
-                    bl.updated_date= datetime.strptime(x[3],"%Y-%m-%d")
-                    local_dt = local.localize(lastupdate, is_dst=None)
+            bl.updated_date=parsedt(x[3])
             if WRITE_DATABASE: db.session.add(bl)
         if WRITE_DATABASE: db.session.flush()
         if WRITE_DATABASE: db.session.commit()
@@ -681,7 +650,7 @@ if __name__ == '__main__':
                 #print "FOUND MATCH",mid.firstname,mid.lastname,x[1],x[2]
                 #print "FOUND MATCH",mid.firstname,mid.lastname,x[1],x[2],mid.id
                 #print "AADD ID",mid.id
-                w.memberid=mid.id
+                w.member_id=mid.id
                 good+=1
             else:
                 bad+=1
@@ -689,17 +658,7 @@ if __name__ == '__main__':
             w.lastname=x[2]
             w.waiver_id=x[0]
             w.email=x[3]
-            try:
-                w.created_date= datetime.strptime(x[4],"%Y-%m-%d %H:%M:%S")
-                local_dt = local.localize(lastupdate, is_dst=None)
-            except:
-                # Sat Jan 21 11:46:19 2017
-                try:
-                    w.created_date= datetime.strptime(x[4],"%a %b %d %H:%M:%S %Y")
-                    local_dt = local.localize(lastupdate, is_dst=None)
-                except:
-                    w.created_date= datetime.strptime(x[4],"%Y-%m-%d")
-                    local_dt = local.localize(lastupdate, is_dst=None)
+            w.created_date= parsedt(x[4])
             found=False
             if WRITE_DATABASE: db.session.add(w)
         if WRITE_DATABASE: db.session.flush()

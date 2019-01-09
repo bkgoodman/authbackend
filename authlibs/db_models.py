@@ -90,7 +90,7 @@ class Member(db.Model):
     access_reason = db.Column(db.String(50))
     active = db.Column(db.Integer())
     nickname = db.Column(db.String(50))
-    name = db.Column(db.String(50))
+    stripe_name = db.Column(db.String(50))
     time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
 

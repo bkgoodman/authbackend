@@ -24,7 +24,7 @@ def syncWithSubscriptions():
 
 def searchMembers(searchstr):
   sstr = "%" + searchstr + "%"
-  sqlstr = "SELECT * FROM  members WHERE name LIKE '%s' OR member LIKE '%s'" % (sstr, sstr)
+  sqlstr = "SELECT * FROM  members WHERE stripe_name LIKE '%s' OR member LIKE '%s' or firstname LIKE '%s' or lastname LIKE '%s' or slack LIKE '%s'" % (sstr, sstr, sstr, sstr, sstr)
   current_app.logger.debug(sqlstr)
   return dbutil.query_db(sqlstr)
 
@@ -48,9 +48,14 @@ def createMember(m):
 
 def getMissingMembers():
     """Return details from active Subscriptions for name+email combination not in Members table"""
-    sqlstr = """select s.name,s.email,s.subid,s.plantype,s.customerid,s.active,s.created_date from subscriptions s left outer
-    join members m on s.name=m.name and s.email=m.alt_email where m.name is null and s.active = 'true' and s.plantype NOT IN ('workspace','trial') order by s.created_date"""
+    sqlstr = """select s.name,s.email,s.subid,s.plan,s.customerid,s.active,s.created_date from subscriptions s left outer
+    join members m on s.name=m.stripe_name and s.email=m.alt_email where m.stripe_name is null and s.active = 'true' and s.plan NOT IN ('workspace','trial') order by s.created_date"""
     missing = dbutil.query_db(sqlstr)
+
+    sqlstr = """SELECT count(*) FROM subscriptions s 
+    LEFT OUTER JOIN members m on s.name=m.stripe_name AND s.email=m.alt_email WHERE
+    m.stripe_name IS NULL AND s.active = 'true' AND s.plan NOT IN ('workspace','trial') ORDER BY s.created_date"""
+    matched = dbutil.query_db(sqlstr)
     return missing
     
 def addMissingMembers():
@@ -74,7 +79,7 @@ def addMissingMembers():
             continue
         else:
             logger.info("Missing member: %s (%s) (%s)" % (p['name'],p['email'],p['created_date']))
-            members.append((p['name'],p['email'],p['plantype'],p['active'],p['created_date']))
+            members.append((p['name'],p['email'],p['plan'],p['active'],p['created_date']))
     if len(members) > 0:
         logger.info("There were %i members missing, adding records now." % len(members))
         cur = dbutil.get_db().cursor()
@@ -102,7 +107,7 @@ def googleEmailExists(m,memberid):
   
 def createMissingMemberAccounts(isTest=True,searchGoogle=False):
     """For any Member without a Member ID, create one (includes Google Domain account). If we can't, notify admins"""
-    sqlstr = """select m.member, m.name, m.alt_email from members m order by m.created_date"""
+    sqlstr = """select m.member, m.stripe_name, m.alt_email from members m order by m.time_created"""
     members = dbutil.query_db(sqlstr)
     
     # Mark used memberids
