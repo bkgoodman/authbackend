@@ -78,8 +78,8 @@ def addMissingMembers():
             logger.info("Explicitly ignoring customer id %s" % p['customerid'])
             continue
         else:
-            logger.info("Missing member: %s (%s) (%s)" % (p['name'],p['email'],p['created_date']))
-            members.append((p['name'],p['email'],p['plan'],p['active'],p['created_date']))
+            logger.info("Missing member: %s (%s) (%s)" % (p['stripe_name'],p['email'],p['created_date']))
+            members.append((p['stripe_name'],p['email'],p['plan'],p['active'],p['created_date']))
     if len(members) > 0:
         logger.info("There were %i members missing, adding records now." % len(members))
         cur = dbutil.get_db().cursor()
@@ -91,7 +91,7 @@ def addMissingMembers():
 
 def getUnusedMemberId(m,memberids):
   # Create a userid in our default format - concatenate name with "."
-  newid = utilities._joinNameString(m['name'])
+  newid = utilities._joinNameString(m['stripe_name'])
   incr = 0
   while memberids[newid] == 1:
     incr = incr + 1
@@ -121,20 +121,20 @@ def createMissingMemberAccounts(isTest=True,searchGoogle=False):
         # Handle duplicate names through numeric additions
         memberid = getUnusedMemberId(m,memberids)
         if searchGoogle and googleEmailExists(m,memberid):
-          msg = "Manual intervention required: %s (%s) needs an account created. Memberid %s is not used, but has an account." % (m['name'],m['alt_email'],memberid)
+          msg = "Manual intervention required: %s (%s) needs an account created. Memberid %s is not used, but has an account." % (m['stripe_name'],m['alt_email'],memberid)
           logger.error(msg)
           continue
           
         # We're in testing mode, so populating old accounts where the id is not a dupe but the account exists
-        sqlstr = "update members set member='%s' where name='%s' and alt_email='%s'" % (memberid,m['name'],m['alt_email'])
+        sqlstr = "update members set member='%s' where name='%s' and alt_email='%s'" % (memberid,m['stripe_name'],m['alt_email'])
         dbutil.execute_db(sqlstr)
-        logger.info("Adding member Id %s to database for user %s" % (memberid,m['name']))
+        logger.info("Adding member Id %s to database for user %s" % (memberid,m['stripe_name']))
             
         # Create the account
         if isTest:
             logger.warn("Need to see if we really need an account for %s (%s) or if this is a data issue" % (memberid,m['alt_email']))
         else:
-            nameparts = utilities.nameToFirstLast(m['name'])
+            nameparts = utilities.nameToFirstLast(m['stripe_name'])
             # - Use first portion of name as Firstname, all remaining as Familyname
             password = "%s%d%d" % (nameparts['last'],random.randint(1,100000),len(nameparts['last']))
             google.createUser(nameparts['first'],nameparts['last'],memberid,m['alt_email'],password)
