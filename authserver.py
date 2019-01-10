@@ -140,7 +140,7 @@ def check_auth(username, password):
     password combination is valid.
     """
     print "CHECK_AUTH",username,password
-    if password == "" or password is one or not User.query.filter_by(email=username,api_key=password).first():
+    if password == "" or password is None or not User.query.filter_by(email=username,api_key=password).first():
         print "BAD AUTH"
         return False
     else:
