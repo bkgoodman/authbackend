@@ -32,6 +32,7 @@ import pycurl, sys
 import ConfigParser
 import xml.etree.ElementTree as ET
 from StringIO import StringIO
+from authlibs import cli
 from authlibs import utilities as authutil
 from authlibs import payments as pay
 from authlibs import smartwaiver as waiver
@@ -46,6 +47,7 @@ import pprint
 import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
 from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember
+import argparse
 
 
 # Load general configuration from file
@@ -137,11 +139,12 @@ def check_auth(username, password):
     """This function is called to check if a username /
     password combination is valid.
     """
-    print(username)
-    print(password)
-    if not User.query.filter_by(email=username,api_key=password).first():
+    print "CHECK_AUTH",username,password
+    if password == "" or password is one or not User.query.filter_by(email=username,api_key=password).first():
+        print "BAD AUTH"
         return False
     else:
+        print "GOOD AUTH"
         return True
 
 def authenticate():
@@ -1223,9 +1226,13 @@ def createDefaultUsers(app):
         user.roles.append(admin_role)
         db.session.commit()
     # TODO - other default users?
-
+        
 # Start development web server
 if __name__ == '__main__':
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--command",help="Special command",action="store_true")
+    (args,extras) = parser.parse_known_args(sys.argv[1:])
+
     app = create_app()
     db.init_app(app)
     user_manager = UserManager(app, db, User)
@@ -1238,5 +1245,8 @@ if __name__ == '__main__':
         if DeployType.lower() != "production":
           app.jinja_env.globals['DEPLOYTYPE'] = DeployType
           kick_backend(Config)
+        if  args.command:
+            cli.cli_command(extras,app=app,um=user_manager)
+            sys.exit(0)
     create_routes()
     app.run(host=ServerHost, port=ServerPort, debug=True)
