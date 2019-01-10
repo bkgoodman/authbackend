@@ -340,6 +340,25 @@ def _getResourceUsers(resource):
         left outer join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email
 		left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
 		group by t.tag_id""" % (resource,resource)
+
+    sqlstr = """select t.member_id,t.tag_id,m.plan,m.nickname,/*l.last_accessed,*/m.access_enabled as enabled, m.access_reason as reason,s.expires_date,a.resource_id,
+        (case when a.resource_id is not null then 'allowed' else 'denied' end) as allowed,
+        (case when s.expires_date < Datetime('now','-14 day') then 'true' else 'false' end) as past_due,
+        (case when s.expires_date < Datetime('now') AND s.expires_date > Datetime('now','-13 day') then 'true' else 'false' end) as grace_period,
+        (case when s.expires_date < Datetime('now','+2 day') then 'true' else 'false' end) as expires_soon,
+        (case when a.level is not null then a.level else '0' end) as level,
+        m.member, /* BKG */
+        NULL as last_accessed
+        from tags_by_member t join members m on t.member=m.member
+        left outer join accessbymember a on a.member_id=t.member_id and a.resource_id=
+              (SELECT id FROM resources WHERE name ="%s")
+        left outer join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email
+        left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
+        group by t.tag_id;""" % (resource)
+    
+    """ REMOVED:
+        /*  left outer join (select member,MAX(event_date) as last_accessed from logs where resource_id='%s' group by member) l on t.member = l.member */
+    """
     users = query_db(sqlstr)
     return users
 
@@ -348,6 +367,13 @@ def getAccessControlList(resource):
     """Given a Resource, return what tags/users can/cannot access a reource and why as a JSON structure"""
     users = _getResourceUsers(resource)
     jsonarr = []
+    resource_rec = Resource.query.filter(Resource.name==resource).first()
+    if resource_rec is None or not resource_rec.info_text:
+        resource_text = "See the Wiki for training information and resource manager contact info."
+        if resource_rec and resource_rec.info_url:
+            resrouce_text += " "+resource_rec.info_url
+    else:   
+        resource_text = resource_rec.info_text
     c = {'board': "Contact board@makeitlabs.com with any questions.",
          'orientation': 'Orientation is every Thursday at 7pm, or contact board@makeitlabs to schedule a convenient time',
          'resource': "See the Wiki for training information and resource manager contact info."}
@@ -375,6 +401,7 @@ def getAccessControlList(resource):
         elif u['grace_period'] == 'true':
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
+        #print dict(u)
         jsonarr.append({'tagid':u['tag_id'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level']})
     return json_dump(jsonarr)
 
@@ -1026,8 +1053,6 @@ def create_routes():
         return redirect(url_for('waivers'))
 
 
-
-
     # ------------------------------------------------------------
     # Google Accounts and Welcome Letters
     # -----------------------------------------------------------
@@ -1084,6 +1109,18 @@ def create_routes():
     def api_v1_reloadacl():
         kick_backend(Config)
         return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
+
+    @app.route('/api/v1/whoami', methods=['GET'])
+    def whoami():
+        print dir(request)
+        user=None
+        email=None
+        if  request.authorization:
+            user=User.query.filter(User.email==request.authorization.username).first()
+            if user:
+              email=user.email
+        print email
+        return json_dump("I don't know", 200, {'Content-type': 'text/plain'})
 
     @app.route('/api/v3/test', methods=['GET'])
     @requires_auth
@@ -1214,11 +1251,18 @@ def init_db(app):
     # DB Models in db_models.py, init'd to SQLAlchemy
     db.init_app(app)
 
+def createDefaultRoles(app):
+    roles=['Admin','RATT']
+    for role in roles:
+      r = Role.query.filter(Role.name==role).first()
+      if not r:
+          r = Role(name=role)
+          db.session.add(r)
+    db.session.commit()
+
 def createDefaultUsers(app):
+    createDefaultRoles(app)
     # Create default admin role and user if not present
-    admin_role = Role.query.filter(Role.name=='Admin').first()
-    if not admin_role:
-        admin_role = Role(name='Admin')
     if not User.query.filter(User.email == AdminUser).first():
         user = User(email=AdminUser,password=user_manager.hash_password(AdminPasswd),email_confirmed_at=datetime.utcnow())
         app.logger.debug("ADD USER "+str(user))
