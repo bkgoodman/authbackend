@@ -1,4 +1,5 @@
 # Database models
+# vim:expandtab:tabstop=4
 # Single file containing all required DB models, for now
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, UserMixin
@@ -34,6 +35,7 @@ class AccessByMember(db.Model):
     permissions = db.Column(db.String(255), nullable=True, server_default='')
     created_by = db.Column(db.String(25), nullable=False, server_default='admin')
     level = db.Column(db.Integer(),default=0)
+    __table_args__ = (db.UniqueConstraint('member_id', 'resource_id', name='_member_resource_uc'),)
     
 class Logs(db.Model):
     __tablename__ = 'logs'

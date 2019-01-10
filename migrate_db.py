@@ -20,7 +20,8 @@ TODO:
 - More documentation
 """
 
-import argparse
+import argparse,os
+from sqlalchemy.exc import IntegrityError
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
@@ -51,14 +52,12 @@ import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
 from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver
 
-
 # Load general configuration from file
 defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
 Config = ConfigParser.ConfigParser(defaults)
 Config.read('makeit.ini')
 ServerHost = Config.get('General','ServerHost')
 ServerPort = Config.getint('General','ServerPort')
-Database = Config.get('General','Database')
 AdminUser = Config.get('General','AdminUser')
 AdminPasswd = Config.get('General','AdminPassword')
 DeployType = Config.get('General','Deployment')
@@ -74,7 +73,7 @@ USER_EMAIL_SENDER_NAME = USER_APP_NAME
 USER_EMAIL_SENDER_EMAIL = "noreply@example.com"
 
 # SQLAlchemy setting
-SQLALCHEMY_DATABASE_URI = "sqlite:///"+Database
+#SQLALCHEMY_DATABASE_URI = "sqlite:///"+Database
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # Load Waiver system data from file
@@ -94,11 +93,14 @@ def connect_source_db():
     con.row_factory = sqlite3.Row
     return con
 
+"""
 def connect_db():
-    """Convenience method to connect to the globally-defined database"""
-    con = sqlite3.connect(Database,check_same_thread=False)
+    global args.overwrite
+    print "USING",args.overwrite
+    con = sqlite3.connect(args.overwrite,check_same_thread=False)
     con.row_factory = sqlite3.Row
     return con
+"""
 
 def safestr(unsafe_str):
     """Sanitize input strings used in some operations"""
@@ -117,12 +119,13 @@ def init_db():
             db.cursor().executescript(f.read())
         db.commit()
 
+"""
 def get_db():
-    """Convenience method to get the current DB loaded by Flask, or connect to it if first access"""
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = connect_db()
     return db
+"""
 
 def get_source_db():
     db = getattr(g, '_source_database', None)
@@ -179,7 +182,7 @@ def process_source_table(table,columns):
 
 def get_slack_users():
         try:
-          slackdata=json.load(open("../slackcli/allusers.txt"))
+          slackdata=json.load(open("../allusers.txt"))
         except:
             print """
     ***
@@ -261,17 +264,16 @@ def dttest():
     
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()
-    parser.add_argument("--overwrite",help="Overwrite entire database with migrated data",action="store_true")
+    parser.add_argument("--overwrite",help="Overwrite entire database with migrated data")
     parser.add_argument("--testdt",help="Only test datetime functions",action="store_true")
     (args,extras) = parser.parse_known_args(sys.argv[1:])
 
-    WRITE_DATABASE=args.overwrite
 
     if args.testdt:
         dttest()
         sys.exit(0)
 
-    if WRITE_DATABASE:
+    if args.overwrite:
         print """
         ******
         ****** WRITING DATABASE
@@ -281,8 +283,15 @@ if __name__ == '__main__':
         ****** PRESS CONTROL-C IF YOU DON'T WANT TO DESTROY IT!!!
         ******
         """
-        time.sleep(5)
+        SQLALCHEMY_DATABASE_URI = "sqlite:///"+args.overwrite
+        if 'MIGRATE_OVERWRITE_NODELAY' not in os.environ:
+          time.sleep(5)
 
+    try:
+      os.unlink(args.overwrite)
+    except:
+      pass
+    
     app = create_app()
     db.init_app(app)
     user_manager = UserManager(app, db, User)
@@ -290,7 +299,7 @@ if __name__ == '__main__':
         # Extensions like Flask-SQLAlchemy now know what the "current" app
         # is while within this block. Therefore, you can now run........
         db.create_all()
-        if WRITE_DATABASE: createDefaultUsers(app)
+        if args.overwrite: createDefaultUsers(app)
 
         tables=[
         "accessbyid","logs","payments","waivers",
@@ -370,7 +379,7 @@ if __name__ == '__main__':
         corrected_slack_ids={}
         slack_explicit_matches={}
         try:
-          for x in open("explicit_slack_ids.txt").readlines():
+          for x in open("../explicit_slack_ids.txt").readlines():
               (a,b,c)=x.split()
               slack_explicit_matches[b]=c
         except:
@@ -506,9 +515,9 @@ if __name__ == '__main__':
                 #print mem
                 #print x[0],x[1],first,last,x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],created
            
-                if WRITE_DATABASE: db.session.add(mem)
-        if WRITE_DATABASE: db.session.flush()
-        if WRITE_DATABASE: db.session.commit()
+                if args.overwrite: db.session.add(mem)
+        if args.overwrite: db.session.flush()
+        if args.overwrite: db.session.commit()
 
         """
         mem.member = db.Column(db.String(50), unique=True)
@@ -544,9 +553,9 @@ if __name__ == '__main__':
             resources.description = x[1]
             resources.owneremail = x[2]
             #print resources
-            if WRITE_DATABASE: db.session.add(resources)
-        if WRITE_DATABASE: db.session.flush()
-        if WRITE_DATABASE: db.session.commit()
+            if args.overwrite: db.session.add(resources)
+        if args.overwrite: db.session.flush()
+        if args.overwrite: db.session.commit()
 
         #
         # TAGS by member
@@ -575,9 +584,9 @@ if __name__ == '__main__':
             newtag.tag_name=x[4]
             lastupdate=parsedt(x[3])
             #print newtag,x,lastupdate
-            if WRITE_DATABASE: db.session.add(newtag)
-        if WRITE_DATABASE: db.session.flush()
-        if WRITE_DATABASE: db.session.commit()
+            if args.overwrite: db.session.add(newtag)
+        if args.overwrite: db.session.flush()
+        if args.overwrite: db.session.commit()
 
         print "FOBs migrated",good,"failed",bad
 
@@ -594,6 +603,7 @@ if __name__ == '__main__':
         #print mc
         recs = query_source_db("select "+mc+" from accessbymember;")
         good=0
+        dup=0
         bad=0
         for x in recs:
             #print "Access for ",x[0],x[1]
@@ -604,16 +614,32 @@ if __name__ == '__main__':
                 #print "FAILED FOB",x,mid,rid
                 bad+=1
             else:
-                acc.member_id=mid.id
-                acc.resource_id=rid.id
+                member_temp = mid.member
+                resource_temp = rid.name
+                resource_id = rid.id
+                member_id = mid.id
+                acc.member_id=member_id
+                acc.resource_id=resource_id
                 good+=1
                 acc.enabled=x[2]
                 acc.level=0
                 acc.updated_date=x[3]
-                if WRITE_DATABASE: db.session.add(acc)
-                if WRITE_DATABASE: db.session.flush()
-        if WRITE_DATABASE: db.session.commit()
-        print "AccessByMember migrated",good,"failed",bad
+                if args.overwrite: 
+                    # See if it already exists
+                    if AccessByMember.query.filter(AccessByMember.member_id == member_id).filter(AccessByMember.resource_id == resource_id).first() is not None:
+                        print "DUPICATE",member_id,resource_id
+                    db.session.add(acc)
+                try:
+                    if args.overwrite: db.session.flush()
+                    if args.overwrite: db.session.commit()
+                except IntegrityError:
+                    # DON'T Access mid here - will do a query - and DB is in error state
+                    print "WARNING - DUPLICATE ACCESS RECORD",member_temp,resource_temp
+                    if args.overwrite: db.session.rollback()
+                    dup +=1
+                    good -=1
+    
+        print "AccessByMember migrated",good,"failed",bad,"Duplicate (error)",dup
 
 
         ##
@@ -630,9 +656,9 @@ if __name__ == '__main__':
             bl.entrytype=x[1]
             bl.reason=x[2]
             bl.updated_date=parsedt(x[3])
-            if WRITE_DATABASE: db.session.add(bl)
-        if WRITE_DATABASE: db.session.flush()
-        if WRITE_DATABASE: db.session.commit()
+            if args.overwrite: db.session.add(bl)
+        if args.overwrite: db.session.flush()
+        if args.overwrite: db.session.commit()
 
         ##
         ## Waivers
@@ -660,12 +686,12 @@ if __name__ == '__main__':
             w.email=x[3]
             w.created_date= parsedt(x[4])
             found=False
-            if WRITE_DATABASE: db.session.add(w)
-        if WRITE_DATABASE: db.session.flush()
-        if WRITE_DATABASE: db.session.commit()
+            if args.overwrite: db.session.add(w)
+        if args.overwrite: db.session.flush()
+        if args.overwrite: db.session.commit()
         print "waivers migrated",good,"nomatches",bad
 
-    if not WRITE_DATABASE:
+    if not args.overwrite:
         print """
         ******
         ****** WRITING DATABASE WAS DISABLED
