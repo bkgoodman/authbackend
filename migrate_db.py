@@ -620,7 +620,6 @@ if __name__ == '__main__':
                 member_id = mid.id
                 acc.member_id=member_id
                 acc.resource_id=resource_id
-                good+=1
                 acc.enabled=x[2]
                 acc.level=0
                 acc.updated_date=x[3]
@@ -628,16 +627,12 @@ if __name__ == '__main__':
                     # See if it already exists
                     if AccessByMember.query.filter(AccessByMember.member_id == member_id).filter(AccessByMember.resource_id == resource_id).first() is not None:
                         print "DUPICATE",member_id,resource_id
-                    db.session.add(acc)
-                try:
-                    if args.overwrite: db.session.flush()
-                    if args.overwrite: db.session.commit()
-                except IntegrityError:
-                    # DON'T Access mid here - will do a query - and DB is in error state
-                    print "WARNING - DUPLICATE ACCESS RECORD",member_temp,resource_temp
-                    if args.overwrite: db.session.rollback()
-                    dup +=1
-                    good -=1
+                        dup+=1
+                    else:
+                        good+=1
+                        db.session.add(acc)
+        if args.overwrite: db.session.flush()
+        if args.overwrite: db.session.commit()
     
         print "AccessByMember migrated",good,"failed",bad,"Duplicate (error)",dup
 
