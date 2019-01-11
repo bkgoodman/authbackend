@@ -1,6 +1,6 @@
 #!/usr/bin/python2
 """
-vim:tabstop=4:expandtab
+vim:tabstop=2:expandtab
 MakeIt Labs Authorization System, v0.4
 Author: bill.schongar@makeitlabs.com
 
@@ -559,6 +559,24 @@ if __name__ == '__main__':
 
         #
         # TAGS by member
+
+        # Read decoded hashes
+        byencoded={}
+        try:
+          for x in open("../unhashed_tags_all.txt").readlines():
+              sp=x.strip().split()
+              uid=sp[3]
+              enc=sp[2]
+              rawno=sp[1]
+              byencoded[enc]=rawno
+        except:
+            print """
+***
+*** ERROR: No decoded hash file found
+*** Tags IDs cannot be migrated
+***
+            """
+
         dbr = {}
         mc = ",".join(tagsbymember_cols)
         #print mc
@@ -567,28 +585,35 @@ if __name__ == '__main__':
         # "member","tagtype","tagid","updated_date","tagname"
         good=0
         bad=0
+        nounhash=0
         for x in recs:
             newtag = MemberTag()
             mid = Member.query.filter(Member.member==x[0]).first()
             newtag.member_id=None
+            goodtag=False
             if mid:
                 newtag.member_id=mid.id
-                good+=1
+                if x[2] in byencoded:
+                  good+=1
+                  newtag.tag_ident=byencoded[x[2]]
+                  goodtag=True
+                else:
+                  print "UNHASH LOOKUP FAILED FOR",x[2],x[0]
+                  nounhash+=1
             else:
                 #print "NO RECORD FOR",x
                 bad+=1
             newtag.member=x[0]
             newtag.tag_type=x[1]
-            newtag.tag_id=x[2]
             #newtag.updated_date
             newtag.tag_name=x[4]
             lastupdate=parsedt(x[3])
             #print newtag,x,lastupdate
-            if args.overwrite: db.session.add(newtag)
+            if args.overwrite and goodtag: db.session.add(newtag)
         if args.overwrite: db.session.flush()
         if args.overwrite: db.session.commit()
 
-        print "FOBs migrated",good,"failed",bad
+        print "FOBs migrated",good,"failed",bad,"Not-Unhashable",nounhash
 
         ##
         ## AccessByMember
