@@ -79,17 +79,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 waiversystem = {}
 waiversystem['Apikey'] = Config.get('Smartwaiver','Apikey')
 
-# RULE - only call this from web APIs - not internal functions
-# Reason: If we have calls or scripts that act on many records,
-# we probably shouldn't generate a million messages
-def kick_backend(Config):
-    """
-    client = paho.mqtt,client.Client()
-    client.tls_set(ca_certs=None, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED,
-      tls_version=ssl.PROTOCOL_TLS, ciphers=None)
-    client.connect(host, port=1883, keepalive=60, bind_address="")
-    client.publish(topic, payload=None, qos=0, retain=False)
-    """
+def get_mqtt_opts():
     opts={}
     ka=None
     base_topic = Config.get("MQTT","BaseTopic")
@@ -106,6 +96,14 @@ def kick_backend(Config):
     if Config.has_option("MQTT","username"):
         auth={'username':Config.get("MQTT","username"),'password':Config.get("MQTT","password")}
         opts['auth']=auth
+
+    return (host,port,base_topic,opts)
+    
+# RULE - only call this from web APIs - not internal functions
+# Reason: If we have calls or scripts that act on many records,
+# we probably shouldn't generate a million messages
+def kick_backend(Config):
+    (host,port,base_topic,opts) = get_mqtt_opts()
         
     try:
       topic= base_topic+"/broadcast/control/acl/update"
@@ -733,7 +731,7 @@ def create_routes():
     def member_tagdelete(id,tag_ident):
         """(Controller) Delete a Tag from a Member (HTTP GET, for use from a href link)"""
         mid = safestr(id)
-        tid = rfid_validate(tag_ident)
+        tid = authutil.rfid_validate(tag_ident)
         if not tid:
             flash("Invalid Tag - Must be 10 digit numeric")
         else:
@@ -1104,6 +1102,9 @@ def create_routes():
     @app.route('/api/v1/whoami', methods=['GET'])
     def whoami():
         print dir(request)
+        print "TYPE",type(current_user)
+        print "TYPE",current_user.has_role('Admin')
+        print "DIR",dir(current_user)
         user=None
         email=None
         if  request.authorization:

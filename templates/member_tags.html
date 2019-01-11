@@ -15,17 +15,10 @@
     </tr>
   {% for tag in tags %}
     <tr>
-<<<<<<< HEAD
         <td>{{ tag.tag_ident }}</td>
         <td>{{ tag.tag_type }}</td>
 		<td>{{ tag.tag_name }}</td>
         <td><a href="{{ url_for('member_tagdelete',id=mid,tag_ident=tag.tag_ident) }}">Delete</td>
-=======
-        <td>{{ tag.tag_id }}</td>
-        <td>{{ tag.tag_type }}</td>
-		<td>{{ tag.tag_name }}</td>
-        <td><a href="{{ url_for('member_tagdelete',id=mid,tag_id=tag.tag_id) }}">Delete</td>
->>>>>>> ba8c1d1fd4238b72a015c60f20f04a211f6dcf06
     </tr>
   {% endfor %}
   </table>
