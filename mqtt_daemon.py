@@ -7,14 +7,17 @@ This is a daemon only used to log stuff via MQTT
 """
 
 import sqlite3, re, time
-from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember
+from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Logs
 import argparse
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_sqlalchemy import SQLAlchemy
+from authlibs import utilities as authutil
+import json
 import ConfigParser,sys,os
 import paho.mqtt.client as mqtt
+import paho.mqtt.subscribe as sub
 
 # Load general configuration from file
 defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
@@ -70,8 +73,35 @@ def get_mqtt_opts():
     return (host,port,base_topic,opts)
 
 # The callback for when a PUBLISH message is received from the server.
-def on_message(client, userdata, msg):
-    print(msg.topic+" "+str(msg.payload))
+# 2019-01-11 17:09:01.736307
+def on_message(msg):
+    print msg
+    if True: #try:
+        with app.app_context():
+            log=Logs()
+            message = json.loads(msg.payload)
+            if ('member_id' in message):
+                log.member_id = message['member_id']
+            elif 'member' in message:
+                log.member_id = Member.query.filter(Member.member==message['member']).with_entities(Member.id)
+            if ('resource_id' in message):
+                log.resource_id = message['resource_id']
+            elif 'resource' in message:
+                log.resource_id = Resource.query.filter(Resource.name==message['resource']).with_entities(Resource.id)
+            if ('admin_id' in message):
+                log.doneby = message['admin_id']
+            elif 'admin' in message:
+                log.doneby = User.query.filter(User.email==message['admin']).with_entities(User.id)
+            if 'when' in message:
+                log.time_reported = authutil.parse_datetime(message['when'])
+            if 'event_code' in message:
+                log.event_code = message['event_code']
+            db.session.add(log)
+            db.session.commit()
+        print log
+    else: # except BaseException as e:
+        print "LOG ERROR",e,"PAYLOAD",msg.payload
+        print "NOW4"
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()
@@ -84,6 +114,8 @@ if __name__ == '__main__':
     with app.app_context():
       print User.query.first()
       # The callback for when the client receives a CONNACK response from the server.
+      (host,port,base_topic,opts) = get_mqtt_opts()
+      """
       def on_connect(client, userdata, flags, rc):
           print("Connected with result code "+str(rc))
 
@@ -95,8 +127,8 @@ if __name__ == '__main__':
 
       client = mqtt.Client()
       client.on_connect = on_connect
+      client.userdata = {'app':app}
       client.on_message = on_message
-      (host,port,base_topic,opts) = get_mqtt_opts()
 
       print "CONNECING"
       client.connect(host,port,60)
@@ -107,3 +139,13 @@ if __name__ == '__main__':
       # Other loop*() functions are available that give a threaded interface and a
       # manual interface.
       client.loop_forever()
+      """
+      while True:
+        if True: #try:
+            msg = sub.simple("ratt/log/#", hostname=host,port=port,**opts)
+            print("%s %s" % (msg.topic, msg.payload))
+            on_message(msg)
+        else: #except:
+            time.sleep(1)
+
+

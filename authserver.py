@@ -1048,6 +1048,17 @@ def create_routes():
         flash("Waivers added: %s" % updated)
         return redirect(url_for('waivers'))
 
+    # ------------------------------------------------------------
+    # Logs  
+    # ------------------------------------------------------------
+
+    @app.route('/logs', methods=['GET'])
+    @login_required
+    def show_logs():
+        sqlstr = "select waiver_id,email,firstname,lastname,created_date from waivers"
+        waivers = query_db(sqlstr)
+        return render_template('waivers.html',waivers=waivers)
+
 
     # ------------------------------------------------------------
     # Google Accounts and Welcome Letters

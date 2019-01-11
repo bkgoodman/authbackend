@@ -237,24 +237,9 @@ def get_slack_users():
         #    print x,slack_users[x]
         return slack_users
 
-def parsedt(dt):
-  tz=pytz.timezone("America/New_York")
-  try:
-    xx= datetime.strptime(dt,"%Y-%m-%dT%H:%M:%SZ")
-    result = pytz.utc.localize(xx, is_dst=None).astimezone(tz).replace(tzinfo=None)
-  except:
-    try:
-        result= datetime.strptime(dt,"%Y-%m-%d %H:%M:%S")
-    except:
-        # Sat Jan 21 11:46:19 2017
-        try:
-            result= datetime.strptime(dt,"%a %b %d %H:%M:%S %Y")
-        except:
-            result= datetime.strptime(dt,"%Y-%m-%d")
-  return result
 
 def testdt(a):
-    print a,parsedt(a)
+    print a,authutil.(a)
 
 def dttest():
     testdt("2018-01-02T03:04:05Z")
@@ -496,7 +481,7 @@ if __name__ == '__main__':
 
             created=None
             if (x[12]):
-                created=parsedt(x[12])
+                created=authutil.(x[12])
 
                 mem.member = x[0]
                 mem.email = x[0]+"@makeitlabs.com"
@@ -607,7 +592,7 @@ if __name__ == '__main__':
             newtag.tag_type=x[1]
             #newtag.updated_date
             newtag.tag_name=x[4]
-            lastupdate=parsedt(x[3])
+            lastupdate=authutil.(x[3])
             #print newtag,x,lastupdate
             if args.overwrite and goodtag: db.session.add(newtag)
         if args.overwrite: db.session.flush()
@@ -675,7 +660,7 @@ if __name__ == '__main__':
             bl.entry=x[0]
             bl.entrytype=x[1]
             bl.reason=x[2]
-            bl.updated_date=parsedt(x[3])
+            bl.updated_date=authutil.(x[3])
             if args.overwrite: db.session.add(bl)
         if args.overwrite: db.session.flush()
         if args.overwrite: db.session.commit()
@@ -704,7 +689,7 @@ if __name__ == '__main__':
             w.lastname=x[2]
             w.waiver_id=x[0]
             w.email=x[3]
-            w.created_date= parsedt(x[4])
+            w.created_date= authutil.(x[4])
             found=False
             if args.overwrite: db.session.add(w)
         if args.overwrite: db.session.flush()

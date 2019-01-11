@@ -45,6 +45,17 @@ class Logs(db.Model):
     doneby = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     event_type = db.Column(db.String(50))
     message = db.Column(db.String(100))
+    time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
+    time_reported = db.Column(db.DateTime(timezone=True))
+    event_code = db.Column(db.Integer(),index=True)
+
+    EVENT_USER_TAG_IN=0
+    EVENT_USER_TAG_OUT=1
+    EVENT_RESOURCE_POWER_ON=2
+    EVENT_RESOURCE_POWER_OFF=3
+    EVENT_RESOURCE_PROBLEM_REPORT=4
+    EVENT_RESOURCE_WATCHDOG=5
+    EVENT_RESOURCE_RATT_START=6
 
 # Define roles
 class Role(db.Model):

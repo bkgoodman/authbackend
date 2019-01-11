@@ -5,6 +5,7 @@ import hashlib
 import string
 import sqlite3
 import re
+import pytz
 from datetime import datetime,date
     
 def hash_rfid(rfid):
@@ -59,5 +60,22 @@ def nameToFirstLast(namestr):
     last = " ".join(names[1:])
     return {'first': first, 'last': last}
 
-            
-
+def parse_datetime(dt):
+  tz=pytz.timezone("America/New_York")
+  try:
+    xx= datetime.strptime(dt,"%Y-%m-%dT%H:%M:%SZ")
+    result = pytz.utc.localize(xx, is_dst=None).astimezone(tz).replace(tzinfo=None)
+  except:
+    try:
+        result= datetime.strptime(dt,"%Y-%m-%d %H:%M:%S")
+    except:
+        # Sat Jan 21 11:46:19 2017
+        try:
+            result= datetime.strptime(dt,"%a %b %d %H:%M:%S %Y")
+        except:
+            try:
+                result= datetime.strptime(dt,"%Y-%m-%d")
+            except:
+                #2019-01-11 17:09:01.736307
+                result= datetime.strptime(dt,"%Y-%m-%d %H:%M:%S.%f")
+  return result
