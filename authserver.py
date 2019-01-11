@@ -108,7 +108,9 @@ def kick_backend(Config):
         opts['auth']=auth
         
     try:
-      mqtt_pub.single(base_topic+"/acl/update", "", hostname=host,port=port,**opts)
+      topic= base_topic+"/broadcast/control/acl/update"
+      mqtt_pub.single(topic, "test", hostname=host,port=port,**opts)
+      print "PUBLISHED "+topic,host,port,opts
     except BaseException as e:
         current_app.logger.warning("Publish fail "+str(e))
 
@@ -444,10 +446,16 @@ def add_member_tag(mid,ntag,tag_type,tag_name):
     sqlstr = "select tag_ident from tags_by_member where tag_ident = '%s' and tag_type = '%s'" % (ntag,tag_type)
     etags = query_db(sqlstr)
     if not etags:
+<<<<<<< HEAD
         sqlstr = """insert into tags_by_member (member,tag_ident,tag_name,tag_type,updated_date)
                     values ('%s','%s','%s','%s',DATETIME('now'))""" % (mid,ntag,tag_name,tag_type)
+=======
+        sqlstr = """insert into tags_by_member (member,tag_id,tag_name,tag_type,updated_date)
+                    values ('%s','%s','%s','%s',DATETIME('now'))""" % (mid,htag,tag_name,tag_type)
+>>>>>>> ba8c1d1fd4238b72a015c60f20f04a211f6dcf06
         execute_db(sqlstr)
         get_db().commit()
+        kick_backend(Config)
         return True
     else:
         return False

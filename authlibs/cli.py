@@ -66,7 +66,7 @@ commands = {
 		'cmd':addadmin
 	},
 	"addapikey":{
-		'usage':"addapi {username} password [api_key]  -- Add API user w/ login token",
+		'usage':"addapikey {username} password [api_key]  -- Add API user w/ login token",
 		'cmd':addapikey
 	},
 	"listadmins":{
