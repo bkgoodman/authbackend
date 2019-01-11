@@ -79,17 +79,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 waiversystem = {}
 waiversystem['Apikey'] = Config.get('Smartwaiver','Apikey')
 
-# RULE - only call this from web APIs - not internal functions
-# Reason: If we have calls or scripts that act on many records,
-# we probably shouldn't generate a million messages
-def kick_backend(Config):
-    """
-    client = paho.mqtt,client.Client()
-    client.tls_set(ca_certs=None, certfile=None, keyfile=None, cert_reqs=ssl.CERT_REQUIRED,
-      tls_version=ssl.PROTOCOL_TLS, ciphers=None)
-    client.connect(host, port=1883, keepalive=60, bind_address="")
-    client.publish(topic, payload=None, qos=0, retain=False)
-    """
+def get_mqtt_opts():
     opts={}
     ka=None
     base_topic = Config.get("MQTT","BaseTopic")
@@ -106,6 +96,14 @@ def kick_backend(Config):
     if Config.has_option("MQTT","username"):
         auth={'username':Config.get("MQTT","username"),'password':Config.get("MQTT","password")}
         opts['auth']=auth
+
+    return (host,port,base_topic,opts)
+    
+# RULE - only call this from web APIs - not internal functions
+# Reason: If we have calls or scripts that act on many records,
+# we probably shouldn't generate a million messages
+def kick_backend(Config):
+    (host,port,base_topic,opts) = get_mqtt_opts()
         
     try:
       topic= base_topic+"/control/broadcast/acl/update"
@@ -330,20 +328,8 @@ def _getResourceUsers(resource):
     # - this could be done with raw calcs on the dates, if future editors are less comfortable with the SQL syntaxes used
 	# Note: The final left join is to account for "max(expires_date)" equivalence without neededing a subquery
 	# - yes, it's kind of odd, but it works
-    sqlstr = """select t.member,t.tag_id,m.plan,m.nickname,l.last_accessed,m.access_enabled as enabled, m.access_reason as reason,s.expires_date,a.resource,
-        (case when a.resource is not null then 'allowed' else 'denied' end) as allowed,
-        (case when s.expires_date < Datetime('now','-14 day') then 'true' else 'false' end) as past_due,
-        (case when s.expires_date < Datetime('now') AND s.expires_date > Datetime('now','-13 day') then 'true' else 'false' end) as grace_period,
-        (case when s.expires_date < Datetime('now','+2 day') then 'true' else 'false' end) as expires_soon,
-        (case when a.level is not null then a.level else '0' end) as level
-        from tags_by_member t join members m on t.member=m.member
-        left outer join accessbymember a on a.member=t.member and a.resource='%s'
-        left outer join (select member,MAX(event_date) as last_accessed from logs where resource='%s' group by member) l on t.member = l.member
-        left outer join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email
-		left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
-		group by t.tag_id""" % (resource,resource)
 
-    sqlstr = """select t.member_id,t.tag_id,m.plan,m.nickname,/*l.last_accessed,*/m.access_enabled as enabled, m.access_reason as reason,s.expires_date,a.resource_id,
+    sqlstr = """select t.member_id,t.tag_ident,m.plan,m.nickname,/*l.last_accessed,*/m.access_enabled as enabled, m.access_reason as reason,s.expires_date,a.resource_id,
         (case when a.resource_id is not null then 'allowed' else 'denied' end) as allowed,
         (case when s.expires_date < Datetime('now','-14 day') then 'true' else 'false' end) as past_due,
         (case when s.expires_date < Datetime('now') AND s.expires_date > Datetime('now','-13 day') then 'true' else 'false' end) as grace_period,
@@ -356,7 +342,7 @@ def _getResourceUsers(resource):
               (SELECT id FROM resources WHERE name ="%s")
         left outer join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email
         left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
-        group by t.tag_id;""" % (resource)
+        group by t.tag_ident;""" % (resource)
     
     """ REMOVED:
         /*  left outer join (select member,MAX(event_date) as last_accessed from logs where resource_id='%s' group by member) l on t.member = l.member */
@@ -404,7 +390,8 @@ def getAccessControlList(resource):
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
         #print dict(u)
-        jsonarr.append({'tagid':u['tag_id'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level']})
+        hashed_tag_id = authutil.hash_rfid(u['tag_ident'])
+        jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level']})
     return json_dump(jsonarr)
 
 
@@ -452,13 +439,13 @@ def _updatePaymentsData():
     _addPaymentData(fsubs['valid'],'pinpayments')
     return fsubs
 
-def add_member_tag(mid,htag,tag_type,tag_name):
+def add_member_tag(mid,ntag,tag_type,tag_name):
     """Associate a tag with a Member, given a known safe set of values"""
-    sqlstr = "select tag_id from tags_by_member where tag_id = '%s' and tag_type = '%s'" % (htag,tag_type)
+    sqlstr = "select tag_ident from tags_by_member where tag_ident = '%s' and tag_type = '%s'" % (ntag,tag_type)
     etags = query_db(sqlstr)
     if not etags:
-        sqlstr = """insert into tags_by_member (member,tag_id,tag_name,tag_type,updated_date)
-                    values ('%s','%s','%s','%s',DATETIME('now'))""" % (mid,htag,tag_name,tag_type)
+        sqlstr = """insert into tags_by_member (member,tag_ident,tag_name,tag_type,updated_date)
+                    values ('%s','%s','%s','%s',DATETIME('now'))""" % (mid,ntag,tag_name,tag_type)
         execute_db(sqlstr)
         get_db().commit()
         kick_backend(Config)
@@ -685,7 +672,7 @@ def create_routes():
     def member_editaccess(id):
         """Controller method to display gather current access details for a member and display the editing interface"""
         mid = safestr(id)
-        sqlstr = "select tag_id,tag_type,tag_name from tags_by_member where member_id = '%s'" % mid
+        sqlstr = "select tag_ident,tag_type,tag_name from tags_by_member where member_id = '%s'" % mid
         tags = query_db(sqlstr)
         sqlstr = """select * from resources r LEFT OUTER JOIN accessbymember a ON a.resource_id = r.id  AND a.member_id = (SELECT m.id FROM members m WHERE m.member='%s');""" % mid
         m = query_db(sqlstr)
@@ -716,7 +703,7 @@ def create_routes():
     def member_tags(id):
         """Controller method to gather and display tags associated with a memberid"""
         mid = safestr(id)
-        sqlstr = "select tag_id,tag_type,tag_name from tags_by_member where member = '%s'" % mid
+        sqlstr = "select tag_ident,tag_type,tag_name from tags_by_member where member = '%s'" % mid
         tags = query_db(sqlstr)
         return render_template('member_tags.html',mid=mid,tags=tags)
 
@@ -734,33 +721,32 @@ def create_routes():
         mid = safestr(id)
         ntag = safestr(request.form['newtag'])
         ntagtype = safestr(request.form['newtagtype'])
-        if len(ntag) > 10:
-            flash("Not hashing tag, looks like it's pre-hashed")
-            htag = ntag
-        else:
-            htag = authutil.hash_rfid(ntag)
         ntagname = safestr(request.form['newtagname'])
-        if htag is None:
-            flash("ERROR: The specified RFID tag is invalid, must be all-numeric")
+        ntag = authutil.rfid_validate(ntag)
+        if ntag is None:
+            flash("ERROR: The specified RFID tag is invalid, must be 10-digit all-numeric")
         else:
-            if add_member_tag(mid,htag,ntagtype,ntagname):
+            if add_member_tag(mid,ntag,ntagtype,ntagname):
                 kick_backend(Config)
                 flash("Tag added.")
             else:
                 flash("Error: That tag is already associated with a user")
         return redirect(url_for('member_tags',id=mid))
 
-    @app.route('/members/<string:id>/tags/delete/<string:tag_id>', methods = ['GET'])
+    @app.route('/members/<string:id>/tags/delete/<string:tag_ident>', methods = ['GET'])
     @login_required
-    def member_tagdelete(id,tag_id):
+    def member_tagdelete(id,tag_ident):
         """(Controller) Delete a Tag from a Member (HTTP GET, for use from a href link)"""
         mid = safestr(id)
-        tid = safestr(tag_id)
-        sqlstr = "delete from tags_by_member where tag_id = '%s' and member = '%s'" % (tid,mid)
-        execute_db(sqlstr)
-        get_db().commit()
-        kick_backend(Config)
-        flash("If that tag was associated with the current user, it was removed")
+        tid = authutil.rfid_validate(tag_ident)
+        if not tid:
+            flash("Invalid Tag - Must be 10 digit numeric")
+        else:
+          sqlstr = "delete from tags_by_member where tag_ident = '%s' and member = '%s'" % (tid,mid)
+          execute_db(sqlstr)
+          get_db().commit()
+          kick_backend(Config)
+          flash("If that tag was associated with the current user, it was removed")
         return redirect(url_for('member_tags',id=mid))
 
     # ----------------------------------------------------
@@ -1123,6 +1109,9 @@ def create_routes():
     @app.route('/api/v1/whoami', methods=['GET'])
     def whoami():
         print dir(request)
+        print "TYPE",type(current_user)
+        print "TYPE",current_user.has_role('Admin')
+        print "DIR",dir(current_user)
         user=None
         email=None
         if  request.authorization:
@@ -1218,7 +1207,7 @@ def create_routes():
         if outformat == 'csv':
             outstr = "username,key,value,allowed,hashedCard,lastAccessed"
             for u in users:
-                outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tag_id'],'2011-06-21T05:12:25')
+                outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
             return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
     @app.route('/api/v1/logs/<string:id>', methods=['POST'])

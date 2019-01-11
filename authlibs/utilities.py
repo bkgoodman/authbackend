@@ -19,6 +19,15 @@ def hash_rfid(rfid):
             return m.hexdigest()
         except:
             return None
+def rfid_validate(ntag):
+	result=None
+	if ntag is None: return None
+	if len(ntag) != 10: return None
+	try:
+		result=int(ntag)
+	except:
+		return None
+	return result
 
 def _utcTimestampToDatetime(ts):
     """Convert a UTC timestamp to my local time"""

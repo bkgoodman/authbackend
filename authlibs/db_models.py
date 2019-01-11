@@ -131,7 +131,8 @@ class MemberTag(db.Model):
     # TODO: Handle change from tagsbymember
     __tablename__ = 'tags_by_member'
     id = db.Column(db.Integer(), primary_key=True)
-    tag_id = db.Column(db.String(50))
+    #tag_id = db.Column(db.String(50)) "old" hashed data
+    tag_ident = db.Column(db.String(50))  # "new" 10-digit,zero paded, raw,  unhashed data
     tag_type = db.Column(db.String(50))
     tag_name = db.Column(db.String(50))
     updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
