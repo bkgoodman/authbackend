@@ -108,7 +108,7 @@ def kick_backend(Config):
         opts['auth']=auth
         
     try:
-      topic= base_topic+"/broadcast/control/acl/update"
+      topic= base_topic+"/control/broadcast/acl/update"
       mqtt_pub.single(topic, "test", hostname=host,port=port,**opts)
       print "PUBLISHED "+topic,host,port,opts
     except BaseException as e:
@@ -719,6 +719,13 @@ def create_routes():
         sqlstr = "select tag_id,tag_type,tag_name from tags_by_member where member = '%s'" % mid
         tags = query_db(sqlstr)
         return render_template('member_tags.html',mid=mid,tags=tags)
+
+    @app.route('/updatebackends', methods = ['GET'])
+    @login_required
+    def update_backends():
+        kick_backend(Config)
+        flash("Backend Update Request Send")
+        return redirect(url_for('index'))
 
     @app.route('/members/<string:id>/tags', methods = ['POST'])
     @login_required
