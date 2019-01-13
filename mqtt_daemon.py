@@ -8,7 +8,7 @@ This is a daemon only used to log stuff via MQTT
 
 from authlibs.eventtypes import *
 import sqlite3, re, time
-from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Logs, Tool
+from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Logs, Tool, UsageLog
 import argparse
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
@@ -83,6 +83,9 @@ def seconds_to_timespan(s):
 # 2019-01-11 17:09:01.736307
 def on_message(msg):
     print msg
+    tool_cache={}
+    resource_cache={}
+    member_cache={}
     if True: #try:
         with app.app_context():
             log=Logs()
@@ -92,28 +95,59 @@ def on_message(msg):
 
             # Is this a RATT status message?
             toolname=None
+            member=None
+            memberId=None
+            toolId=None
+            nodename=None
             nodeId=None
+            resourceId=None
             log_event_type=None
-            log_event_subtype=None
             log_text=None
-            if topic[0]=="ratt" and topic[1]=="status":
+
+            # base_topic+"/control/broadcast/acl/update"
+            if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
+                print "CLEARING CACHE"
+                tool_cache={}
+                resource_cache={}
+                member_cache={}
+            elif topic[0]=="ratt" and topic[1]=="status":
                 if topic[2]=="node":
                     t=Tool.query.filter(Tool.frontend==topic[3]).one()
                     toolname=t.name
                 elif topic[2]=="tool":
                     toolname=topic[3]
-                    nodeId=None
 
             subt=topic[4]
             sst=topic[5]
             member=None
             if 'toolId' in message: toolId=message['toolId']
             if 'nodeId' in message: toolId=message['noolId']
-            if 'member' in message: toolId=message['member']
+            if 'toolname' in message: toolname=message['toolname']
+            if 'nodename' in message: nodename=message['noolname']
+            if 'member' in message: member=message['member']
 
-            print "Tool",toolname,"Node",nodeId
+            if toolname and toolname in tool_cache:
+                toolId = tool_cache[toolname]['id']
+                resourceId = tool_cache[toolname]['resource_id']
+            elif toolname:
+                t = db.session.query(Tool.id,Tool.resource_id).filter(Tool.name==toolname).first()
+                if t:
+                    tool_cache[toolname]={"id":t.id,"resource_id":t.resource_id}
+                    toolId = tool_cache[toolname]['id']
+                    resourceId = tool_cache[toolname]['resource_id']
+            
+            if member and member in member_cache:
+                memberId = member_cache[member]
+            elif member:
+                m = db.session.query(Member.id).filter(Member.member==memberId).first()
+                if m:
+                    member_cache[member]=m.id
+
+
+            print "Tool",toolname,toolId,"Node",nodename,nodeId,"Member",member,memberId
 
             if subt=="wifi":
+                    # TODO throttle these!
                     log_event_type = RATTBE_LOGEVENT_SYSTEM_WIFI
                     pass
             elif subt=="system":
@@ -138,7 +172,7 @@ def on_message(msg):
                     log_text = reason
                 elif sst=="activity":
                     # member
-                    active = message['active'].lower() == "True" # true | false
+                    active = message['active'] # Bool
                     if active:
                         log_event_type = RATTBE_LOGEVENT_TOOL_ACTIVE
                     else:
@@ -161,8 +195,9 @@ def on_message(msg):
                         log_event_type = RATTBE_LOGEVENT_TOOL_POWEROFF
                 elif sst=="login":
                     # member
-                    usedPassword = message['usedPassword']
-                    allowed = message['allowed'].lower() == "True" # true | false
+                    usedPassword = False
+                    if 'usaedPassword' in message: usedPassword = message['usedPassword']
+                    allowed = message['allowed'] # Bool
 
                     if allowed and usedPassword:
                         log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN_COMBO
@@ -174,7 +209,7 @@ def on_message(msg):
                         log_event_type = RATTBE_LOGEVENT_TOOL_COMBO_FAILED
 
                     if 'error' in message:
-                        error = message['error'].lower() == "True" # true if present and true
+                        error = message['error'] # Bool
                     else:
                         error = False
                     if 'errorText' in message:
@@ -182,7 +217,8 @@ def on_message(msg):
                     else:
                         errorText=None
 
-                    log_text = error_text
+                    log_text = errorText
+
                 elif sst=="logout":
                     log_event_type = RATTBE_LOGEVENT_TOOL_LOGOUT
                     reason = message['reason']
@@ -195,7 +231,26 @@ def on_message(msg):
                         seconds_to_timespan(activeSecs),
                         seconds_to_timespan(idleSecs),
                         reason)
+                    usage= Usage()
+                    usage.member_id = memberId
+                    usage.tool_id = toolId
+                    usage.resource_id = resourceId
+                    usage.enabledSecs = enabledSecs
+                    usage.activeSecs = activeSecs
+                    usage.idleSecs = idleSecs
+                    usage.timeReported = datetime.now()
+                    db.session.add(usage)
+                    db.session.commit()
 
+        if log_event_type:
+            logevent = Logs()
+            logevent.member_id=memberId
+            logevent.resource_id=resourceId
+            logevent.tool_id=toolId
+            logevent.time_reported=datetime.now()
+            logevent.event_type = log_event_type
+            db.session.add(logevent)
+            db.session.commit()
         print member,toolname,nodeId,log_event_type,log_text
     else: # except BaseException as e:
         print "LOG ERROR",e,"PAYLOAD",msg.payload
