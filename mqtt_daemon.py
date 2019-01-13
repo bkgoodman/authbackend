@@ -18,6 +18,7 @@ import json
 import ConfigParser,sys,os
 import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as sub
+from datetime import datetime
 
 # Load general configuration from file
 defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
@@ -80,6 +81,61 @@ def on_message(msg):
         with app.app_context():
             log=Logs()
             message = json.loads(msg.payload)
+            topic=msg.topic.split("/")
+            print topic,message
+
+            nodeId=topic[3]
+            subt=topic[4]
+            sst=topic[5]
+            member=None
+            toolId=None
+            if 'toolId' in message: toolId=message['toolId']
+            if 'member' in message: toolId=message['member']
+            phase = message['phase']
+
+            if subt=="wifi":
+            elsif subt=="system":
+                if sst=="power":
+                    state = message['state']  # lost | restored | shutdown
+                elif sst=="issue":
+                    issue = message['issue'] # Text
+            elsif subt=="personality":
+                if sst=="safety":
+                    # member
+                    reason = message['reason'] # Failure reason text
+                elif sst=="activity":
+                    # member
+                    active = message['active'].lower() == "True" # true | false
+                elif sst=="state":
+                    phase = message['phase'] # ENTER, ACTIVE, EXIT 
+                    state = message['state'] # Text
+                elif sst=="lockout":
+                    state = message['state'] # pending | locked | unlocked
+                    reason = message['reason'] # Text
+                elif sst=="power":
+                    powered = message['powered'].lower() == "True" # True or False
+                elif sst=="login":
+                    # member
+                    usedPassword = message['usedPassword']
+                    allowed = message['allowed'].lower() == "True" # true | false
+                    if 'error' in message:
+                        error = message['error'].lower() == "True" # true if present and true
+                    else:
+                        error = False
+                    if 'errorText' in message:
+                        errorText = message['errorText'] # text
+                    else:
+                        errorText=None
+                elif sst=="logout":
+                    reason = message['reason']
+                    enabledSecs = message['enabledSecs']
+                    activeSecs = message['activeSecs']
+                    idleSecs = message['idleSecs']
+
+
+            """
+
+
             if ('member_id' in message):
                 log.member_id = message['member_id']
             elif 'member' in message:
@@ -94,10 +150,13 @@ def on_message(msg):
                 log.doneby = User.query.filter(User.email==message['admin']).with_entities(User.id)
             if 'when' in message:
                 log.time_reported = authutil.parse_datetime(message['when'])
+            else:
+                log.time_reported = datetime.now()
             if 'event_code' in message:
                 log.event_code = message['event_code']
             db.session.add(log)
             db.session.commit()
+            """
         print log
     else: # except BaseException as e:
         print "LOG ERROR",e,"PAYLOAD",msg.payload
@@ -115,34 +174,9 @@ if __name__ == '__main__':
       print User.query.first()
       # The callback for when the client receives a CONNACK response from the server.
       (host,port,base_topic,opts) = get_mqtt_opts()
-      """
-      def on_connect(client, userdata, flags, rc):
-          print("Connected with result code "+str(rc))
-
-          # Subscribing in on_connect() means that if we lose the connection and
-          # reconnect then subscriptions will be renewed.
-          #client.subscribe("$SYS/#")
-
-          client.subscribe("ratt/log/#")
-
-      client = mqtt.Client()
-      client.on_connect = on_connect
-      client.userdata = {'app':app}
-      client.on_message = on_message
-
-      print "CONNECING"
-      client.connect(host,port,60)
-      print "CONNECTED"
-
-      # Blocking call that processes network traffic, dispatches callbacks and
-      # handles reconnecting.
-      # Other loop*() functions are available that give a threaded interface and a
-      # manual interface.
-      client.loop_forever()
-      """
       while True:
         if True: #try:
-            msg = sub.simple("ratt/log/#", hostname=host,port=port,**opts)
+            msg = sub.simple("ratt/status/#", hostname=host,port=port,**opts)
             print("%s %s" % (msg.topic, msg.payload))
             on_message(msg)
         else: #except:

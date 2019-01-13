@@ -22,6 +22,21 @@ class User(db.Model,UserMixin):
     api_key = db.Column(db.String(255), nullable=True, server_default=rnd_api_key)
     roles= db.relationship('Role', secondary = 'user_roles')
 
+class Tool(db.Model):
+    __tablename__ = 'tools'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True)
+    frontend = db.Column(db.String(50))
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+
+class FrontEnd(db.Model):
+    __tablename__ = 'frontends'
+    id = db.Column(db.Integer, primary_key=True)
+    type = db.Column(db.Integer, default=0) # 0=RATT
+    name = db.Column(db.String(50), unique=True)
+    tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
+    # tool_id defines WHICH tool a RATT is refereing to w/ old API
+
 class AccessByMember(db.Model):
     __tablename__ = 'accessbymember'
     id = db.Column(db.Integer, primary_key=True)
@@ -41,13 +56,13 @@ class Logs(db.Model):
     __tablename__ = 'logs'
     id = db.Column(db.Integer, primary_key=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
-    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
     doneby = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
-    event_type = db.Column(db.String(50))
     message = db.Column(db.String(100))
     time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
     time_reported = db.Column(db.DateTime(timezone=True))
-    event_code = db.Column(db.Integer(),index=True)
+    event_type = db.Column(db.Integer(),index=True)
+    event_subtype = db.Column(db.Integer(),index=True)
 
     EVENT_USER_TAG_IN=0
     EVENT_USER_TAG_OUT=1

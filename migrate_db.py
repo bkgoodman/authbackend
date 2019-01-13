@@ -239,7 +239,7 @@ def get_slack_users():
 
 
 def testdt(a):
-    print a,authutil.(a)
+    print a,authutil.parse_datetime(a)
 
 def dttest():
     testdt("2018-01-02T03:04:05Z")
@@ -481,7 +481,7 @@ if __name__ == '__main__':
 
             created=None
             if (x[12]):
-                created=authutil.(x[12])
+                created=authutil.parse_datetime(x[12])
 
                 mem.member = x[0]
                 mem.email = x[0]+"@makeitlabs.com"
@@ -592,7 +592,7 @@ if __name__ == '__main__':
             newtag.tag_type=x[1]
             #newtag.updated_date
             newtag.tag_name=x[4]
-            lastupdate=authutil.(x[3])
+            lastupdate=authutil.parse_datetime(x[3])
             #print newtag,x,lastupdate
             if args.overwrite and goodtag: db.session.add(newtag)
         if args.overwrite: db.session.flush()
@@ -660,7 +660,7 @@ if __name__ == '__main__':
             bl.entry=x[0]
             bl.entrytype=x[1]
             bl.reason=x[2]
-            bl.updated_date=authutil.(x[3])
+            bl.updated_date=authutil.parse_datetime(x[3])
             if args.overwrite: db.session.add(bl)
         if args.overwrite: db.session.flush()
         if args.overwrite: db.session.commit()
@@ -689,7 +689,7 @@ if __name__ == '__main__':
             w.lastname=x[2]
             w.waiver_id=x[0]
             w.email=x[3]
-            w.created_date= authutil.(x[4])
+            w.created_date= authutil.parse_datetime(x[4])
             found=False
             if args.overwrite: db.session.add(w)
         if args.overwrite: db.session.flush()
