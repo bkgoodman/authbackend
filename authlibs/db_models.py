@@ -64,13 +64,17 @@ class Logs(db.Model):
     event_type = db.Column(db.Integer(),index=True)
     event_subtype = db.Column(db.Integer(),index=True)
 
-    EVENT_USER_TAG_IN=0
-    EVENT_USER_TAG_OUT=1
-    EVENT_RESOURCE_POWER_ON=2
-    EVENT_RESOURCE_POWER_OFF=3
-    EVENT_RESOURCE_PROBLEM_REPORT=4
-    EVENT_RESOURCE_WATCHDOG=5
-    EVENT_RESOURCE_RATT_START=6
+class UsageLog(db.Model):
+    __tablename__ = 'useagelogs'
+    id = db.Column(db.Integer, primary_key=True)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
+    time_reported = db.Column(db.DateTime(timezone=True))
+    idleSecs = db.Column(db.Integer())
+    activeSecs = db.Column(db.Integer())
+    enabledSecs = db.Column(db.Integer())
 
 # Define roles
 class Role(db.Model):

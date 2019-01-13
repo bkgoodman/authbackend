@@ -6,8 +6,9 @@ MakeIt Labs Authorization System, v0.4
 This is a daemon only used to log stuff via MQTT
 """
 
+from authlibs.eventtypes import *
 import sqlite3, re, time
-from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Logs
+from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Logs, Tool
 import argparse
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
@@ -73,6 +74,11 @@ def get_mqtt_opts():
 
     return (host,port,base_topic,opts)
 
+def seconds_to_timespan(s):
+    hours, remainder = divmod(s, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return '{:02}:{:02}:{:02}'.format(int(hours), int(minutes), int(seconds))
+
 # The callback for when a PUBLISH message is received from the server.
 # 2019-01-11 17:09:01.736307
 def on_message(msg):
@@ -84,40 +90,89 @@ def on_message(msg):
             topic=msg.topic.split("/")
             print topic,message
 
-            nodeId=topic[3]
+            # Is this a RATT status message?
+            toolname=None
+            nodeId=None
+            log_event_type=None
+            log_event_subtype=None
+            log_text=None
+            if topic[0]=="ratt" and topic[1]=="status":
+                if topic[2]=="node":
+                    t=Tool.query.filter(Tool.frontend==topic[3]).one()
+                    toolname=t.name
+                elif topic[2]=="tool":
+                    toolname=topic[3]
+                    nodeId=None
+
             subt=topic[4]
             sst=topic[5]
             member=None
-            toolId=None
             if 'toolId' in message: toolId=message['toolId']
+            if 'nodeId' in message: toolId=message['noolId']
             if 'member' in message: toolId=message['member']
-            phase = message['phase']
+
+            print "Tool",toolname,"Node",nodeId
 
             if subt=="wifi":
-            elsif subt=="system":
+                    log_event_type = RATTBE_LOGEVENT_SYSTEM_WIFI
+                    pass
+            elif subt=="system":
                 if sst=="power":
                     state = message['state']  # lost | restored | shutdown
+                    if state == "lost": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_LOST
+                    elif state == "restored": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED
+                    elif state == "shutdown": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN
+                    else: 
+                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_OTHER
+                        log_tet = state
+                        
                 elif sst=="issue":
                     issue = message['issue'] # Text
-            elsif subt=="personality":
+                    log_event_type = RATTBE_LOGEVENT_TOOL_ISSUE
+                    log_text = issue
+            elif subt=="personality":
                 if sst=="safety":
                     # member
                     reason = message['reason'] # Failure reason text
+                    log_event_type = RATTBE_LOGEVENT_TOOL_SAFETY
+                    log_text = reason
                 elif sst=="activity":
                     # member
                     active = message['active'].lower() == "True" # true | false
+                    if active:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_ACTIVE
+                    else:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_INACTIVE
                 elif sst=="state":
                     phase = message['phase'] # ENTER, ACTIVE, EXIT 
                     state = message['state'] # Text
                 elif sst=="lockout":
                     state = message['state'] # pending | locked | unlocked
-                    reason = message['reason'] # Text
+                    if state=="pending": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_PENDING
+                    elif state=="locked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED
+                    elif state=="unlocked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED
+                    else: log_event_type=RATTBE_LOGEVENT_TOOL_LOCKOUT_OTHER
+                    log_text = reason
                 elif sst=="power":
                     powered = message['powered'].lower() == "True" # True or False
+                    if powered:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_POWERON
+                    else:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_POWEROFF
                 elif sst=="login":
                     # member
                     usedPassword = message['usedPassword']
                     allowed = message['allowed'].lower() == "True" # true | false
+
+                    if allowed and usedPassword:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN_COMBO
+                    elif not allowed and usedPassword:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_PROHIBITED
+                    elif allowed and not usedPassword:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN
+                    elif not allowed and not usedPassword:
+                        log_event_type = RATTBE_LOGEVENT_TOOL_COMBO_FAILED
+
                     if 'error' in message:
                         error = message['error'].lower() == "True" # true if present and true
                     else:
@@ -126,38 +181,22 @@ def on_message(msg):
                         errorText = message['errorText'] # text
                     else:
                         errorText=None
+
+                    log_text = error_text
                 elif sst=="logout":
+                    log_event_type = RATTBE_LOGEVENT_TOOL_LOGOUT
                     reason = message['reason']
                     enabledSecs = message['enabledSecs']
                     activeSecs = message['activeSecs']
                     idleSecs = message['idleSecs']
 
+                    log_text = "enabled {0} active {1} idle {2} - {3}".format(
+                        seconds_to_timespan(enabledSecs),
+                        seconds_to_timespan(activeSecs),
+                        seconds_to_timespan(idleSecs),
+                        reason)
 
-            """
-
-
-            if ('member_id' in message):
-                log.member_id = message['member_id']
-            elif 'member' in message:
-                log.member_id = Member.query.filter(Member.member==message['member']).with_entities(Member.id)
-            if ('resource_id' in message):
-                log.resource_id = message['resource_id']
-            elif 'resource' in message:
-                log.resource_id = Resource.query.filter(Resource.name==message['resource']).with_entities(Resource.id)
-            if ('admin_id' in message):
-                log.doneby = message['admin_id']
-            elif 'admin' in message:
-                log.doneby = User.query.filter(User.email==message['admin']).with_entities(User.id)
-            if 'when' in message:
-                log.time_reported = authutil.parse_datetime(message['when'])
-            else:
-                log.time_reported = datetime.now()
-            if 'event_code' in message:
-                log.event_code = message['event_code']
-            db.session.add(log)
-            db.session.commit()
-            """
-        print log
+        print member,toolname,nodeId,log_event_type,log_text
     else: # except BaseException as e:
         print "LOG ERROR",e,"PAYLOAD",msg.payload
         print "NOW4"
@@ -176,7 +215,7 @@ if __name__ == '__main__':
       (host,port,base_topic,opts) = get_mqtt_opts()
       while True:
         if True: #try:
-            msg = sub.simple("ratt/status/#", hostname=host,port=port,**opts)
+            msg = sub.simple("ratt/#", hostname=host,port=port,**opts)
             print("%s %s" % (msg.topic, msg.payload))
             on_message(msg)
         else: #except:

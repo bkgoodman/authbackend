@@ -754,13 +754,10 @@ def create_routes():
     @login_required
     def toolcfg(id=None,add=False,edit=False):
        """(Controller) Display Resources and controls"""
-       print id,add,edit
-       print request.form
        edittool=None
        if id:
            edit=True
            edittool=Tool.query.filter(Tool.id==int(id)).first()
-           print "EDITTOOL",edittool
        if 'Add' in request.form:
            tool = Tool()
            tool.name = request.form['name']
@@ -770,11 +767,8 @@ def create_routes():
            db.session.commit()
            flash('Added')
        if 'Save' in request.form:
-           print "FORM",request.form['name'],request.form['tooltypeid']
            tool = Tool.query.filter(Tool.id==id).one()
-           print "WAS",tool.name
            tool.name = request.form['name']
-           print "NOW",tool.name
            tool.resource_id = request.form['tooltypeid']
            tool.frontend = request.form['frontend']
            db.session.commit()
@@ -786,7 +780,6 @@ def create_routes():
        query = db.session.query(Tool,Tool.id,Tool.name,Tool.frontend,Tool.resource_id,Resource.name.label("resname")).join(Resource)
        
        tools=query.all()
-       print tools
        resources= Resource.query.all()
        return render_template('tools.html',tools=tools,resources=resources,add=add,edit=edit,tool=edittool)
 
