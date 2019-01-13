@@ -31,6 +31,7 @@ from contextlib import closing
 import pycurl, sys
 import ConfigParser
 import xml.etree.ElementTree as ET
+from authlibs.eventtypes import get_events
 from StringIO import StringIO
 from authlibs import cli
 from authlibs import utilities as authutil
@@ -1091,7 +1092,7 @@ def create_routes():
     def show_logs():
         sqlstr = "select waiver_id,email,firstname,lastname,created_date from waivers"
         waivers = query_db(sqlstr)
-        return render_template('waivers.html',waivers=waivers)
+        return render_template('logs.html',waivers=waivers)
 
 
     # ------------------------------------------------------------

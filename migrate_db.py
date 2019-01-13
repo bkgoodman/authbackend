@@ -251,6 +251,7 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument("--overwrite",help="Overwrite entire database with migrated data")
     parser.add_argument("--testdt",help="Only test datetime functions",action="store_true")
+    parser.add_argument("--testdata",help="Add test data to database",action="store_true")
     (args,extras) = parser.parse_known_args(sys.argv[1:])
 
 
@@ -695,6 +696,14 @@ if __name__ == '__main__':
         if args.overwrite: db.session.flush()
         if args.overwrite: db.session.commit()
         print "waivers migrated",good,"nomatches",bad
+
+    if args.testdata:
+        print """
+***
+*** ADDED TEST DATA
+***
+"""
+        os.system("sqlite3 "+args.overwrite+" < test/testdata.sql")
 
     if not args.overwrite:
         print """

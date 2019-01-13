@@ -82,7 +82,6 @@ def seconds_to_timespan(s):
 # The callback for when a PUBLISH message is received from the server.
 # 2019-01-11 17:09:01.736307
 def on_message(msg):
-    print msg
     tool_cache={}
     resource_cache={}
     member_cache={}
@@ -91,7 +90,7 @@ def on_message(msg):
             log=Logs()
             message = json.loads(msg.payload)
             topic=msg.topic.split("/")
-            print topic,message
+            print "FROM WIRE",topic,message
 
             # Is this a RATT status message?
             toolname=None
@@ -139,60 +138,64 @@ def on_message(msg):
             if member and member in member_cache:
                 memberId = member_cache[member]
             elif member:
-                m = db.session.query(Member.id).filter(Member.member==memberId).first()
+                q = db.session.query(Member.id).filter(Member.member==member)
+                m = q.first()
+                print "QUERY MEMBER",q
+                print "RETURNED",m.id
                 if m:
                     member_cache[member]=m.id
+                    memberId=m.id
 
 
             print "Tool",toolname,toolId,"Node",nodename,nodeId,"Member",member,memberId
 
             if subt=="wifi":
                     # TODO throttle these!
-                    log_event_type = RATTBE_LOGEVENT_SYSTEM_WIFI
+                    log_event_type = RATTBE_LOGEVENT_SYSTEM_WIFI.id
                     pass
             elif subt=="system":
                 if sst=="power":
                     state = message['state']  # lost | restored | shutdown
-                    if state == "lost": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_LOST
-                    elif state == "restored": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED
-                    elif state == "shutdown": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN
+                    if state == "lost": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_LOST.id
+                    elif state == "restored": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED.id
+                    elif state == "shutdown": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN.id
                     else: 
-                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_OTHER
+                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_OTHER.id
                         log_tet = state
                         
                 elif sst=="issue":
                     issue = message['issue'] # Text
-                    log_event_type = RATTBE_LOGEVENT_TOOL_ISSUE
+                    log_event_type = RATTBE_LOGEVENT_TOOL_ISSUE.id
                     log_text = issue
             elif subt=="personality":
                 if sst=="safety":
                     # member
                     reason = message['reason'] # Failure reason text
-                    log_event_type = RATTBE_LOGEVENT_TOOL_SAFETY
+                    log_event_type = RATTBE_LOGEVENT_TOOL_SAFETY.id
                     log_text = reason
                 elif sst=="activity":
                     # member
                     active = message['active'] # Bool
                     if active:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_ACTIVE
+                        log_event_type = RATTBE_LOGEVENT_TOOL_ACTIVE.id
                     else:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_INACTIVE
+                        log_event_type = RATTBE_LOGEVENT_TOOL_INACTIVE.id
                 elif sst=="state":
                     phase = message['phase'] # ENTER, ACTIVE, EXIT 
                     state = message['state'] # Text
                 elif sst=="lockout":
                     state = message['state'] # pending | locked | unlocked
-                    if state=="pending": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_PENDING
-                    elif state=="locked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED
-                    elif state=="unlocked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED
-                    else: log_event_type=RATTBE_LOGEVENT_TOOL_LOCKOUT_OTHER
+                    if state=="pending": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_PENDING.id
+                    elif state=="locked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id
+                    elif state=="unlocked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id
+                    else: log_event_type=RATTBE_LOGEVENT_TOOL_LOCKOUT_OTHER.id
                     log_text = reason
                 elif sst=="power":
                     powered = message['powered'].lower() == "True" # True or False
                     if powered:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_POWERON
+                        log_event_type = RATTBE_LOGEVENT_TOOL_POWERON.id
                     else:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_POWEROFF
+                        log_event_type = RATTBE_LOGEVENT_TOOL_POWEROFF.id
                 elif sst=="login":
                     # member
                     usedPassword = False
@@ -200,13 +203,13 @@ def on_message(msg):
                     allowed = message['allowed'] # Bool
 
                     if allowed and usedPassword:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN_COMBO
+                        log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN_COMBO.id
                     elif not allowed and usedPassword:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_PROHIBITED
+                        log_event_type = RATTBE_LOGEVENT_TOOL_PROHIBITED.id
                     elif allowed and not usedPassword:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN
+                        log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN.id
                     elif not allowed and not usedPassword:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_COMBO_FAILED
+                        log_event_type = RATTBE_LOGEVENT_TOOL_COMBO_FAILED.id
 
                     if 'error' in message:
                         error = message['error'] # Bool
@@ -220,7 +223,7 @@ def on_message(msg):
                     log_text = errorText
 
                 elif sst=="logout":
-                    log_event_type = RATTBE_LOGEVENT_TOOL_LOGOUT
+                    log_event_type = RATTBE_LOGEVENT_TOOL_LOGOUT.id
                     reason = message['reason']
                     enabledSecs = message['enabledSecs']
                     activeSecs = message['activeSecs']
@@ -231,7 +234,7 @@ def on_message(msg):
                         seconds_to_timespan(activeSecs),
                         seconds_to_timespan(idleSecs),
                         reason)
-                    usage= Usage()
+                    usage= UsageLog()
                     usage.member_id = memberId
                     usage.tool_id = toolId
                     usage.resource_id = resourceId
@@ -242,16 +245,17 @@ def on_message(msg):
                     db.session.add(usage)
                     db.session.commit()
 
-        if log_event_type:
-            logevent = Logs()
-            logevent.member_id=memberId
-            logevent.resource_id=resourceId
-            logevent.tool_id=toolId
-            logevent.time_reported=datetime.now()
-            logevent.event_type = log_event_type
-            db.session.add(logevent)
-            db.session.commit()
-        print member,toolname,nodeId,log_event_type,log_text
+            if log_event_type:
+                logevent = Logs()
+                logevent.member_id=memberId
+                logevent.resource_id=resourceId
+                logevent.tool_id=toolId
+                logevent.time_reported=datetime.now()
+                logevent.event_type = log_event_type
+                db.session.add(logevent)
+                db.session.commit()
+            print member,toolname,nodeId,log_event_type,log_text
+            print
     else: # except BaseException as e:
         print "LOG ERROR",e,"PAYLOAD",msg.payload
         print "NOW4"
@@ -265,13 +269,12 @@ if __name__ == '__main__':
     db.init_app(app)
     user_manager = UserManager(app, db, User)
     with app.app_context():
-      print User.query.first()
       # The callback for when the client receives a CONNACK response from the server.
       (host,port,base_topic,opts) = get_mqtt_opts()
       while True:
         if True: #try:
             msg = sub.simple("ratt/#", hostname=host,port=port,**opts)
-            print("%s %s" % (msg.topic, msg.payload))
+            #print("%s %s" % (msg.topic, msg.payload))
             on_message(msg)
         else: #except:
             time.sleep(1)

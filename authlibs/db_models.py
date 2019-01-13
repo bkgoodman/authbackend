@@ -53,7 +53,7 @@ class AccessByMember(db.Model):
     __table_args__ = (db.UniqueConstraint('member_id', 'resource_id', name='_member_resource_uc'),)
     
 class Logs(db.Model):
-    __tablename__ = 'logs'
+    __tablename__ = 'log'
     id = db.Column(db.Integer, primary_key=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
@@ -65,7 +65,7 @@ class Logs(db.Model):
     event_subtype = db.Column(db.Integer(),index=True)
 
 class UsageLog(db.Model):
-    __tablename__ = 'useagelogs'
+    __tablename__ = 'useaglog'
     id = db.Column(db.Integer, primary_key=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
