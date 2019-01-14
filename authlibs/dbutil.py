@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#vim:tabstop=2:expandtab
 
 import config
 import sqlite3, time
@@ -98,9 +99,10 @@ def _addSubscriptionData(subs,paytype):
         if sub['customerid'] in bad:
             logger.info("BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['name']))
         else:
-            users.append((sub['name'],sub['active'],sub['email'],paytype,sub['planname'],sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
+            #print "PLANS",sub['planname'],sub['plantype']
+            users.append((sub['name'],sub['active'],sub['email'],paytype,sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
     cur = get_db().cursor()
-    cur.executemany('INSERT into subscriptions (name,active,email,paysystem,plan,plantype,customerid,subid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', users)
+    cur.executemany('INSERT into subscriptions (name,active,email,paysystem,plan,customerid,subid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?,?,?)', users)
     get_db().commit()
 
 

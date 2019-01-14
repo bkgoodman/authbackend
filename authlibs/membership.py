@@ -9,6 +9,8 @@ import random
 from collections import defaultdict
 import config
 import sys
+import argparse
+import ConfigParser
 from flask import current_app
 
 import logging
@@ -16,10 +18,10 @@ logger = logging.getLogger(__name__)
 
 import google_admin as google
 
-def syncWithSubscriptions():
+def syncWithSubscriptions(istest=False):
   '''Use the latest Subscription data to ensure Membership list is up to date'''
   addMissingMembers()
-  createMissingMemberAccounts(False,False)
+  createMissingMemberAccounts(isTest,False)
   
 
 def searchMembers(searchstr):
@@ -48,7 +50,7 @@ def createMember(m):
 
 def getMissingMembers():
     """Return details from active Subscriptions for name+email combination not in Members table"""
-    sqlstr = """select s.name,s.email,s.subid,s.plan,s.customerid,s.active,s.created_date from subscriptions s left outer
+    sqlstr = """select s.name as stripe_name,s.email,s.subid,s.plan,s.customerid,s.active,s.created_date from subscriptions s left outer
     join members m on s.name=m.stripe_name and s.email=m.alt_email where m.stripe_name is null and s.active = 'true' and s.plan NOT IN ('workspace','trial') order by s.created_date"""
     missing = dbutil.query_db(sqlstr)
 
@@ -83,7 +85,7 @@ def addMissingMembers():
     if len(members) > 0:
         logger.info("There were %i members missing, adding records now." % len(members))
         cur = dbutil.get_db().cursor()
-        cur.executemany('INSERT into members (name,alt_email,plan,active,created_date) VALUES (?,?,?,?,?)', members)
+        cur.executemany('INSERT into members (stripe_name,alt_email,plan,active,time_created) VALUES (?,?,?,?,?)', members)
         dbutil.get_db().commit()
         cur.close()
     else:
@@ -126,7 +128,7 @@ def createMissingMemberAccounts(isTest=True,searchGoogle=False):
           continue
           
         # We're in testing mode, so populating old accounts where the id is not a dupe but the account exists
-        sqlstr = "update members set member='%s' where name='%s' and alt_email='%s'" % (memberid,m['stripe_name'],m['alt_email'])
+        sqlstr = "update members set member='%s' where stripe_name='%s' and alt_email='%s'" % (memberid,m['stripe_name'],m['alt_email'])
         dbutil.execute_db(sqlstr)
         logger.info("Adding member Id %s to database for user %s" % (memberid,m['stripe_name']))
             
@@ -181,5 +183,30 @@ def addMissingMembers_new(subs):
 
 
 if __name__ == "__main__":
+
     logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    syncWithSubscriptions()  
+    defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
+    Config = ConfigParser.ConfigParser(defaults)
+    Config.read('makeit.ini')
+    ServerHost = Config.get('General','ServerHost')
+    ServerPort = Config.getint('General','ServerPort')
+    Database = Config.get('General','Database')
+    AdminUser = Config.get('General','AdminUser')
+    AdminPasswd = Config.get('General','AdminPassword')
+    DeployType = Config.get('General','Deployment')
+    DEBUG = Config.getboolean('General','Debug')
+
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--test",help="DO NOT create Goole and Slack accounts",action="store_true")
+    parser.add_argument("--force",help="Force it to create Google and Slack accounts - even in non-production environments",action="store_true")
+    (args,extras) = parser.parse_known_args(sys.argv[1:])
+
+    isTest=False
+    if DeployType.lower() != "production":
+      if not args.force:
+        logger.info( "Non-production environments - no accounts will be created")
+        isTest=True
+      else:
+        logger.info( "Non-production environments - but you are FORCING account creation")
+
+    syncWithSubscriptions(isTest)  

@@ -1,4 +1,5 @@
 import inspect,sys
+#vim:tabstop=2:expandtab
 
 class RATTBE_LOGEVENT_UNKNOWN:
     id= 0
@@ -100,15 +101,16 @@ class RATTBE_LOGEVENT_TOOL_LOGOUT:
 
 
 def get_events():
-    print RATTBE_LOGEVENT_UNKNOWN
-    print RATTBE_LOGEVENT_UNKNOWN.id
-    print RATTBE_LOGEVENT_UNKNOWN.desc
-    print dir(__package__)
-    print __package__.__doc__
+		"""
+		print RATTBE_LOGEVENT_UNKNOWN
+		print RATTBE_LOGEVENT_UNKNOWN.id
+		print RATTBE_LOGEVENT_UNKNOWN.desc
+		print dir(__package__)
+		print __package__.__doc__
+		"""
 
     events_by_id={}
     for (name,cl) in inspect.getmembers(sys.modules[__name__], inspect.isclass):
-        print name,cl.id,cl.desc
         events_by_id[cl.id]=cl.desc
     return events_by_id
 

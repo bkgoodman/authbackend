@@ -1091,8 +1091,33 @@ def create_routes():
     @app.route('/logs', methods=['GET'])
     @login_required
     def show_logs():
+        format='html'
+        print request.values
         evt= get_events()
-        dbq = db.session.query(Logs.time_reported,Logs.event_type,Member.firstname,Member.lastname,Tool.name.label("toolname"),Logs.message).outerjoin(Tool).outerjoin(Member).order_by(Logs.time_reported.desc()).limit(200).all()
+        q = db.session.query(Logs.time_reported,Logs.event_type,Member.firstname,Member.lastname,Tool.name.label("toolname"),Logs.message).outerjoin(Tool).outerjoin(Member).order_by(Logs.time_reported.desc())
+        if ('start' in request.values):
+            q=q.limit(request.values['limit'])
+        elif request.values['limit']=="all":
+            pass
+        else:
+            q=q.limit(200)
+        if ('offset' in request.values):
+            q=q.offset(request.values['offset'])
+        if ('member' in request.values):
+            q=q.filter(Member.mamber==request.values['member'])
+        if ('tool' in request.values):
+            q=q.filter(Tool.name==request.values['tool'])
+        if ('memberid' in request.values):
+            q=q.filter(Member.id==request.values['memberid'])
+        if ('toolid' in request.values):
+            q=q.filter(Tool.id==request.values['toolid'])
+        if ('before' in request.values):
+            q=q.filter(Logs.time_reported<=request.values['before'])
+        if ('after' in request.values):
+            q=q.filter(Logs.time_reported>=request.values['after'])
+        if ('format' in request.values):
+            format=request.values['format']
+        dbq = q.all()
         logs=[]
         for l in dbq:
             r={}
@@ -1113,6 +1138,8 @@ def create_routes():
                 r['message']=""
             logs.append(r)
 
+        # if format=="csv":
+        #    return Response(stream_with_context(generate(),content_type='text/csv'))
         return render_template('logs.html',logs=logs)
 
 
@@ -1352,6 +1379,11 @@ if __name__ == '__main__':
         db.create_all()
         createDefaultUsers(app)
         g.config=Config
+        try:
+          db.session.query("* from test_database").all()
+          app.jinja_env.globals['TESTDB'] = "YES"
+        except:
+            pass
         if DeployType.lower() != "production":
           app.jinja_env.globals['DEPLOYTYPE'] = DeployType
           kick_backend(Config)
