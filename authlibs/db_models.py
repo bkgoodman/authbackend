@@ -65,7 +65,7 @@ class Logs(db.Model):
     event_subtype = db.Column(db.Integer(),index=True)
 
 class UsageLog(db.Model):
-    __tablename__ = 'useaglog'
+    __tablename__ = 'usagelog'
     id = db.Column(db.Integer, primary_key=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))

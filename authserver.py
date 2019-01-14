@@ -1092,16 +1092,13 @@ def create_routes():
     @login_required
     def show_logs():
         evt= get_events()
-        #sqlstr = "select waiver_id,email,firstname,lastname,created_date from waivers"
-        #waivers = query_db(sqlstr)
-        #logs = Logs.query.order_by(Logs.time_reported.desc()).limit(100).all()
-        dbq = db.session.query(Logs.time_reported,Logs.event_type,Member.firstname,Member.lastname,Tool.name.label("toolname")).outerjoin(Tool).outerjoin(Member).order_by(Logs.time_reported.desc()).all()
+        dbq = db.session.query(Logs.time_reported,Logs.event_type,Member.firstname,Member.lastname,Tool.name.label("toolname"),Logs.message).outerjoin(Tool).outerjoin(Member).order_by(Logs.time_reported.desc()).limit(200).all()
         logs=[]
         for l in dbq:
             r={}
             print l.firstname,l.lastname,l.event_type,l.time_reported
             if l.lastname:
-                r['user'] = l.firstname+", "+l.lastname
+                r['user'] = l.lastname+", "+l.firstname
             else:
                 r['user']=""
             if (l.event_type in evt):
@@ -1110,6 +1107,10 @@ def create_routes():
                 r['event']=l.event
             r['time'] = l.time_reported
             r['toolname'] = l.toolname
+            if l.message:
+                r['message']=l.message
+            else:
+                r['message']=""
             logs.append(r)
 
         return render_template('logs.html',logs=logs)

@@ -9,3 +9,5 @@ INSERT INTO tags_by_member VALUES(5000,'1111111111','rfid','keyfob2',NULL,'Testy
 INSERT INTO waivers VALUES(5000,'56915b7086917','Testy','Testerson','test@example.com',5000,'2016-01-09 19:11:44.000000');
 
 INSERT INTO accessbymember VALUES(5000,5000,1,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5000,5000,3,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5000,5000,6,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);

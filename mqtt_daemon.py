@@ -138,12 +138,14 @@ def on_message(client,userdata,msg):
             
             if member and member in member_cache:
                 memberId = member_cache[member]
+                print "CACHE",memberId,"FROM",member
             elif member:
                 q = db.session.query(Member.id).filter(Member.member==member)
                 m = q.first()
                 print "QUERY MEMBER",q
                 print "RETURNED",m.id
                 if m:
+                    print "CACHE",member,"=",m.id
                     member_cache[member]=m.id
                     memberId=m.id
 
@@ -224,6 +226,7 @@ def on_message(client,userdata,msg):
                     log_text = errorText
 
                 elif sst=="logout":
+                    print "LOGOUT"
                     log_event_type = RATTBE_LOGEVENT_TOOL_LOGOUT.id
                     reason = message['reason']
                     enabledSecs = message['enabledSecs']
@@ -253,6 +256,7 @@ def on_message(client,userdata,msg):
                 logevent.tool_id=toolId
                 logevent.time_reported=datetime.now()
                 logevent.event_type = log_event_type
+                logevent.message = log_text
                 db.session.add(logevent)
                 db.session.commit()
             print member,toolname,nodeId,log_event_type,log_text

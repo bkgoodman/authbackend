@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block search %}
+  <div class=body>
+	<div class="sectionhead">Logs</div>
+    <a href="{{ url_for('show_logs') }}">View All</a>
+    <p></p>
+	<table class="bkg">
+      <tr>
+        <th>When</th>
+        <th>Who</th>
+        <th>Tool</th>
+        <th>Event</th>
+        <th>Message</th>
+      </tr>
+      {% for l in logs %}
+	  <tr>
+		<td>{{ l.time }}</td>
+		<td>{{ l.user }}</td>
+		<td>{{ l.toolname }}</td>
+		<td>{{ l.event }}</td>
+		<td>{{ l.message }}</td>
+	  </tr>
+      {% endfor %}
+	</table>
+  </div>
+{% endblock %}

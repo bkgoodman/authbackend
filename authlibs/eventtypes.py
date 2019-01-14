@@ -50,7 +50,7 @@ class RATTBE_LOGEVENT_TOOL_ACTIVE:
     desc='Tool Active'
 
 class RATTBE_LOGEVENT_TOOL_INACTIVE:
-    id=3005
+    id=3004
     desc='Tool Inactive'
 
 class RATTBE_LOGEVENT_TOOL_LOCKOUT_PENDING:
