@@ -81,16 +81,17 @@ def seconds_to_timespan(s):
 
 # The callback for when a PUBLISH message is received from the server.
 # 2019-01-11 17:09:01.736307
-def on_message(msg):
+#def on_message(msg):
+def on_message(client,userdata,msg):
     tool_cache={}
     resource_cache={}
     member_cache={}
     if True: #try:
         with app.app_context():
             log=Logs()
+            print "FROM WIRE",msg.topic,msg.payload
             message = json.loads(msg.payload)
             topic=msg.topic.split("/")
-            print "FROM WIRE",topic,message
 
             # Is this a RATT status message?
             toolname=None
@@ -151,7 +152,7 @@ def on_message(msg):
 
             if subt=="wifi":
                     # TODO throttle these!
-                    log_event_type = RATTBE_LOGEVENT_SYSTEM_WIFI.id
+                    #log_event_type = RATTBE_LOGEVENT_SYSTEM_WIFI.id
                     pass
             elif subt=="system":
                 if sst=="power":
@@ -199,7 +200,7 @@ def on_message(msg):
                 elif sst=="login":
                     # member
                     usedPassword = False
-                    if 'usaedPassword' in message: usedPassword = message['usedPassword']
+                    if 'usedPassword' in message: usedPassword = message['usedPassword']
                     allowed = message['allowed'] # Bool
 
                     if allowed and usedPassword:
@@ -271,12 +272,19 @@ if __name__ == '__main__':
     with app.app_context():
       # The callback for when the client receives a CONNACK response from the server.
       (host,port,base_topic,opts) = get_mqtt_opts()
+      sub.callback(on_message, "ratt/#", hostname=host, port=port,**opts)
+      sub.loop_forever()
       while True:
+        sub.loop_misc()
+        time.sleep(1)
+        """
         if True: #try:
             msg = sub.simple("ratt/#", hostname=host,port=port,**opts)
-            #print("%s %s" % (msg.topic, msg.payload))
-            on_message(msg)
+            print("%s %s" % (msg.topic, msg.payload))
+            #on_message(msg)
         else: #except:
+            print "EXCEPT"
             time.sleep(1)
+        """
 
 

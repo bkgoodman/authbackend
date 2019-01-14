@@ -30,3 +30,8 @@ h2              { font-size: 1.4em; padding-bottom: 10px;}
 .protip         { font-style: italic; padding-bottom: 0.3em; padding-top: 0.2em;}
 .delete         { background-color: #FF0000; font-size: medium;}
 .warningtext    { color: #FF0000; font-style: italic;}
+
+.bkg {font-size: 10px; border:1px}
+.bkg tr:nth-child(even) {background: #EEE}
+.bkg tr:nth-child(odd) {background: #FFF}
+

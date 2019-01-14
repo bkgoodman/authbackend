@@ -24,6 +24,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
 # NEwer login functionality
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
+from authlibs import eventtypes
 from flask_sqlalchemy import SQLAlchemy
 #; older login functionality
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
@@ -47,7 +48,7 @@ logging.basicConfig(stream=sys.stderr)
 import pprint
 import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
-from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Tool
+from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog
 import argparse
 
 
@@ -1090,9 +1091,28 @@ def create_routes():
     @app.route('/logs', methods=['GET'])
     @login_required
     def show_logs():
-        sqlstr = "select waiver_id,email,firstname,lastname,created_date from waivers"
-        waivers = query_db(sqlstr)
-        return render_template('logs.html',waivers=waivers)
+        evt= get_events()
+        #sqlstr = "select waiver_id,email,firstname,lastname,created_date from waivers"
+        #waivers = query_db(sqlstr)
+        #logs = Logs.query.order_by(Logs.time_reported.desc()).limit(100).all()
+        dbq = db.session.query(Logs.time_reported,Logs.event_type,Member.firstname,Member.lastname,Tool.name.label("toolname")).outerjoin(Tool).outerjoin(Member).order_by(Logs.time_reported.desc()).all()
+        logs=[]
+        for l in dbq:
+            r={}
+            print l.firstname,l.lastname,l.event_type,l.time_reported
+            if l.lastname:
+                r['user'] = l.firstname+", "+l.lastname
+            else:
+                r['user']=""
+            if (l.event_type in evt):
+                r['event']=evt[l.event_type]
+            else:
+                r['event']=l.event
+            r['time'] = l.time_reported
+            r['toolname'] = l.toolname
+            logs.append(r)
+
+        return render_template('logs.html',logs=logs)
 
 
     # ------------------------------------------------------------
