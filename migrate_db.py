@@ -20,7 +20,18 @@ TODO:
 - More documentation
 """
 
-import argparse,os
+import argparse,os,sys
+from authlibs.init import authbackend_init
+
+
+from sqlalchemy.exc import IntegrityError
+import sqlite3, re, time
+from flask import Flask, request, session, g, redirect, url_for, \
+	abort, render_template, flash, Response
+# NEwer login functionality
+from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
+from flask_sqlalchemy import SQLAlchemy
+"""
 from sqlalchemy.exc import IntegrityError
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
@@ -49,9 +60,13 @@ import logging
 logging.basicConfig(stream=sys.stderr)
 import pprint
 import paho.mqtt.publish as mqtt_pub
+"""
 from datetime import datetime
+from authlibs import utilities as authutil
 from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver
+import json
 
+"""
 # Load general configuration from file
 defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
 Config = ConfigParser.ConfigParser(defaults)
@@ -86,6 +101,10 @@ def create_app():
     app.config.from_object(__name__)
     app.secret_key = Config.get('General','SecretKey')
     return app
+"""
+
+import sqlite3
+from flask import g
 
 def connect_source_db():
     """Convenience method to connect to the globally-defined database"""
@@ -279,14 +298,18 @@ if __name__ == '__main__':
     except:
       pass
     
+    """
     app = create_app()
     db.init_app(app)
     user_manager = UserManager(app, db, User)
+    """
+    app=authbackend_init(__name__)
+    print "AOO",app
+    app.g=None
+    print "AOO",app.g
     with app.app_context():
         # Extensions like Flask-SQLAlchemy now know what the "current" app
         # is while within this block. Therefore, you can now run........
-        db.create_all()
-        if args.overwrite: createDefaultUsers(app)
 
         if not args.nomigrate:
           print """ START DB MIGRATION """

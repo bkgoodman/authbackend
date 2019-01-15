@@ -1308,8 +1308,9 @@ def createDefaultRoles(app):
 def createDefaultUsers(app):
     createDefaultRoles(app)
     # Create default admin role and user if not present
+    admin_role = Role.query.filter(Role.name=='Admin').first()
     if not User.query.filter(User.email == app.globalConfig.AdminUser).first():
-        user = User(email=app.globalConfig.AdminUser,password=user_manager.hash_password(app.globalConfig.AdminPasswd),email_confirmed_at=datetime.utcnow())
+        user = User(email=app.globalConfig.AdminUser,password=app.user_manager.hash_password(app.globalConfig.AdminPasswd),email_confirmed_at=datetime.utcnow())
         app.logger.debug("ADD USER "+str(user))
         db.session.add(user)
         user.roles.append(admin_role)
@@ -1319,6 +1320,7 @@ def createDefaultUsers(app):
 # Start development web server
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()
+    parser.add_argument("--createdb",help="Create new db if none exists",action="store_true")
     parser.add_argument("--command",help="Special command",action="store_true")
     (args,extras) = parser.parse_known_args(sys.argv[1:])
 
@@ -1327,8 +1329,9 @@ if __name__ == '__main__':
     with app.app_context():
         # Extensions like Flask-SQLAlchemy now know what the "current" app
         # is while within this block. Therefore, you can now run........
-        db.create_all()
-        createDefaultUsers(app)
+        if (args.createdb):
+          db.create_all()
+          createDefaultUsers(app)
         try:
           db.session.query("* from test_database").all()
           app.jinja_env.globals['TESTDB'] = "YES"
