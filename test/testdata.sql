@@ -31,7 +31,7 @@ INSERT INTO accessbymember VALUES(5000,5000,1,1,'2019-01-13 03:59:59',NULL,'',''
 INSERT INTO accessbymember VALUES(5001,5000,3,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
 INSERT INTO accessbymember VALUES(5002,5000,6,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
 
-INSERT INTO accessbymember VALUES(5002,5001,1,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
-INSERT INTO accessbymember VALUES(5002,5002,1,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
-INSERT INTO accessbymember VALUES(5002,5002,3,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
-INSERT INTO accessbymember VALUES(5002,5002,6,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5003,5001,1,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5004,5002,1,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5005,5002,3,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5006,5002,6,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
