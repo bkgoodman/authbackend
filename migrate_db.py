@@ -177,8 +177,8 @@ def createDefaultUsers(app):
     admin_role = Role.query.filter(Role.name=='Admin').first()
     if not admin_role:
         admin_role = Role(name='Admin')
-    if not User.query.filter(User.email == AdminUser).first():
-        user = User(email=AdminUser,password=user_manager.hash_password(AdminPasswd),email_confirmed_at=datetime.utcnow())
+    if not User.query.filter(User.email == app.globalConfig.AdminUser).first():
+        user = User(email=app.globalConfig.AdminUser,password=app.user_manager.hash_password(app.globalConfig.AdminPasswd),email_confirmed_at=datetime.utcnow())
         app.logger.debug("ADD USER "+str(user))
         db.session.add(user)
         user.roles.append(admin_role)
@@ -304,15 +304,15 @@ if __name__ == '__main__':
     user_manager = UserManager(app, db, User)
     """
     app=authbackend_init(__name__)
-    print "AOO",app
-    app.g=None
-    print "AOO",app.g
     with app.app_context():
         # Extensions like Flask-SQLAlchemy now know what the "current" app
         # is while within this block. Therefore, you can now run........
 
         if not args.nomigrate:
           print """ START DB MIGRATION """
+
+          db.create_all()
+          createDefaultUsers(app)
           tables=[
           "accessbyid","logs","payments","waivers",
           "accessbymember","memberbycustomer","resources",
