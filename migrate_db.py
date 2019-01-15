@@ -272,7 +272,8 @@ if __name__ == '__main__':
     parser.add_argument("--testdt",help="Only test datetime functions",action="store_true")
     parser.add_argument("--testdata",help="Add test data to database",action="store_true")
     parser.add_argument("--nomigrate",help="Don't migrate data. Just create DB (and optionally add test data)",action="store_true")
-    (args,extras) = parser.parse_known_args(sys.argv[1:])
+    #(args,extras) = parser.parse_known_args(sys.argv[1:])
+    args = parser.parse_args(sys.argv[1:])
 
 
     if args.testdt:
@@ -308,11 +309,12 @@ if __name__ == '__main__':
         # Extensions like Flask-SQLAlchemy now know what the "current" app
         # is while within this block. Therefore, you can now run........
 
+        db.create_all()
+        createDefaultUsers(app)
+
         if not args.nomigrate:
           print """ START DB MIGRATION """
 
-          db.create_all()
-          createDefaultUsers(app)
           tables=[
           "accessbyid","logs","payments","waivers",
           "accessbymember","memberbycustomer","resources",

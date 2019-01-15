@@ -36,7 +36,7 @@ to something other thatn "Production"
 The database is normally the makeit.db. You will probably need to copy this over from somewhere (i.e. live server).
 If you don't have a "live" one to grab and use, you can create an example one with:
 
-./migrate_db.py --overwrite makeit.db --testdata --testonly
+./migrate_db.py --overwrite makeit.db --testdata --nomigrate
 
 This utility can also be used to migrate a database to a "new" schema - but this obviously will change drastically from
 time-to-time, depending on which versions you are migrating to and form. The "--testdata" and "--testonly" flags won't

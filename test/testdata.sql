@@ -1,3 +1,4 @@
+PRAGMA foreign_keys=OFF;
 /* If this is in your database - you are running a test server! */
 CREATE TABLE test_database (test);
 
@@ -21,17 +22,25 @@ INSERT INTO members VALUES(5000,'Testy.Testerson','Testy.Testerson@makeitlabs.co
 INSERT INTO members VALUES(5001,'First.User','fuser@makeitlabs.com','fu@example.com','First','fuser','User',NULL,'pro',NULL,NULL,'true','First','First User','2017-08-03 06:35:09.000000',NULL);
 INSERT INTO members VALUES(5002,'bill.tester','billtester@makeitlabs.com','tester_foo123@makeitlabs.com','Bill','bill.tester','Tester',NULL,'pro',NULL,NULL,'true','Bill','Bill Tester','2017-08-03 06:35:09.000000',NULL);
 
+/* Add Fake Resrouces */
+INSERT INTO resources VALUES(5000,'TestResource','TestData','anyone@example.com',NULL,NULL,NULL,NULL,NULL,NULL);
 
 INSERT INTO tags_by_member VALUES(5000,'1111111111','rfid','keyfob2',NULL,'Testy.Testerson',5000);
 INSERT INTO tags_by_member VALUES(5001,'2222222222','rfid','keyfob2',NULL,'First.User',5001);
 INSERT INTO tags_by_member VALUES(5002,'3333333333','rfid','keyfob2',NULL,'bill.tester',5002);
 INSERT INTO waivers VALUES(5000,'56915b7086917','Testy','Testerson','test@example.com',5000,'2016-01-09 19:11:44.000000');
 
+/* Some of these reference "real" database records - they might get purged if we didn't migrate
+   any of that data into this db */
+
 INSERT INTO accessbymember VALUES(5000,5000,1,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
 INSERT INTO accessbymember VALUES(5001,5000,3,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
 INSERT INTO accessbymember VALUES(5002,5000,6,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5003,5000,5000,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
 
-INSERT INTO accessbymember VALUES(5003,5001,1,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
-INSERT INTO accessbymember VALUES(5004,5002,1,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
-INSERT INTO accessbymember VALUES(5005,5002,3,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
-INSERT INTO accessbymember VALUES(5006,5002,6,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5005,5001,1,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5006,5002,1,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5007,5002,3,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5008,5002,6,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+INSERT INTO accessbymember VALUES(5009,5002,5000,1,'2019-01-13 03:59:59',NULL,'','','','admin',0);
+
