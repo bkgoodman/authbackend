@@ -3,6 +3,7 @@
 
 import config
 import sqlite3, time
+from authlibs.db_models import Subscription
 
 
 Database = "makeit.db"
@@ -100,10 +101,20 @@ def _addSubscriptionData(subs,paytype):
             logger.info("BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['name']))
         else:
             #print "PLANS",sub['planname'],sub['plantype']
+						s = Subscription.query.fiter(Subscription==sub['subid']).one()
+						if not s: sub=Subscription(subid=sub['subid'])
+						s.paysystem = paytype
+						s.customerid = sub['customerid']
+						s.name = sub['name']
+						s.email = sub['email']
+						s.plan = sub['plantype']
+						s.expires_date = sub['expires']
+						s.created_date = sub['created']
+						s.updated_date = sub['updatedon']
+						s.checked_date = datetime.datetime.now()
+						s.active = sub['active']
             users.append((sub['name'],sub['active'],sub['email'],paytype,sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
-    cur = get_db().cursor()
-    cur.executemany('INSERT into subscriptions (name,active,email,paysystem,plan,customerid,subid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?,?,?)', users)
-    get_db().commit()
+		db.session.commit()
 
 
 

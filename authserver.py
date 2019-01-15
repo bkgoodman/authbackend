@@ -34,6 +34,7 @@ import ConfigParser
 import xml.etree.ElementTree as ET
 from authlibs.eventtypes import get_events
 from StringIO import StringIO
+from authlibs.init import authbackend_init, get_config
 from authlibs import cli
 from authlibs import utilities as authutil
 from authlibs import payments as pay
@@ -51,68 +52,19 @@ from datetime import datetime
 from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog
 import argparse
 
-
-# Load general configuration from file
-defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
-Config = ConfigParser.ConfigParser(defaults)
-Config.read('makeit.ini')
-ServerHost = Config.get('General','ServerHost')
-ServerPort = Config.getint('General','ServerPort')
-Database = Config.get('General','Database')
-AdminUser = Config.get('General','AdminUser')
-AdminPasswd = Config.get('General','AdminPassword')
-DeployType = Config.get('General','Deployment')
-DEBUG = Config.getboolean('General','Debug')
-
-# Flask-User Settings
-USER_APP_NAME = 'Basic'
-USER_PASSLIB_CRYPTCONTEXT_SCHEMES=['bcrypt']
-# Don;t want to include these, but it depends on them, so..
-USER_ENABLE_EMAIL = True        # Enable email authentication
-USER_ENABLE_USERNAME = False    # Disable username authentication
-USER_EMAIL_SENDER_NAME = USER_APP_NAME
-USER_EMAIL_SENDER_EMAIL = "noreply@example.com"
-
-# SQLAlchemy setting
-SQLALCHEMY_DATABASE_URI = "sqlite:///"+Database
-SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-# Load Waiver system data from file
 waiversystem = {}
-waiversystem['Apikey'] = Config.get('Smartwaiver','Apikey')
+waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
 
-def get_mqtt_opts():
-    opts={}
-    ka=None
-    base_topic = Config.get("MQTT","BaseTopic")
-    host = Config.get("MQTT","BrokerHost")
-    port = Config.getint("MQTT","BrokerPort")
-    if Config.has_option("MQTT","keepalive"):
-        opts['keepalive']=Config.getint("MQTT","keepalive")
-    if Config.has_option("MQTT","SSL") and Config.getboolean("MQTT","SSL"):
-        tls={}
-        for (k,v) in Config.items("MQTT_SSL"):
-            tls[k]=v
-        opts['tls']=tls
-
-    if Config.has_option("MQTT","username"):
-        auth={'username':Config.get("MQTT","username"),'password':Config.get("MQTT","password")}
-        opts['auth']=auth
-
-    return (host,port,base_topic,opts)
     
 # RULE - only call this from web APIs - not internal functions
 # Reason: If we have calls or scripts that act on many records,
 # we probably shouldn't generate a million messages
-def kick_backend(Config):
-    (host,port,base_topic,opts) = get_mqtt_opts()
-        
+def kick_backend():
     try:
       topic= base_topic+"/control/broadcast/acl/update"
-      mqtt_pub.single(topic, "test", hostname=host,port=port,**opts)
-      print "PUBLISHED "+topic,host,port,opts
+      mqtt_pub.single(app.globalConfig.mqtt_topic, "update", hostname=app.globalConfig.mqtt_host,port=app.globalConfig.mqtt_port,**app.globalConfig.mqtt_opts)
     except BaseException as e:
-        current_app.logger.warning("Publish fail "+str(e))
+        current_app.logger.warning("MQTT acl/update failed to publish: "+str(e))
 
 def create_app():
     # App setup
@@ -177,7 +129,7 @@ def requires_auth(f):
 
 def connect_db():
     """Convenience method to connect to the globally-defined database"""
-    con = sqlite3.connect(Database,check_same_thread=False)
+    con = sqlite3.connect(app.globalConfig.Database,check_same_thread=False)
     con.row_factory = sqlite3.Row
     return con
 
@@ -253,7 +205,7 @@ def expireMember(memberid):
     sqlstr = "update members set active='false' where member='%s'" % m
     execute_db(sqlstr)
     get_db().commit()
-    kick_backend(Config)
+    kick_backend()
 
 def unexpireMember(memberid):
     """Mark a user active"""
@@ -262,14 +214,14 @@ def unexpireMember(memberid):
     sqlstr = "update members set active='true' where member='%s'" % m
     execute_db(sqlstr)
     get_db().commit()
-    kick_backend(Config)
+    kick_backend()
 
 def _expirationSync():
     """Make sure all expirations match what's in the Payments database"""
     sqlstr = "update members set active='true',updated_date=DATETIME('now') where member in (select member from payments where expires_date < date('now'))"
     execute_db(sqlstr)
     get_db().commit()
-    kick_backend(Config)
+    kick_backend()
 
 def _createMember(m):
     """Add a member entry to the database"""
@@ -284,7 +236,7 @@ def _createMember(m):
         execute_db(sqlstr)
         get_db().commit()
     return {'status':'success','message':'Member %s was created' % m['memberid']}
-    kick_backend(Config)
+    kick_backend()
 
 def _createResource(r):
     """Add a resource to the database"""
@@ -322,7 +274,7 @@ def _addPaymentData(subs,paytype):
     cur = get_db().cursor()
     cur.executemany('INSERT into payments (member,email,paysystem,plan,customerid,created_date,expires_date,updated_date,checked_date) VALUES (?,?,?,?,?,?,?,?,?)', users)
     get_db().commit()
-    kick_backend(Config)
+    kick_backend()
 
 def _getResourceUsers(resource):
     """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
@@ -402,7 +354,7 @@ def _deactivateMembers():
     sqlstr = "update members set active='false', updated_date=Datetime('now')"
     execute_db(sqlstr)
     get_db().commit()
-    kick_backend(Config)
+    kick_backend()
 
 def _syncMemberPlans():
     """Update Members table with currently paid-for plan from Payments"""
@@ -410,7 +362,7 @@ def _syncMemberPlans():
             where member in (select member from payments)"""
     execute_db(sqlstr)
     get_db().commit()
-    kick_backend(Config)
+    kick_backend()
 
 def _activatePaidMembers():
     """Set users who are not expired to active state"""
@@ -419,7 +371,7 @@ def _activatePaidMembers():
             where member in (select member from payments where expires_date > Datetime('now'))"""
     execute_db(sqlstr)
     get_db().commit()
-    kick_backend(Config)
+    kick_backend()
 
 def _updateMembersFromPayments(subs):
     """Bring Members table and up to date with latest user payment information. Requires Subscriber dict"""
@@ -427,7 +379,7 @@ def _updateMembersFromPayments(subs):
     _deactivateMembers()
     _syncMemberPlans()
     _activatePaidMembers()
-    kick_backend(Config)
+    kick_backend()
     return True
 
 def _updatePaymentsData():
@@ -450,7 +402,7 @@ def add_member_tag(mid,ntag,tag_type,tag_name):
                     values ('%s','%s','%s','%s',DATETIME('now'))""" % (mid,ntag,tag_name,tag_type)
         execute_db(sqlstr)
         get_db().commit()
-        kick_backend(Config)
+        kick_backend()
         return True
     else:
         return False
@@ -697,7 +649,7 @@ def create_routes():
         clearAccess(mid)
         addAccess(mid,access)
         flash("Member access updated")
-        kick_backend(Config)
+        kick_backend()
         return redirect(url_for('member_editaccess',id=mid))
 
     @app.route('/members/<string:id>/tags', methods = ['GET'])
@@ -712,7 +664,7 @@ def create_routes():
     @app.route('/updatebackends', methods = ['GET'])
     @login_required
     def update_backends():
-        kick_backend(Config)
+        kick_backend()
         flash("Backend Update Request Send")
         return redirect(url_for('index'))
 
@@ -729,7 +681,7 @@ def create_routes():
             flash("ERROR: The specified RFID tag is invalid, must be 10-digit all-numeric")
         else:
             if add_member_tag(mid,ntag,ntagtype,ntagname):
-                kick_backend(Config)
+                kick_backend()
                 flash("Tag added.")
             else:
                 flash("Error: That tag is already associated with a user")
@@ -747,7 +699,7 @@ def create_routes():
           sqlstr = "delete from tags_by_member where tag_ident = '%s' and member = '%s'" % (tid,mid)
           execute_db(sqlstr)
           get_db().commit()
-          kick_backend(Config)
+          kick_backend()
           flash("If that tag was associated with the current user, it was removed")
         return redirect(url_for('member_tags',id=mid))
 
@@ -1197,7 +1149,7 @@ def create_routes():
     @app.route('/api/v1/reloadacl', methods=['GET'])
     @requires_auth
     def api_v1_reloadacl():
-        kick_backend(Config)
+        kick_backend()
         return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
 
     @app.route('/api/v1/whoami', methods=['GET'])
@@ -1356,8 +1308,8 @@ def createDefaultRoles(app):
 def createDefaultUsers(app):
     createDefaultRoles(app)
     # Create default admin role and user if not present
-    if not User.query.filter(User.email == AdminUser).first():
-        user = User(email=AdminUser,password=user_manager.hash_password(AdminPasswd),email_confirmed_at=datetime.utcnow())
+    if not User.query.filter(User.email == app.globalConfig.AdminUser).first():
+        user = User(email=app.globalConfig.AdminUser,password=user_manager.hash_password(app.globalConfig.AdminPasswd),email_confirmed_at=datetime.utcnow())
         app.logger.debug("ADD USER "+str(user))
         db.session.add(user)
         user.roles.append(admin_role)
@@ -1370,25 +1322,23 @@ if __name__ == '__main__':
     parser.add_argument("--command",help="Special command",action="store_true")
     (args,extras) = parser.parse_known_args(sys.argv[1:])
 
-    app = create_app()
-    db.init_app(app)
-    user_manager = UserManager(app, db, User)
+    app=authbackend_init(__name__)
+
     with app.app_context():
         # Extensions like Flask-SQLAlchemy now know what the "current" app
         # is while within this block. Therefore, you can now run........
         db.create_all()
         createDefaultUsers(app)
-        g.config=Config
         try:
           db.session.query("* from test_database").all()
           app.jinja_env.globals['TESTDB'] = "YES"
         except:
             pass
-        if DeployType.lower() != "production":
-          app.jinja_env.globals['DEPLOYTYPE'] = DeployType
-          kick_backend(Config)
+        if app.globalConfig.DeployType.lower() != "production":
+          app.jinja_env.globals['DEPLOYTYPE'] = app.globalConfig.DeployType
+          kick_backend()
         if  args.command:
-            cli.cli_command(extras,app=app,um=user_manager)
+            cli.cli_command(extras,app=app,um=app.user_manager)
             sys.exit(0)
     create_routes()
-    app.run(host=ServerHost, port=ServerPort, debug=True)
+    app.run(host=app.globalConfig.ServerHost, port=app.globalConfig.ServerPort, debug=app.globalConfig.Debug)

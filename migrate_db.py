@@ -252,6 +252,7 @@ if __name__ == '__main__':
     parser.add_argument("--overwrite",help="Overwrite entire database with migrated data")
     parser.add_argument("--testdt",help="Only test datetime functions",action="store_true")
     parser.add_argument("--testdata",help="Add test data to database",action="store_true")
+    parser.add_argument("--nomigrate",help="Don't migrate data. Just create DB (and optionally add test data)",action="store_true")
     (args,extras) = parser.parse_known_args(sys.argv[1:])
 
 
@@ -287,416 +288,419 @@ if __name__ == '__main__':
         db.create_all()
         if args.overwrite: createDefaultUsers(app)
 
-        tables=[
-        "accessbyid","logs","payments","waivers",
-        "accessbymember","memberbycustomer","resources",
-        "blacklist","members","subscriptions",
-        "feespaid","members_Debug","tagsbymember"
-        ]
-        for t in tables:
-            print "TABLE",t,"HAS", query_source_db("select COUNT(*) from {0};".format(t))[0][0],"ROWS"
-                
-        membercols=[
-            'member',
-            'alt_email',
-            'firstname',
-            'lastname',
-            'phone',
-            'plan',
-            'updated_date',
-            'access_enabled',
-            'access_reason',
-            'active',
-            'nickname',
-            'name',
-            'created_date']
+        if not args.nomigrate:
+          print """ START DB MIGRATION """
+          tables=[
+          "accessbyid","logs","payments","waivers",
+          "accessbymember","memberbycustomer","resources",
+          "blacklist","members","subscriptions",
+          "feespaid","members_Debug","tagsbymember"
+          ]
+          for t in tables:
+              print "TABLE",t,"HAS", query_source_db("select COUNT(*) from {0};".format(t))[0][0],"ROWS"
+                  
+          membercols=[
+              'member',
+              'alt_email',
+              'firstname',
+              'lastname',
+              'phone',
+              'plan',
+              'updated_date',
+              'access_enabled',
+              'access_reason',
+              'active',
+              'nickname',
+              'name',
+              'created_date']
 
-        process_source_table("members",membercols)
-        resource_cols=[
-            'name',
-            'description',
-            'owneremail',
-            'last_updated'
-        ]
-        process_source_table("resources",resource_cols)
+          process_source_table("members",membercols)
+          resource_cols=[
+              'name',
+              'description',
+              'owneremail',
+              'last_updated'
+          ]
+          process_source_table("resources",resource_cols)
 
-        accessbymember_cols =[
-                'member',
-                'resource', 
-                'enabled',
-                'updated_date',
-                'level'
-        ]
-        process_source_table("accessbymember",accessbymember_cols)
+          accessbymember_cols =[
+                  'member',
+                  'resource', 
+                  'enabled',
+                  'updated_date',
+                  'level'
+          ]
+          process_source_table("accessbymember",accessbymember_cols)
 
-        # CREATE TABLE accessbyid(resource,rfidtag,enabled,lastmodified);
-        accessbyid_cols = [
-            "resource","rfidtag","enabled","lastmodified"
-        ]
-        process_source_table("accessbyid",accessbyid_cols)
+          # CREATE TABLE accessbyid(resource,rfidtag,enabled,lastmodified);
+          accessbyid_cols = [
+              "resource","rfidtag","enabled","lastmodified"
+          ]
+          process_source_table("accessbyid",accessbyid_cols)
 
-        # CREATE TABLE tagsbymember (member text, tagtype text, tagid text, updated_date text, tagname TEXT);
-        tagsbymember_cols = [
-            "member","tagtype","tagid","updated_date","tagname"
-        ]
-        process_source_table("tagsbymember",tagsbymember_cols)
+          # CREATE TABLE tagsbymember (member text, tagtype text, tagid text, updated_date text, tagname TEXT);
+          tagsbymember_cols = [
+              "member","tagtype","tagid","updated_date","tagname"
+          ]
+          process_source_table("tagsbymember",tagsbymember_cols)
 
-                        
+                          
 
-        """
-            except BaseException as e:
-                print
-                print
-                print "ERROR",x['name'],str(e)
-                print
-            """
+          """
+              except BaseException as e:
+                  print
+                  print
+                  print "ERROR",x['name'],str(e)
+                  print
+              """
 
-        # Find odd slack users
-        su = get_slack_users()
-        """
-        for x in su:
-            vv=x.split(".")
-            if (len(vv)!=2): print x
-        """
+          # Find odd slack users
+          su = get_slack_users()
+          """
+          for x in su:
+              vv=x.split(".")
+              if (len(vv)!=2): print x
+          """
 
-        # Members to Slack IDs
+          # Members to Slack IDs
 
 
-        corrected_slack_ids={}
-        slack_explicit_matches={}
-        try:
-          for x in open("../explicit_slack_ids.txt").readlines():
-              (a,b,c)=x.split()
-              slack_explicit_matches[b]=c
-        except:
-            print """
-        ***
-        *** explicit_slac_id_.txt not found - not importing
-        ***
-            """
+          corrected_slack_ids={}
+          slack_explicit_matches={}
+          try:
+            for x in open("../explicit_slack_ids.txt").readlines():
+                (a,b,c)=x.split()
+                slack_explicit_matches[b]=c
+          except:
+              print """
+          ***
+          *** explicit_slac_id_.txt not found - not importing
+          ***
+              """
 
-        dbm = {}
-        mc = ",".join(membercols)
-        members = query_source_db("select "+mc+" from members;")
-        match = {
-                'no':0,
-                'exact':0,
-                'nodelim':0,
-                'oddcase':0,
-                'odddelim':0,
-                'dotlast':0,
-                'firstonly':0,
-                'lastonly':0,
-                'firstlast':0,
-                'first0last':0,
-                'explicit':0,
-        }
-        for x in  members:
-            found = False
-            if x[0] in su: 
-                match['exact']+=1
-                corrected_slack_ids[x[0]]=x[0]
-                found=True
-            if x[0] in slack_explicit_matches:
-                match['explicit']+=1
-                corrected_slack_ids[x[0]]=slack_explicit_matches[x[0]]
-                found=True
-            else:
-                # case mismatch
-                for yy in su:
-                    if yy.lower() == x[0].lower():
-                        match['oddcase']+=1
-                        corrected_slack_ids[x[0]]=yy
-                        found=True
-            if not found:
-                first=x[0].split(".")[0].lower()
-                last=x[0].split(".")[-1].lower()
-                for yy in su:
-                    slack_first = su[yy]['first_name'].lower()
-                    slack_last = su[yy]['last_name'].lower()
-                    if yy.lower() == first+last:
-                        match['nodelim']+=1
-                        corrected_slack_ids[x[0]]=yy
-                        found=True
-                    if yy.lower() == first+"_"+last:
-                        match['odddelim']+=1
-                        corrected_slack_ids[x[0]]=yy
-                        found=True
-                    if (slack_first==first) and (slack_last==last):
-                        match['firstlast']+=1
-                        #print "PROBABLY",x[0],yy
-                        # found=True Than's Mike Sullivan :(
-                    if yy.lower() == first[0]+"."+last:
-                        #print "DOTLAST POSSIBLY",x[0],yy
-                        match['dotlast']+=1
-                    if yy.lower() == first:
-                        #print "FIRSTONLY POSSIBLY",x[0],yy
-                        match['firstonly']+=1
-                    if yy.lower() == last:
-                        #print "LASTONLY POSSIBLY",x[0],yy
-                        match['lastonly']+=1
-                    if yy.lower().endswith(last):
-                        #print "POSSIBLY",x[0],yy
-                        match['lastonly']+=1
-                    if (slack_first[0]==first[0]) and (slack_last==last):
-                        match['first0last']+=1
-                        #print "POSSIBLY",x[0],yy
-            if not found:
-                #print "No match for ",x[0]
-                match['no']+=1
-                
-                
+          dbm = {}
+          mc = ",".join(membercols)
+          members = query_source_db("select "+mc+" from members;")
+          match = {
+                  'no':0,
+                  'exact':0,
+                  'nodelim':0,
+                  'oddcase':0,
+                  'odddelim':0,
+                  'dotlast':0,
+                  'firstonly':0,
+                  'lastonly':0,
+                  'firstlast':0,
+                  'first0last':0,
+                  'explicit':0,
+          }
+          for x in  members:
+              found = False
+              if x[0] in su: 
+                  match['exact']+=1
+                  corrected_slack_ids[x[0]]=x[0]
+                  found=True
+              if x[0] in slack_explicit_matches:
+                  match['explicit']+=1
+                  corrected_slack_ids[x[0]]=slack_explicit_matches[x[0]]
+                  found=True
+              else:
+                  # case mismatch
+                  for yy in su:
+                      if yy.lower() == x[0].lower():
+                          match['oddcase']+=1
+                          corrected_slack_ids[x[0]]=yy
+                          found=True
+              if not found:
+                  first=x[0].split(".")[0].lower()
+                  last=x[0].split(".")[-1].lower()
+                  for yy in su:
+                      slack_first = su[yy]['first_name'].lower()
+                      slack_last = su[yy]['last_name'].lower()
+                      if yy.lower() == first+last:
+                          match['nodelim']+=1
+                          corrected_slack_ids[x[0]]=yy
+                          found=True
+                      if yy.lower() == first+"_"+last:
+                          match['odddelim']+=1
+                          corrected_slack_ids[x[0]]=yy
+                          found=True
+                      if (slack_first==first) and (slack_last==last):
+                          match['firstlast']+=1
+                          #print "PROBABLY",x[0],yy
+                          # found=True Than's Mike Sullivan :(
+                      if yy.lower() == first[0]+"."+last:
+                          #print "DOTLAST POSSIBLY",x[0],yy
+                          match['dotlast']+=1
+                      if yy.lower() == first:
+                          #print "FIRSTONLY POSSIBLY",x[0],yy
+                          match['firstonly']+=1
+                      if yy.lower() == last:
+                          #print "LASTONLY POSSIBLY",x[0],yy
+                          match['lastonly']+=1
+                      if yy.lower().endswith(last):
+                          #print "POSSIBLY",x[0],yy
+                          match['lastonly']+=1
+                      if (slack_first[0]==first[0]) and (slack_last==last):
+                          match['first0last']+=1
+                          #print "POSSIBLY",x[0],yy
+              if not found:
+                  #print "No match for ",x[0]
+                  match['no']+=1
+                  
+                  
 
-        print "Slack: ",match
-        print "Loaded ",len(corrected_slack_ids),"Slack IDs"
-            
+          print "Slack: ",match
+          print "Loaded ",len(corrected_slack_ids),"Slack IDs"
+              
 
-        ##
-        ## Okay build new "member" table..
-        ##
+          ##
+          ## Okay build new "member" table..
+          ##
 
+        
+          for x in  members:
+              slack=None
+              if x[0] in corrected_slack_ids:
+                  slack=corrected_slack_ids[x[0]]
+              mem = Member()
+
+
+              if slack:
+                  first=su[slack]['first_name']
+                  last=su[slack]['last_name']
+                  #print x[0],slack,first,last
+              else:
+                  nm=x[0].split(".")
+
+                  if len(nm)==2:
+                      first = nm[0]
+                      last = nm[1]
+                  elif len(nm)==3:
+                      first=nm[0]
+                      last=nm[1]+nm[2]
+                  else:
+                      first=""
+                      last=""
+
+              created=None
+              if (x[12]):
+                  created=authutil.parse_datetime(x[12])
+
+                  mem.member = x[0]
+                  mem.email = x[0]+"@makeitlabs.com"
+                  mem.alt_email = x[1]
+                  mem.firstname = first
+                  mem.slack = slack
+                  mem.lastname = last
+                  mem.phone = x[4]
+                  mem.plan = x[5]
+                  mem.access_enabled = x[7]
+                  mem.access_reason = x[8]
+                  mem.active = x[9]
+                  mem.nickname = first
+                  mem.stripe_name = x[11]
+                  mem.time_created = created
+                  #print mem
+                  #print x[0],x[1],first,last,x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],created
+             
+                  if args.overwrite: db.session.add(mem)
+          if args.overwrite: db.session.flush()
+          if args.overwrite: db.session.commit()
+
+          """
+          mem.member = db.Column(db.String(50), unique=True)
+          mem.email = db.Column(db.String(50))
+          mem.alt_email = db.Column(db.String(50))
+          mem.firstname = db.Column(db.String(50))
+          mem.slack = db.Column(db.String(50))
+          mem.lastname = db.Column(db.String(50))
+          mem.phone = db.Column(db.String(50))
+          mem.plan = db.Column(db.String(50))
+          mem.updated_date = db.Column(db.DateTime())
+          mem.access_enabled = db.Column(db.Integer())
+          mem.access_reason = db.Column(db.String(50))
+          mem.active = db.Column(db.Integer())
+          mem.nickname = db.Column(db.String(50))
+          mem.name = db.Column(db.String(50))
+          mem.time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+          mem.time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
+          """
+          #
+          # RESOURCES
+          #
+
+          dbr = {}
+          mc = ",".join(resource_cols)
+          #print mc
+          rez = query_source_db("select "+mc+" from resources;")
+
+          for x in rez:
+              #print x
+              resources = Resource()
+              resources.name = x[0]
+              resources.description = x[1]
+              resources.owneremail = x[2]
+              #print resources
+              if args.overwrite: db.session.add(resources)
+          if args.overwrite: db.session.flush()
+          if args.overwrite: db.session.commit()
+
+          #
+          # TAGS by member
+
+          # Read decoded hashes
+          byencoded={}
+          try:
+            for x in open("../unhashed_tags_all.txt").readlines():
+                sp=x.strip().split()
+                uid=sp[3]
+                enc=sp[2]
+                rawno=sp[1]
+                byencoded[enc]=rawno
+          except:
+              print """
+  ***
+  *** ERROR: No decoded hash file found
+  *** Tags IDs cannot be migrated
+  ***
+              """
+
+          dbr = {}
+          mc = ",".join(tagsbymember_cols)
+          #print mc
+          recs = query_source_db("select "+mc+" from tagsbymember;")
+
+          # "member","tagtype","tagid","updated_date","tagname"
+          good=0
+          bad=0
+          nounhash=0
+          for x in recs:
+              newtag = MemberTag()
+              mid = Member.query.filter(Member.member==x[0]).first()
+              newtag.member_id=None
+              goodtag=False
+              if mid:
+                  newtag.member_id=mid.id
+                  if x[2] in byencoded:
+                    good+=1
+                    newtag.tag_ident=byencoded[x[2]]
+                    goodtag=True
+                  else:
+                    print "UNHASH LOOKUP FAILED FOR",x[2],x[0]
+                    nounhash+=1
+              else:
+                  #print "NO RECORD FOR",x
+                  bad+=1
+              newtag.member=x[0]
+              newtag.tag_type=x[1]
+              #newtag.updated_date
+              newtag.tag_name=x[4]
+              lastupdate=authutil.parse_datetime(x[3])
+              #print newtag,x,lastupdate
+              if args.overwrite and goodtag: db.session.add(newtag)
+          if args.overwrite: db.session.flush()
+          if args.overwrite: db.session.commit()
+
+          print "FOBs migrated",good,"failed",bad,"Not-Unhashable",nounhash
+
+          ##
+          ## AccessByMember
+          ##
+
+          # member
+          # resource
+          # enabled
+          # updated_date
+          # level
+          mc = ",".join(accessbymember_cols)
+          #print mc
+          recs = query_source_db("select "+mc+" from accessbymember;")
+          good=0
+          dup=0
+          bad=0
+          for x in recs:
+              #print "Access for ",x[0],x[1]
+              acc = AccessByMember()
+              mid = Member.query.filter(Member.member==x[0]).first()
+              rid = Resource.query.filter(Resource.name==x[1]).first()
+              if mid == None or rid == None:
+                  #print "FAILED FOB",x,mid,rid
+                  bad+=1
+              else:
+                  member_temp = mid.member
+                  resource_temp = rid.name
+                  resource_id = rid.id
+                  member_id = mid.id
+                  acc.member_id=member_id
+                  acc.resource_id=resource_id
+                  acc.enabled=x[2]
+                  acc.level=0
+                  acc.updated_date=x[3]
+                  if args.overwrite: 
+                      # See if it already exists
+                      if AccessByMember.query.filter(AccessByMember.member_id == member_id).filter(AccessByMember.resource_id == resource_id).first() is not None:
+                          print "DUPICATE",member_id,resource_id
+                          dup+=1
+                      else:
+                          good+=1
+                          db.session.add(acc)
+          if args.overwrite: db.session.flush()
+          if args.overwrite: db.session.commit()
       
-        for x in  members:
-            slack=None
-            if x[0] in corrected_slack_ids:
-                slack=corrected_slack_ids[x[0]]
-            mem = Member()
+          print "AccessByMember migrated",good,"failed",bad,"Duplicate (error)",dup
 
 
-            if slack:
-                first=su[slack]['first_name']
-                last=su[slack]['last_name']
-                #print x[0],slack,first,last
-            else:
-                nm=x[0].split(".")
+          ##
+          ## Blacklist
+          ##
 
-                if len(nm)==2:
-                    first = nm[0]
-                    last = nm[1]
-                elif len(nm)==3:
-                    first=nm[0]
-                    last=nm[1]+nm[2]
-                else:
-                    first=""
-                    last=""
+          mc = ",".join(['entry','entrytype','reason','updated_date'])
+          #print mc
+          recs = query_source_db("select "+mc+" from blacklist;")
+          for x in recs:
+              #print x
+              bl = Blacklist()
+              bl.entry=x[0]
+              bl.entrytype=x[1]
+              bl.reason=x[2]
+              bl.updated_date=authutil.parse_datetime(x[3])
+              if args.overwrite: db.session.add(bl)
+          if args.overwrite: db.session.flush()
+          if args.overwrite: db.session.commit()
 
-            created=None
-            if (x[12]):
-                created=authutil.parse_datetime(x[12])
+          ##
+          ## Waivers
+          ##
 
-                mem.member = x[0]
-                mem.email = x[0]+"@makeitlabs.com"
-                mem.alt_email = x[1]
-                mem.firstname = first
-                mem.slack = slack
-                mem.lastname = last
-                mem.phone = x[4]
-                mem.plan = x[5]
-                mem.access_enabled = x[7]
-                mem.access_reason = x[8]
-                mem.active = x[9]
-                mem.nickname = first
-                mem.stripe_name = x[11]
-                mem.time_created = created
-                #print mem
-                #print x[0],x[1],first,last,x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],created
-           
-                if args.overwrite: db.session.add(mem)
-        if args.overwrite: db.session.flush()
-        if args.overwrite: db.session.commit()
-
-        """
-        mem.member = db.Column(db.String(50), unique=True)
-        mem.email = db.Column(db.String(50))
-        mem.alt_email = db.Column(db.String(50))
-        mem.firstname = db.Column(db.String(50))
-        mem.slack = db.Column(db.String(50))
-        mem.lastname = db.Column(db.String(50))
-        mem.phone = db.Column(db.String(50))
-        mem.plan = db.Column(db.String(50))
-        mem.updated_date = db.Column(db.DateTime())
-        mem.access_enabled = db.Column(db.Integer())
-        mem.access_reason = db.Column(db.String(50))
-        mem.active = db.Column(db.Integer())
-        mem.nickname = db.Column(db.String(50))
-        mem.name = db.Column(db.String(50))
-        mem.time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
-        mem.time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
-        """
-        #
-        # RESOURCES
-        #
-
-        dbr = {}
-        mc = ",".join(resource_cols)
-        #print mc
-        rez = query_source_db("select "+mc+" from resources;")
-
-        for x in rez:
-            #print x
-            resources = Resource()
-            resources.name = x[0]
-            resources.description = x[1]
-            resources.owneremail = x[2]
-            #print resources
-            if args.overwrite: db.session.add(resources)
-        if args.overwrite: db.session.flush()
-        if args.overwrite: db.session.commit()
-
-        #
-        # TAGS by member
-
-        # Read decoded hashes
-        byencoded={}
-        try:
-          for x in open("../unhashed_tags_all.txt").readlines():
-              sp=x.strip().split()
-              uid=sp[3]
-              enc=sp[2]
-              rawno=sp[1]
-              byencoded[enc]=rawno
-        except:
-            print """
-***
-*** ERROR: No decoded hash file found
-*** Tags IDs cannot be migrated
-***
-            """
-
-        dbr = {}
-        mc = ",".join(tagsbymember_cols)
-        #print mc
-        recs = query_source_db("select "+mc+" from tagsbymember;")
-
-        # "member","tagtype","tagid","updated_date","tagname"
-        good=0
-        bad=0
-        nounhash=0
-        for x in recs:
-            newtag = MemberTag()
-            mid = Member.query.filter(Member.member==x[0]).first()
-            newtag.member_id=None
-            goodtag=False
-            if mid:
-                newtag.member_id=mid.id
-                if x[2] in byencoded:
+          mc = ",".join(['waiverid','firstname','lastname','email','created_date'])
+          #print mc
+          recs = query_source_db("select "+mc+" from waivers;")
+          good=0
+          bad=0
+          for x in recs:
+              mid = Member.query.filter(Member.firstname==x[1]).filter(Member.lastname==x[2]).first()
+              w = Waiver()
+              if mid:
+                  #print "FOUND MATCH",mid.firstname,mid.lastname,x[1],x[2]
+                  #print "FOUND MATCH",mid.firstname,mid.lastname,x[1],x[2],mid.id
+                  #print "AADD ID",mid.id
+                  w.member_id=mid.id
                   good+=1
-                  newtag.tag_ident=byencoded[x[2]]
-                  goodtag=True
-                else:
-                  print "UNHASH LOOKUP FAILED FOR",x[2],x[0]
-                  nounhash+=1
-            else:
-                #print "NO RECORD FOR",x
-                bad+=1
-            newtag.member=x[0]
-            newtag.tag_type=x[1]
-            #newtag.updated_date
-            newtag.tag_name=x[4]
-            lastupdate=authutil.parse_datetime(x[3])
-            #print newtag,x,lastupdate
-            if args.overwrite and goodtag: db.session.add(newtag)
-        if args.overwrite: db.session.flush()
-        if args.overwrite: db.session.commit()
+              else:
+                  bad+=1
+              w.firstname=x[1]
+              w.lastname=x[2]
+              w.waiver_id=x[0]
+              w.email=x[3]
+              w.created_date= authutil.parse_datetime(x[4])
+              found=False
+              if args.overwrite: db.session.add(w)
+          if args.overwrite: db.session.flush()
+          if args.overwrite: db.session.commit()
+          print "waivers migrated",good,"nomatches",bad
 
-        print "FOBs migrated",good,"failed",bad,"Not-Unhashable",nounhash
-
-        ##
-        ## AccessByMember
-        ##
-
-        # member
-        # resource
-        # enabled
-        # updated_date
-        # level
-        mc = ",".join(accessbymember_cols)
-        #print mc
-        recs = query_source_db("select "+mc+" from accessbymember;")
-        good=0
-        dup=0
-        bad=0
-        for x in recs:
-            #print "Access for ",x[0],x[1]
-            acc = AccessByMember()
-            mid = Member.query.filter(Member.member==x[0]).first()
-            rid = Resource.query.filter(Resource.name==x[1]).first()
-            if mid == None or rid == None:
-                #print "FAILED FOB",x,mid,rid
-                bad+=1
-            else:
-                member_temp = mid.member
-                resource_temp = rid.name
-                resource_id = rid.id
-                member_id = mid.id
-                acc.member_id=member_id
-                acc.resource_id=resource_id
-                acc.enabled=x[2]
-                acc.level=0
-                acc.updated_date=x[3]
-                if args.overwrite: 
-                    # See if it already exists
-                    if AccessByMember.query.filter(AccessByMember.member_id == member_id).filter(AccessByMember.resource_id == resource_id).first() is not None:
-                        print "DUPICATE",member_id,resource_id
-                        dup+=1
-                    else:
-                        good+=1
-                        db.session.add(acc)
-        if args.overwrite: db.session.flush()
-        if args.overwrite: db.session.commit()
-    
-        print "AccessByMember migrated",good,"failed",bad,"Duplicate (error)",dup
-
-
-        ##
-        ## Blacklist
-        ##
-
-        mc = ",".join(['entry','entrytype','reason','updated_date'])
-        #print mc
-        recs = query_source_db("select "+mc+" from blacklist;")
-        for x in recs:
-            #print x
-            bl = Blacklist()
-            bl.entry=x[0]
-            bl.entrytype=x[1]
-            bl.reason=x[2]
-            bl.updated_date=authutil.parse_datetime(x[3])
-            if args.overwrite: db.session.add(bl)
-        if args.overwrite: db.session.flush()
-        if args.overwrite: db.session.commit()
-
-        ##
-        ## Waivers
-        ##
-
-        mc = ",".join(['waiverid','firstname','lastname','email','created_date'])
-        #print mc
-        recs = query_source_db("select "+mc+" from waivers;")
-        good=0
-        bad=0
-        for x in recs:
-            mid = Member.query.filter(Member.firstname==x[1]).filter(Member.lastname==x[2]).first()
-            w = Waiver()
-            if mid:
-                #print "FOUND MATCH",mid.firstname,mid.lastname,x[1],x[2]
-                #print "FOUND MATCH",mid.firstname,mid.lastname,x[1],x[2],mid.id
-                #print "AADD ID",mid.id
-                w.member_id=mid.id
-                good+=1
-            else:
-                bad+=1
-            w.firstname=x[1]
-            w.lastname=x[2]
-            w.waiver_id=x[0]
-            w.email=x[3]
-            w.created_date= authutil.parse_datetime(x[4])
-            found=False
-            if args.overwrite: db.session.add(w)
-        if args.overwrite: db.session.flush()
-        if args.overwrite: db.session.commit()
-        print "waivers migrated",good,"nomatches",bad
-
+          print """ END DB MIGRATION """
     if args.testdata:
         print """
 ***

@@ -133,8 +133,8 @@ class Subscription(db.Model):
     __tablename__ = 'subscriptions'
     id = db.Column(db.Integer(), primary_key=True)
     paysystem = db.Column(db.String(50))
-    subid = db.Column(db.String(50))
-    customerid = db.Column(db.String(50))
+    subid = db.Column(db.String(50),nullable=False,unique=True)
+    customerid = db.Column(db.String(50),nullable=False)
     name = db.Column(db.String(50))
     email = db.Column(db.String(50))
     # NOTE CHANGE FROM PLANNAME" to PLAN
@@ -144,6 +144,7 @@ class Subscription(db.Model):
     updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
     checked_date = db.Column(db.DateTime())
     active = db.Column(db.Integer())
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
 
 # Waiver Data
 class Waiver(db.Model):
