@@ -3,7 +3,9 @@
 
 import config
 import sqlite3, time
-from authlibs.db_models import Subscription
+from db_models import db, Subscription
+from datetime import datetime
+import utilities as authutils
 
 
 Database = "makeit.db"
@@ -101,20 +103,22 @@ def _addSubscriptionData(subs,paytype):
             logger.info("BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['name']))
         else:
             #print "PLANS",sub['planname'],sub['plantype']
-						s = Subscription.query.fiter(Subscription==sub['subid']).one()
-						if not s: sub=Subscription(subid=sub['subid'])
-						s.paysystem = paytype
-						s.customerid = sub['customerid']
-						s.name = sub['name']
-						s.email = sub['email']
-						s.plan = sub['plantype']
-						s.expires_date = sub['expires']
-						s.created_date = sub['created']
-						s.updated_date = sub['updatedon']
-						s.checked_date = datetime.datetime.now()
-						s.active = sub['active']
+            s = Subscription.query.filter(Subscription==sub['subid']).first()
+            if not s: 
+                s=Subscription(subid=sub['subid'])
+                db.session.add(s)
+            s.paysystem = paytype
+            s.customerid = sub['customerid']
+            s.name = sub['name']
+            s.email = sub['email']
+            s.plan = sub['plantype']
+            s.expires_date = authutils.parse_datetime(sub['expires'])
+            s.created_date = authutils.parse_datetime(sub['created'])
+            s.updated_date = authutils.parse_datetime(sub['updatedon'])
+            s.checked_date = datetime.now()
+            s.active = sub['active']
             users.append((sub['name'],sub['active'],sub['email'],paytype,sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
-		db.session.commit()
+            db.session.commit()
 
 
 

@@ -61,8 +61,8 @@ waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
 # we probably shouldn't generate a million messages
 def kick_backend():
     try:
-      topic= base_topic+"/control/broadcast/acl/update"
-      mqtt_pub.single(app.globalConfig.mqtt_topic, "update", hostname=app.globalConfig.mqtt_host,port=app.globalConfig.mqtt_port,**app.globalConfig.mqtt_opts)
+      topic= app.globalConfig.mqtt_base_topic+"/control/broadcast/acl/update"
+      mqtt_pub.single(topic, "update", hostname=app.globalConfig.mqtt_host,port=app.globalConfig.mqtt_port,**app.globalConfig.mqtt_opts)
     except BaseException as e:
         current_app.logger.warning("MQTT acl/update failed to publish: "+str(e))
 

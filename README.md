@@ -26,7 +26,25 @@ Some rough documentation as of December 2018.
 
 `cp makeit.ini.example makeit.ini`
 
-You might want to edit some things in the file before running the server.
+You might want to edit some things in the file before running the server. 
+
+Make sure that if you are running a TEST server, that you set "Deployment:" 
+to something other thatn "Production"
+
+## Setup Database
+
+The database is normally the makeit.db. You will probably need to copy this over from somewhere (i.e. live server).
+If you don't have a "live" one to grab and use, you can create an example one with:
+
+./migrate_db.py --overwrite makeit.db --testdata --testonly
+
+This utility can also be used to migrate a database to a "new" schema - but this obviously will change drastically from
+time-to-time, depending on which versions you are migrating to and form. The "--testdata" and "--testonly" flags won't
+actually do any data migration, but will just give you a blank database with some test data in it.
+
+You can also start with a VERY minimal database with:
+
+python authserver.py --createdb
 
 ## Running development server
 
@@ -51,3 +69,9 @@ Change the import line in `authserver.py` to:
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 ```
 
+
+## Using the CLI: 
+
+Get info like:
+
+python ./authserver --command help

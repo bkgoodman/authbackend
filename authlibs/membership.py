@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 import google_admin as google
 
-def syncWithSubscriptions(istest=False):
+def syncWithSubscriptions(isTest=False):
   '''Use the latest Subscription data to ensure Membership list is up to date'''
   addMissingMembers()
   createMissingMemberAccounts(isTest,False)
@@ -182,28 +182,25 @@ def addMissingMembers_new(subs):
     return len(users)    
 
 
-if __name__ == "__main__":
 
-    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-    defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
-    Config = ConfigParser.ConfigParser(defaults)
-    Config.read('makeit.ini')
-    ServerHost = Config.get('General','ServerHost')
-    ServerPort = Config.getint('General','ServerPort')
-    Database = Config.get('General','Database')
-    AdminUser = Config.get('General','AdminUser')
-    AdminPasswd = Config.get('General','AdminPassword')
-    DeployType = Config.get('General','Deployment')
-    DEBUG = Config.getboolean('General','Debug')
+# Run with: python ./authserver.py --command syncmemberpayments
+def cli_syncmemberpayments(cmd,**kwargs):
+    if 'app' in kwargs: app=kwargs['app']
+    args=cmd[1:]
 
-    parser=argparse.ArgumentParser()
-    parser.add_argument("--test",help="DO NOT create Goole and Slack accounts",action="store_true")
-    parser.add_argument("--force",help="Force it to create Google and Slack accounts - even in non-production environments",action="store_true")
-    (args,extras) = parser.parse_known_args(sys.argv[1:])
+    if '--help' in args:
+        print """
+Options:
+    --force  Force creation of Google and Slack accounts - even in a non-production server  
+    --test   DO NOT create Google and Slack accounts - even in a non-production server  
+        """
+        return
 
     isTest=False
-    if DeployType.lower() != "production":
-      if not args.force:
+    if '--test' in args:
+        isTest=True
+    if app.globalConfig.DeployType.lower() != "production":
+      if '--force' in args:
         logger.info( "Non-production environments - no accounts will be created")
         isTest=True
       else:

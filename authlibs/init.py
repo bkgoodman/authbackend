@@ -13,7 +13,7 @@ from flask_sqlalchemy import SQLAlchemy
 import logging
 import sys
 import ConfigParser
-from authlibs.db_models import db, User, Member
+from db_models import db, User, Member
 
 logging.basicConfig(stream=sys.stderr)
 

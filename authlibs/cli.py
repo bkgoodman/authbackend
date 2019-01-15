@@ -6,6 +6,8 @@ from datetime import datetime
 import random,string
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember
+from authlibs.payments import cli_updatepayments
+from authlibs.membership import cli_syncmemberpayments
 from flask_sqlalchemy import SQLAlchemy
 
 def do_help(cmd=None,**kwargs):
@@ -92,6 +94,14 @@ commands = {
 	"deleteadmin":{
 		'usage':"deleteadmin -- Delete admin account",
 		'cmd':deleteadmin
+	},
+	"updatepayments":{
+		'usage':"updatepayments -- Update payment data",
+		'cmd':cli_updatepayments
+	},
+	"memberpaysync":{
+		'usage':"memberpaysync [--test] [--force] [--help]  -- Reconcile payment and member data",
+		'cmd':cli_syncmemberpayments
 	}
 }
 
