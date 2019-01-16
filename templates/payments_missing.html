@@ -4,18 +4,41 @@
 	<div class="sectionhead">Unassociated Subscriptions</div>
     <a href="{{ url_for('show_logs') }}">View All</a>
     <p></p>
+	<h3>Subscritions/Payment Records with no Members</h3>
 	<table class="bkg">
       <tr>
         <th>Name</th>
         <th>Email</th>
         <th>Sub-ID</th>
+        <th>Active</th>
       </tr>
       {% for s in subscriptions %}
 	  <tr>
 		<td>{{ s.name }}</td>
 		<td>{{ s.email }}</td>
 		<td>{{ s.subid }}</td>
+		<td>{{ s.active }}</td>
 		<td><a href="{{ url_for('payments_missing',assign=s.subid) }}">Assign to Member</a>
+	  </tr>
+      {% endfor %}
+	</table>
+	<h3>Members with no Subscritions/Payment Records</h3>
+	<table class="bkg">
+      <tr>
+        <th>Member ID</th>
+        <th>Stripe Name</th>
+        <th>Alternate Email</th>
+        <th>First</th>
+        <th>Last</th>
+      </tr>
+      {% for m in members %}
+	  <tr>
+		<td>{{ m.member }}</td>
+		<td>{{ m.stripe_name }}</td>
+		<td>{{ m.alt_email }}</td>
+		<td>{{ m.firstname }}</td>
+		<td>{{ m.lastname }}</td>
+		<td><a href="{{ url_for('payments_missing',assign_member=m.id) }}">Assign Subscription</a>
 	  </tr>
       {% endfor %}
 	</table>

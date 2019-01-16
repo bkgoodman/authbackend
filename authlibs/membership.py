@@ -55,7 +55,6 @@ def matchMissingMembers(missing):
 	newMembers = []
 	''' Return UNMACHED ones - i.e. new subs'''
 	for s in missing:
-		logger.debug("New Sub: %s %s id %s" % (s.subid,s.name,s.email))
 		q = Member.query
 		q = q.filter(Member.alt_email == s.email)
 		q = q.filter(Member.stripe_name == s.name) # TODO BKG FIX - Depricate - use first and last names only

@@ -118,7 +118,7 @@ def _addSubscriptionData(subs,paytype):
             s.checked_date = datetime.now()
             s.active = sub['active']
             users.append((sub['name'],sub['active'],sub['email'],paytype,sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
-            db.session.commit()
+    db.session.commit()
 
 
 

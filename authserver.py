@@ -852,9 +852,12 @@ def create_routes():
     @app.route('/payments/missing', methods = ['GET'])
     @login_required
     def payments_missing(assign=None):
-        """(Controller) Show Payment system controls"""
+        """Find subscriptions with no members"""
         subscriptions = Subscription.query.filter(Subscription.member_id == None).all()
-        return render_template('payments_missing.html',subscriptions=subscriptions)
+        members = Member.query.outerjoin(Subscription).filter(Subscription.member_id == None).all()
+        """Find members with no members"""
+
+        return render_template('payments_missing.html',subscriptions=subscriptions,members=members)
 
     @app.route('/payments/manual', methods = ['GET'])
     @login_required
