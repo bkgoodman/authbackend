@@ -102,6 +102,9 @@ def addMissingMembers():
                 i+=1
             mm = Member()
             mm.member = mname
+            nameparts = utilities.nameToFirstLast(rootname)
+            mm.firstname = nameparts['first']
+            mm.lastname = nameparts['last']
             mm.alt_email = p.email
             mm.active = p.active
             mm.time_created = p.created_date
