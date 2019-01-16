@@ -35,7 +35,7 @@ import ConfigParser
 import xml.etree.ElementTree as ET
 from authlibs.eventtypes import get_events
 from StringIO import StringIO
-from authlibs.init import authbackend_init, get_config
+from authlibs.init import authbackend_init, get_config, createDefaultUsers
 from authlibs import cli
 from authlibs import utilities as authutil
 from authlibs import payments as pay
@@ -606,13 +606,15 @@ def create_routes():
        #TODO: Move member query functions to membership module
        access = {}
        mid = safestr(id)
-       member=db.session.query(Member).outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid).one()
+       member=db.session.query(Member,Subscription)
+       member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid)
+       (member,subscription) = member.one()
      
        access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
        access = access.filter(Member.member == mid)
        access = access.filter(AccessByMember.active == 1)
        access = access.all()
-       return render_template('member_show.html',member=member,access=access)
+       return render_template('member_show.html',member=member,access=access,subscription=subscription)
 
     @app.route('/members/<string:id>/access', methods = ['GET'])
     @login_required
@@ -845,6 +847,15 @@ def create_routes():
         cdate = pay.getLastUpdatedDate()
         return render_template('payments.html',cdate=cdate)
 
+    # "Missing" payments - i.e. subcriptions without a known member
+    @app.route('/payments/missing/assign/<string:assign>', methods = ['GET'])
+    @app.route('/payments/missing', methods = ['GET'])
+    @login_required
+    def payments_missing(assign=None):
+        """(Controller) Show Payment system controls"""
+        subscriptions = Subscription.query.filter(Subscription.member_id == None).all()
+        return render_template('payments_missing.html',subscriptions=subscriptions)
+
     @app.route('/payments/manual', methods = ['GET'])
     @login_required
     def manual_payments():
@@ -1035,18 +1046,25 @@ def create_routes():
     @app.route('/logs', methods=['GET'])
     @login_required
     def show_logs():
+        limit = 200
+        offset = 0
         format='html'
         print request.values
         evt= get_events()
         q = db.session.query(Logs.time_reported,Logs.event_type,Member.firstname,Member.lastname,Tool.name.label("toolname"),Logs.message).outerjoin(Tool).outerjoin(Member).order_by(Logs.time_reported.desc())
-        if ('start' in request.values):
-            q=q.limit(request.values['limit'])
-        elif request.values['limit']=="all":
-            pass
-        else:
-            q=q.limit(200)
+
         if ('offset' in request.values):
-            q=q.offset(request.values['offset'])
+            limit=int(request.values['offset'])
+
+        if ('limit' in request.values):
+          if request.values['limit']!="all":
+            limit=int(request.values['limit'])
+          else:
+            limit = 200
+
+        if limit>0: w=q.limit(limit)
+        if offset>0: w=q.offset(offset)
+
         if ('member' in request.values):
             q=q.filter(Member.mamber==request.values['member'])
         if ('tool' in request.values):
@@ -1288,26 +1306,6 @@ def init_db(app):
     # DB Models in db_models.py, init'd to SQLAlchemy
     db.init_app(app)
 
-def createDefaultRoles(app):
-    roles=['Admin','RATT']
-    for role in roles:
-      r = Role.query.filter(Role.name==role).first()
-      if not r:
-          r = Role(name=role)
-          db.session.add(r)
-    db.session.commit()
-
-def createDefaultUsers(app):
-    createDefaultRoles(app)
-    # Create default admin role and user if not present
-    admin_role = Role.query.filter(Role.name=='Admin').first()
-    if not User.query.filter(User.email == app.globalConfig.AdminUser).first():
-        user = User(email=app.globalConfig.AdminUser,password=app.user_manager.hash_password(app.globalConfig.AdminPasswd),email_confirmed_at=datetime.utcnow())
-        logger.debug("ADD USER "+str(user))
-        db.session.add(user)
-        user.roles.append(admin_role)
-        db.session.commit()
-    # TODO - other default users?
         
 # Start development web server
 if __name__ == '__main__':

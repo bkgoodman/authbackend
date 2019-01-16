@@ -48,6 +48,32 @@
 			<td><div>Waiver Completed</div></td>
 			<td>{{ member.waiver_date }}</td>
 	  </tr> 
+	  <tr>
+			<td><div><a href="{{ url_for("show_logs",memberid=member.id) }}">Show Logs for Member</a></div></td>
+	  </tr> 
+	  <tr>
+			<td colspan=2><h3>Payment Info</h3></td>
+	  </tr> 
+	  <tr>
+			<td><div>Subscription ID</div></td>
+			<td>{{ subscription.subid }}</td>
+	  </tr> 
+	  <tr>
+			<td><div>Active</div></td>
+			<td>{{ subscription.active }}</td>
+	  </tr> 
+	  <tr>
+			<td><div>Plan</div></td>
+			<td>{{ subscription.plan }}</td>
+	  </tr> 
+	  <tr>
+			<td><div>Updated</div></td>
+			<td>{{ subscription.updated_date }}</td>
+	  </tr> 
+	  <tr>
+			<td><div>Created</div></td>
+			<td>{{ subscription.created_date }}</td>
+	  </tr> 
 	</table>
 	<div class="sectionhead">Current Access (<a href="{{ url_for('member_editaccess',id=member.member) }}">Edit</a>):</div>
 	<ul class="entries">

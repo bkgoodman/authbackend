@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% block search %}
+  <div class=body>
+	<div class="sectionhead">Unassociated Subscriptions</div>
+    <a href="{{ url_for('show_logs') }}">View All</a>
+    <p></p>
+	<table class="bkg">
+      <tr>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Sub-ID</th>
+      </tr>
+      {% for s in subscriptions %}
+	  <tr>
+		<td>{{ s.name }}</td>
+		<td>{{ s.email }}</td>
+		<td>{{ s.subid }}</td>
+		<td><a href="{{ url_for('payments_missing',assign=s.subid) }}">Assign to Member</a>
+	  </tr>
+      {% endfor %}
+	</table>
+  </div>
+{% endblock %}

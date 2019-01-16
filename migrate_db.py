@@ -21,7 +21,7 @@ TODO:
 """
 
 import argparse,os,sys
-from authlibs.init import authbackend_init
+from authlibs.init import authbackend_init, createDefaultUsers
 
 
 from sqlalchemy.exc import IntegrityError
@@ -172,19 +172,6 @@ def execute_db(query):
     cur.execute(query)
     cur.close()
 
-def createDefaultUsers(app):
-    # Create default admin role and user if not present
-    admin_role = Role.query.filter(Role.name=='Admin').first()
-    if not admin_role:
-        admin_role = Role(name='Admin')
-    if not User.query.filter(User.email == app.globalConfig.AdminUser).first():
-        user = User(email=app.globalConfig.AdminUser,password=app.user_manager.hash_password(app.globalConfig.AdminPasswd),email_confirmed_at=datetime.utcnow())
-        app.logger.debug("ADD USER "+str(user))
-        db.session.add(user)
-        user.roles.append(admin_role)
-        db.session.commit()
-    # TODO - other default users?
-# Start development web server
 
 def process_source_table(table,columns):
         coldata={}

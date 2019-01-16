@@ -22,10 +22,22 @@ import google_admin as google
 
 def syncWithSubscriptions(isTest=False):
   '''Use the latest Subscription data to ensure Membership list is up to date'''
+  logger.debug("Get Missing Members")
+  missing = getMissingMembers()
+
+	''' Try to match subscriptions to existing member records - TODO - "new/update" flag '''
+  logger.debug("match missing members")
+	newMembers = matchMissingMembers(missing)
+
+	''' Create new member records for actual new members '''
   logger.debug("ADDING MISSING MEMBERS")
-  added=addMissingMembers()
+  added=addMissingMembers(newMembers)
+
+	''' Create Google (someday Slack?) accounts for new members '''
+  logger.debug("Create new Accounts")
   createMissingMemberAccounts(added,isTest,False)
   db.session.commit()
+  logger.debug("New Member/Sub data Committed")
   
 
 def searchMembers(searchstr):
@@ -33,9 +45,32 @@ def searchMembers(searchstr):
   q = Member.query
   q = q.filter(Member.firstname.ilike(sstr) | 
       (Member.lastname.ilike(sstr)) | 
+      (Member.alt_email.ilike(sstr)) | 
       (Member.email.ilike(sstr)))
   return q.all()
 
+
+''' Try to match subscriptions to existing member records - TODO - "new/update" flag '''
+def matchMissingMembers(missing):
+	newMembers = []
+	''' Return UNMACHED ones - i.e. new subs'''
+	for s in missing:
+		logger.debug("New Sub: %s %s id %s" % (s.subid,s.name,s.email))
+		q = Member.query
+		q = q.filter(Member.alt_email == s.email)
+		q = q.filter(Member.stripe_name == s.name) # TODO BKG FIX - Depricate - use first and last names only
+		mm = q.one_or_none()
+		if mm:
+			logger.debug("MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+			s.member_id = mm.id
+			# We APPEAR to have a match Just update the sub record w/ existing member ID
+			# Remember - this gets committed at the VERY end when everything is DONE
+		else:
+			# No match - create new one
+			logger.debug("NO MATCH - %s %s %s" % (s.name,s.email,s.subid))
+			newMembers.append(s)
+			
+	return newMembers
 
 def createMember(m):
     """Add a member entry to the database"""
@@ -61,13 +96,16 @@ def getMissingMembers():
     missing = missing.filter(Subscription.plan != 'workspace')
     missing = missing.filter(Subscription.plan != 'trial')
     missing = missing.all()
+
+		for s in missing:
+			logger.debug("Have Sub: %s %s id %s" % (s.subid,s.name,s.email))
+
     return missing
 
     
-def addMissingMembers():
+def addMissingMembers(missing):
     newMembers=[]
     logger.info("Checking for any Subscriptions without a matching Membership entry")
-    missing = getMissingMembers()
     members = []
     bl_entries = Blacklist.query.all()
     ignorelist = []
@@ -107,6 +145,7 @@ def addMissingMembers():
             mm.lastname = nameparts['last']
             mm.alt_email = p.email
             mm.active = p.active
+            mm.stripe_name = p.name # TODO BKG FIX - Depricate - use first and last names only
             mm.time_created = p.created_date
             mm.time_updated = p.created_date
             db.session.add(mm)

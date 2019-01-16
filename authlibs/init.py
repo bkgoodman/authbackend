@@ -13,7 +13,8 @@ from flask_sqlalchemy import SQLAlchemy
 import logging
 import sys
 import ConfigParser
-from db_models import db, User, Member
+from db_models import db, User, Member, Role
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,26 @@ def get_config():
   Config.read('makeit.ini')
   return Config
 
+def createDefaultRoles(app):
+    roles=['Admin','RATT','Finance']
+    for role in roles:
+      r = Role.query.filter(Role.name==role).first()
+      if not r:
+          r = Role(name=role)
+          db.session.add(r)
+    db.session.commit()
+
+def createDefaultUsers(app):
+    createDefaultRoles(app)
+    # Create default admin role and user if not present
+    admin_role = Role.query.filter(Role.name=='Admin').first()
+    if not User.query.filter(User.email == app.globalConfig.AdminUser).first():
+        user = User(email=app.globalConfig.AdminUser,password=app.user_manager.hash_password(app.globalConfig.AdminPasswd),email_confirmed_at=datetime.utcnow())
+        logger.debug("ADD USER "+str(user))
+        db.session.add(user)
+        user.roles.append(admin_role)
+        db.session.commit()
+    # TODO - other default users?
 class GlobalConfig(object):
   """ These are all Authbackend-Specifc. Reference via app.globalConfig 
 
