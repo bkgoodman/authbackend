@@ -608,12 +608,6 @@ def create_routes():
        mid = safestr(id)
        member=db.session.query(Member).outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid).one()
      
-       sqlstr = """select r.description, a.time_updated from resources r left join accessbymember a
-                on r.id=a.resource_id 
-                LEFT JOIN members m on a.member_id=m.id
-                where a.is_active=1 and m.member='%s'""" % mid
-       access = query_db(sqlstr)
-
        access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
        access = access.filter(Member.member == mid)
        access = access.filter(AccessByMember.active == 1)

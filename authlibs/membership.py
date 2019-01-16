@@ -30,6 +30,7 @@ def syncWithSubscriptions(isTest=False):
 
 def searchMembers(searchstr):
   sstr = "%" + searchstr + "%"
+  q = Member.query
   q = q.filter(Member.firstname.ilike(sstr) | 
       (Member.lastname.ilike(sstr)) | 
       (Member.email.ilike(sstr)))
