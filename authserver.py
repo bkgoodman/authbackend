@@ -23,6 +23,7 @@ import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
 # NEwer login functionality
+import logging
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from authlibs import eventtypes
 from flask_sqlalchemy import SQLAlchemy
@@ -49,12 +50,14 @@ logging.basicConfig(stream=sys.stderr)
 import pprint
 import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
-from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog
+from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver
 import argparse
 
 waiversystem = {}
 waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
     
 # RULE - only call this from web APIs - not internal functions
 # Reason: If we have calls or scripts that act on many records,
@@ -64,7 +67,7 @@ def kick_backend():
       topic= app.globalConfig.mqtt_base_topic+"/control/broadcast/acl/update"
       mqtt_pub.single(topic, "update", hostname=app.globalConfig.mqtt_host,port=app.globalConfig.mqtt_port,**app.globalConfig.mqtt_opts)
     except BaseException as e:
-        current_app.logger.warning("MQTT acl/update failed to publish: "+str(e))
+        logger.warning("MQTT acl/update failed to publish: "+str(e))
 
 def create_app():
     # App setup
@@ -603,22 +606,18 @@ def create_routes():
        #TODO: Move member query functions to membership module
        access = {}
        mid = safestr(id)
-       sqlstr = """select m.id, m.member, m.stripe_name, m.phone, m.time_updated, m.access_enabled, m.plan, m.slack,
-                m.access_reason, m.active, m.alt_email, s.expires_date, s.plan as plan, s.updated_date as payment_date, 
-                m.firstname, m.lastname, w.created_date AS waiver_date
-                from members m left join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email 
-                LEFT OUTER JOIN waivers w ON m.id == w.member_id
-                where m.member='%s'""" % mid
-       app.logger.debug(str(sqlstr))
-       member = query_db(sqlstr,"",True)
-       #member = dict(member)
-       app.logger.debug(dir(member))
-       app.logger.debug(dict(member))
-       app.logger.debug(str(member))
+       member=db.session.query(Member).outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid).one()
      
        sqlstr = """select r.description, a.time_updated from resources r left join accessbymember a
-                on r.id=a.resource_id and a.member_id=%d where a.is_active=1""" % member['id']
+                on r.id=a.resource_id 
+                LEFT JOIN members m on a.member_id=m.id
+                where a.is_active=1 and m.member='%s'""" % mid
        access = query_db(sqlstr)
+
+       access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
+       access = access.filter(Member.member == mid)
+       access = access.filter(AccessByMember.active == 1)
+       access = access.all()
        return render_template('member_show.html',member=member,access=access)
 
     @app.route('/members/<string:id>/access', methods = ['GET'])
@@ -633,7 +632,6 @@ def create_routes():
         member = {}
         member['id'] = mid
         member['access']= m
-        #app.logger.debug("MEMBER IS",str(member))
         return render_template('member_access.html',member=member,tags=tags)
 
     @app.route('/members/<string:id>/access', methods = ['POST'])
@@ -1311,7 +1309,7 @@ def createDefaultUsers(app):
     admin_role = Role.query.filter(Role.name=='Admin').first()
     if not User.query.filter(User.email == app.globalConfig.AdminUser).first():
         user = User(email=app.globalConfig.AdminUser,password=app.user_manager.hash_password(app.globalConfig.AdminPasswd),email_confirmed_at=datetime.utcnow())
-        app.logger.debug("ADD USER "+str(user))
+        logger.debug("ADD USER "+str(user))
         db.session.add(user)
         user.roles.append(admin_role)
         db.session.commit()

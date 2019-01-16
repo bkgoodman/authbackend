@@ -74,6 +74,7 @@ def getSubscriptionsJSON():
         phone = ''
         need_emails = True
         plan = s['plan']['id']
+
         # NEW: Check for archived metadata flag to help with old records we still want to retain
         if 'archived' in s['metadata']:
             print("Archived subscription (%s, %s), ignoring")

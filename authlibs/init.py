@@ -15,7 +15,7 @@ import sys
 import ConfigParser
 from db_models import db, User, Member
 
-logging.basicConfig(stream=sys.stderr)
+logger = logging.getLogger(__name__)
 
 
 

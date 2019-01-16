@@ -55,7 +55,7 @@ def alertAdmins(severity,msg):
     pass
 
 def nameToFirstLast(namestr):
-    names = namestr.split(" ")
+    names = namestr.split(".")
     first = names[0]
     last = " ".join(names[1:])
     return {'first': first, 'last': last}
