@@ -719,6 +719,7 @@ def create_routes():
     @app.route('/tools/<string:id>', methods=['GET','POST'])
     @app.route('/tools', methods=['GET','POST'])
     @login_required
+    @roles_required('Admin')
     def toolcfg(id=None,add=False,edit=False):
        """(Controller) Display Resources and controls"""
        edittool=None
@@ -768,6 +769,7 @@ def create_routes():
 
     @app.route('/resources', methods=['POST'])
     @login_required
+    @roles_required('Admin')
     def resource_create():
        """(Controller) Create a resource from an HTML form POST"""
        res = {}
@@ -791,6 +793,7 @@ def create_routes():
 
     @app.route('/resources/<string:resource>', methods=['POST'])
     @login_required
+    @roles_required('Admin')
     def resource_update(resource):
         """(Controller) Update an existing resource from HTML form POST"""
         rname = safestr(resource)
@@ -825,6 +828,7 @@ def create_routes():
 
     #TODO: Create safestring converter to replace string; converter?
     @app.route('/resources/<string:resource>/log', methods=['GET','POST'])
+    @roles_required('Admin','RATT')
     def logging(resource):
        """Endpoint for a resource to log via API"""
        # TODO - verify resources against global list
@@ -861,6 +865,7 @@ def create_routes():
 
     @app.route('/payments', methods = ['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def payments():
         """(Controller) Show Payment system controls"""
         cdate = pay.getLastUpdatedDate()
@@ -870,6 +875,7 @@ def create_routes():
     @app.route('/payments/missing/assign/<string:assign>', methods = ['GET'])
     @app.route('/payments/missing', methods = ['GET','POST'])
     @login_required
+    @roles_required('Admin','Finance')
     def payments_missing(assign=None):
         """Find subscriptions with no members"""
         for x in dir(request): print x
@@ -903,6 +909,7 @@ def create_routes():
 
     @app.route('/payments/manual', methods = ['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def manual_payments():
        sqlstr = """select member,plan,expires_date,updated_date from payments where paysystem = 'manual'"""
        members = query_db(sqlstr)
@@ -911,6 +918,7 @@ def create_routes():
 
     @app.route('/payments/manual/extend/<member>', methods = ['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def payments_manual_extend(member):
         safe_id = safestr(member)
         sqlstr = "update payments set expires_date=DATETIME(expires_date,'+31 days') where member = '%s' " % safe_id
@@ -922,6 +930,7 @@ def create_routes():
 
     @app.route('/payments/manual/expire/<member>', methods = ['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def payments_manual_expire(member):
         safe_id = safestr(member)
         sqlstr = "update payments set expires_date=datetime('now')  where member = '%s' " % safe_id
@@ -933,6 +942,7 @@ def create_routes():
 
     @app.route('/payments/manual/delete/<member>', methods = ['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def payments_manual_delete(member):
         safe_id = safestr(member)
         sqlstr = "delete from payments where member = '%s' " % safe_id
@@ -944,6 +954,7 @@ def create_routes():
 
     @app.route('/payments/test', methods = ['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def test_payments():
        """(Controller) Validate the connection to the payment system(s)"""
        if pay.testPaymentSystems():
@@ -954,6 +965,7 @@ def create_routes():
 
     @app.route('/payments/update', methods = ['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def update_payments():
         """(Controller) Sync Payment data and update Member data (add missing, deactivate, etc)"""
         # TODO: Error handling
@@ -964,6 +976,7 @@ def create_routes():
 
     @app.route('/payments/<string:id>', methods=['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def payments_member(id):
         pid = safestr(id)
         # Note: When debugging Payments system duplication, there may be multiple records
@@ -975,6 +988,7 @@ def create_routes():
         return render_template('payments_member.html',user=user)
     @app.route('/payments/reports', methods = ['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def payments_reports():
         """(Controller) View various Payment data attributes"""
         f = request.args.get('filter','')
@@ -993,6 +1007,7 @@ def create_routes():
 
     @app.route('/payments/fees', methods = ['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def payments_fees():
         """(Controller) Charge Fee to a user, Schedule recurring Fee, view past paid fees"""
         f = request.args.get('days','90')
@@ -1006,6 +1021,7 @@ def create_routes():
 
     @app.route("/payments/fees/charge", methods = ['POST'])
     @login_required
+    @roles_required('Admin','Finance')
     def payments_fees_charge():
         """(Controller) Charge a one-time fee to a user"""
         fee = {}
@@ -1047,6 +1063,7 @@ def create_routes():
 
     @app.route('/blacklist', methods=['GET'])
     @login_required
+    @roles_required('Admin','Finance')
     def blacklist_show():
         """(Controller) Show all the Blacklist entries"""
         sqlstr = "select entry,entrytype,reason,updated_date from blacklist"

@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, UserMixin
 import random, string
 
+defined_roles=['Admin','RATT','Finance','Useredit']
+
 db = SQLAlchemy()
 
 # Define User Data model
@@ -21,6 +23,11 @@ class User(db.Model,UserMixin):
     comment = db.Column(db.String(255), nullable=True, server_default='')
     api_key = db.Column(db.String(255), nullable=True, server_default=rnd_api_key)
     roles= db.relationship('Role', secondary = 'user_roles')
+
+    # Use this instead of "has_roles" - it treats "admin" like everyone
+    def privs(self,x):
+        return self.has_roles('Admin') or self.has_roles(x)
+
 
 class Tool(db.Model):
     __tablename__ = 'tools'

@@ -13,7 +13,7 @@ from flask_sqlalchemy import SQLAlchemy
 import logging
 import sys
 import ConfigParser
-from db_models import db, User, Member, Role
+from db_models import db, User, Member, Role, defined_roles
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -29,9 +29,8 @@ def get_config():
   return Config
 
 def createDefaultRoles(app):
-    roles=['Admin','RATT','Finance']
-    for role in roles:
-      r = Role.query.filter(Role.name==role).first()
+    for role in defined_roles:
+      r = Role.query.filter(Role.name==role).one_or_none()
       if not r:
           r = Role(name=role)
           db.session.add(r)

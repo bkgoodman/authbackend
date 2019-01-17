@@ -720,6 +720,26 @@ if __name__ == '__main__':
 ***
 """
         os.system("sqlite3 "+args.overwrite+" < test/testdata.sql")
+    with app.app_context():
+        # Extensions like Flask-SQLAlchemy now know what the "current" app
+        # is while within this block. Therefore, you can now run........
+
+        # Create default admin role and user if not present
+        user = User(email='finance@makeitlabs.com',password=app.user_manager.hash_password("finance"),email_confirmed_at=datetime.utcnow())
+        db.session.add(user)
+        user.roles.append(Role.query.filter(Role.name=='Finance').one())
+
+        user = User(email='ratt@makeitlabs.com',password=app.user_manager.hash_password("ratt"),email_confirmed_at=datetime.utcnow())
+        db.session.add(user)
+        user.roles.append(Role.query.filter(Role.name=='RATT').one())
+
+        user = User(email='useredit@makeitlabs.com',password=app.user_manager.hash_password("useredit"),email_confirmed_at=datetime.utcnow())
+        db.session.add(user)
+        user.roles.append(Role.query.filter(Role.name=='Useredit').one())
+
+        user = User(email='noprivs@makeitlabs.com',password=app.user_manager.hash_password("noprivs"),email_confirmed_at=datetime.utcnow())
+        db.session.add(user)
+        db.session.commit()
 
     if not args.overwrite:
         print """

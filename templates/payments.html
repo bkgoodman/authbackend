@@ -38,7 +38,9 @@
 	<div class="sectionhead">Fees</div>
 	View previously charged fees, create one-time fee or schedule recurring fees.
 	<div class="sectionhead">Troublsheooting</div>
+{% if current_user.privs('Finance') %}[Finance] {% endif %}
   <a href="{{ url_for('payments_missing') }}">Zombie Subscriptions</a>
+{% endif %}
 	
   </div>
 {% endblock %}

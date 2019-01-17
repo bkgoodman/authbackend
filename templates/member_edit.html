@@ -46,9 +46,11 @@
 		  <td>Subscription</td>
 		  <td>{{ subscription.subid }}
 			{% if subscription.subid %}
-			<input type="submit" name="Unlink" value="unlink" />
-			<input type="hidden" name="subscription" value="{{ subscription.subid }}" />
-			<input type="hidden" name="member_id" value="{{ member.id }}" />
+				{% if current_user.privs('Finance') %}
+				<input type="submit" name="Unlink" value="unlink" />
+				<input type="hidden" name="subscription" value="{{ subscription.subid }}" />
+				<input type="hidden" name="member_id" value="{{ member.id }}" />
+				{% endif %}
 			{% else %}
 			None
 			{% endif %}
