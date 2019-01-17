@@ -203,6 +203,13 @@ def updatePaymentData(modules=None):
     for module in modules.split(","):
         logger.info("Module: %s" % module)
         subs = getSubscriptions(module)
+        print """
+
+
+        NOW WE HAVE PAY DATA
+
+
+        """
         logger.info(subs)
         fsubs = filterSubscriptions(subs)
         logger.info(fsubs)

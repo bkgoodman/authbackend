@@ -60,7 +60,10 @@ def getSubscriptionsJSON():
     # Resulting structure keys
     #  customerid,subid,firstname,lastname,userid,email,membertype,plan,active,created,updatedon,expires,phone
     # For Stripe, customerid and subid are different.
-    subs = getSubscriptions()
+    #subs = getSubscriptions()
+    import pickle
+    #pickle.dump(subs,open("slack_prod_data.pickle","w"))
+    subs = pickle.load(open("slack_prod_data.pickle"))
     #print(subs)
     subscribers = list()
     noemail = list()
@@ -73,6 +76,15 @@ def getSubscriptionsJSON():
         customerid = s['customer']
         phone = ''
         need_emails = True
+        if 'plan' not in s:
+            print "ERROR - no plan in ",s['customer']
+            continue
+        if s['plan'] is None:
+            print "NULL plan for  ",s['customer']
+            continue
+        if 'id' not in s['plan']:
+            print "ERROR - no id in plan for ",s['customer']
+            continue
         plan = s['plan']['id']
 
         # NEW: Check for archived metadata flag to help with old records we still want to retain
@@ -112,6 +124,9 @@ def getSubscriptionsJSON():
         # Extract Name and Email Metadata from record
         # - Expecting comma-delimited!
         if need_emails:
+          if s['metadata'] == {}:
+            reportError("STRIPE PAYMENTS: SUBSCRIPTION %s: No metadata" % subid)
+            continue
           if 'names' in s['metadata']:
             names = s['metadata']['names'].split(",")
           if 'emails' in s['metadata']:
@@ -124,7 +139,9 @@ def getSubscriptionsJSON():
             # For each person, create an associated subscription record
             name = utilities._safestr(m)
             email = utilities._safeemail(e)
-            sub = {'customerid': customerid, 'subid': subid, 'name': name, 'planname': plan, 'plantype': plantype, 'email': email, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone }
+            # Membership must be unique to each member - totally definable by pay system
+            membership = "stripe:"+name.replace(" ",".")+":"+email
+            sub = {'customerid': customerid, 'subid': subid, 'name': name, 'planname': plan, 'plantype': plantype, 'email': email, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone , 'membership':membership}
             subscribers.append(sub)
             #print(sub)
     return subscribers

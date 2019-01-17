@@ -103,11 +103,20 @@ def _addSubscriptionData(subs,paytype):
             logger.info("BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['name']))
         else:
             #print "PLANS",sub['planname'],sub['plantype']
-            s = Subscription.query.filter(Subscription==sub['subid']).first()
+            s = Subscription.query.filter(Subscription.membership==sub['membership']).one_or_none()
             if not s: 
-                s=Subscription(subid=sub['subid'])
+                s=Subscription(membership=sub['membership'])
                 db.session.add(s)
+            else:
+                # We found another one. Which one do we use??
+
+                # If we found a canceled one
+                if s.active.lower() == "true"  and sub['active'].lower() != "true":
+                    print "SKIPPING inactive record for ",sub['name'],sub['email']
+                    continue
+                print "OVERWRITE record for ",sub['name'],sub['email']
             s.paysystem = paytype
+            s.subid = sub['subid']
             s.customerid = sub['customerid']
             s.name = sub['name']
             s.email = sub['email']
@@ -115,10 +124,17 @@ def _addSubscriptionData(subs,paytype):
             s.expires_date = authutils.parse_datetime(sub['expires'])
             s.created_date = authutils.parse_datetime(sub['created'])
             s.updated_date = authutils.parse_datetime(sub['updatedon'])
+            s.membership = sub['membership']
             s.checked_date = datetime.now()
             s.active = sub['active']
             users.append((sub['name'],sub['active'],sub['email'],paytype,sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
-    db.session.commit()
+            try:
+                db.session.commit()  # BKG TEMP FIX BUG TODO - NOT HERE!
+                print "APPEND",sub['subid'],sub['name'],sub['email'],s.created_date,s.updated_date,s.active
+            except BaseException as e:
+                print "ERROR APPEND",sub['subid'],sub['name'],sub['email'],s.created_date,s.updated_date,s.active
+                db.session.rollback()  # BKG TEMP FIX BUG TODO - NOT HERE!
+    #db.session.commit() DO THIS
 
 
 
