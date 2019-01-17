@@ -21,7 +21,7 @@ TODO:
 
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash, Response
+	abort, render_template, flash, Response, Markup
 # NEwer login functionality
 import logging
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
@@ -581,7 +581,23 @@ def create_routes():
         mid = safestr(id)
         member = {}
 
-        if request.method=="POST" and  request.form['SaveChanges'] == "Save":
+        if request.method=="POST" and 'Unlink' in  request.form:
+            s = Subscription.query.filter(Subscription.subid==request.form['subscription']).one()
+            s.member_id = None
+            db.session.commit()
+            btn = '''<form method="POST">
+                    <input type="hidden" name="member_id" value="%s" />
+                    <input type="hidden" name="subscription" value="%s" />
+                    <input type="submit" value="Undo" name="Undo" />
+                    </form>''' % (request.form['member_id'],request.form['subscription'])
+            flash(Markup("Unlinked. %s" % btn))
+        elif 'Undo' in request.form:
+            # Relink cleared member ID
+            s = Subscription.query.filter(Subscription.subid == request.form['subscription']).one()
+            s.member_id = request.form['member_id']
+            db.session.commit()
+            flash ("Undone.")
+        elif request.method=="POST" and 'SaveChanges' in  request.form:
             flash ("Changes Saved (Please Review!)")
             m=Member.query.filter(Member.member==mid).first()
             f=request.form
@@ -595,8 +611,11 @@ def create_routes():
             m.alt_email= f['alt_email']
             db.session.commit()
             
-        member=Member.query.filter(Member.member==mid).first()
-        return render_template('member_edit.html',member=member)
+        #(member,subscription)=Member.query.outerjoin(Subscription).filter(Member.member==mid).first()
+        member=db.session.query(Member,Subscription)
+        member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid)
+        (member,subscription) = member.one()
+        return render_template('member_edit.html',member=member,subscription=subscription)
 
 
     @app.route('/members/<string:id>', methods = ['GET'])
@@ -849,13 +868,36 @@ def create_routes():
 
     # "Missing" payments - i.e. subcriptions without a known member
     @app.route('/payments/missing/assign/<string:assign>', methods = ['GET'])
-    @app.route('/payments/missing', methods = ['GET'])
+    @app.route('/payments/missing', methods = ['GET','POST'])
     @login_required
     def payments_missing(assign=None):
         """Find subscriptions with no members"""
+        for x in dir(request): print x
+        print "VALUES",request.values
+        if 'Undo' in request.form:
+            s = Subscription.query.filter(Subscription.subid == request.form['subscription']).one()
+            s.member_id = None
+            db.session.commit()
+            flash ("Undone.")
+        if 'Assign' in request.form:
+            if 'member' not in request.form or 'subscription' not in request.form:
+                flash("Must select a member and a subscription to link")
+            elif request.form['member']=="" or request.form['subscription']=="":
+                flash("Must select a member and a subscription to link")
+            else:
+                s = Subscription.query.filter(Subscription.subid == request.form['subscription']).one()
+                s.member_id = db.session.query(Member.id).filter(Member.member == request.form['member'])
+                db.session.commit()
+                btn = '<form method="POST"><input type="hidden" name="subscription" value="%s" /><input type="submit" value="Undo" name="Undo" /></form>' % request.form['subscription']
+                flash(Markup("Linked %s to %s %s" % (request.form['member'],request.form['subscription'],btn)))
+
         subscriptions = Subscription.query.filter(Subscription.member_id == None).all()
-        members = Member.query.outerjoin(Subscription).filter(Subscription.member_id == None).all()
+        members = Member.query.outerjoin(Subscription).filter(Subscription.member_id == None)
+        if 'applymemberfilter' in request.form:
+            members = members.filter(Member.member.ilike("%"+request.form['memberfilter']+"%"))
+        members = members.all()
         """Find members with no members"""
+
 
         return render_template('payments_missing.html',subscriptions=subscriptions,members=members)
 
