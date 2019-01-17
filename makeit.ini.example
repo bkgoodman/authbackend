@@ -1,6 +1,7 @@
 [General]
 Debug: False
 Database: makeit.db
+LogDatabase: log.db
 AdminUser: admin@makeitlabs.com
 AdminPassword: admin
 SecretKey: secret

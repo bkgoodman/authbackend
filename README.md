@@ -46,6 +46,16 @@ You can also start with a VERY minimal database with:
 
 python authserver.py --createdb
 
+## Full data migration
+
+Again, this is dependent on you having some extra data files for 
+old database, etc - and will vary from versons - but generaly:
+
+./migrate_db.py --overwrite makeit.db
+python authserver.py --command updatepayments
+python authserver.py --command memberpaysync --test
+
+
 ## Running development server
 
 `python authserver.py`

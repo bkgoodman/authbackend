@@ -87,6 +87,7 @@ class ConfigClass(object):
   ServerHost = Config.get('General','ServerHost')
   ServerPort = Config.getint('General','ServerPort')
   Database = Config.get('General','Database')
+  LogDatabase = Config.get('General','LogDatabase')
   AdminUser = Config.get('General','AdminUser')
   AdminPasswd = Config.get('General','AdminPassword')
   DeployType = Config.get('General','Deployment')
@@ -103,7 +104,10 @@ class ConfigClass(object):
   USER_EMAIL_SENDER_EMAIL = "noreply@example.com"
 
   # SQLAlchemy setting
-  SQLALCHEMY_DATABASE_URI = "sqlite:///"+Database
+  SQLALCHEMY_BINDS = {
+          'main': "sqlite:///"+Database,
+          'logs': "sqlite:///"+LogDatabase,
+    }
   SQLALCHEMY_TRACK_MODIFICATIONS = False
 
   # Load Waiver system data from file

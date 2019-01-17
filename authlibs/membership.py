@@ -10,8 +10,9 @@ from collections import defaultdict
 import config
 import sys
 import argparse
-from db_models import db, Subscription, Member, Blacklist
+from db_models import db, Subscription, Member, Blacklist, Logs
 import ConfigParser
+import eventtypes
 from flask import current_app
 
 import logging
@@ -113,6 +114,7 @@ def addMissingMembers(missing):
     members = []
     bl_entries = Blacklist.query.all()
     ignorelist = []
+    logsession=db.scoped_session( db.get_engine(current_app, 'logs'))
     for b in bl_entries:
         ignorelist.append(b.entry)
     for p in missing:
@@ -156,9 +158,11 @@ def addMissingMembers(missing):
             db.session.flush()
             s = Subscription.query.filter(Subscription.email==p.email).filter(Subscription.name==p.name).one()
             logger.debug("Adding new member %s for subscription %s MemberID %s" % (mname, p.subid,mm.id))
-            s.member_id=mm.id
+            s.member_id=mm
+            logsession.add(Logs(member_id=mm.id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id))
             newMembers.append(mm)
     # NOTE we are not committing until all slack and google accounts have been created!!
+    logsession.commit()
     return newMembers
 
 def googleEmailExists(m):

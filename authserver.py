@@ -1115,6 +1115,19 @@ def create_routes():
 
     # ------------------------------------------------------------
     # Logs  
+    #
+    # Things log like crazy. Therefore logs are designed to
+    # be cheap to write, and to be compartimentalizable so
+    # that they don't interfere with other stuff.
+    #
+    # So we put logs in a separate databse. Maybe someday this
+    # could be a completely different type of datastore.
+    #
+    # Because of this, we can't do relational queries between
+    # the log and main databases. 
+    #
+    # Because of all this, logs are expensive to read. This might
+    # not be too bad because we don't read them all that often.
     # ------------------------------------------------------------
 
     @app.route('/logs', methods=['GET'])
@@ -1125,7 +1138,21 @@ def create_routes():
         format='html'
         print request.values
         evt= get_events()
-        q = db.session.query(Logs.time_reported,Logs.event_type,Member.firstname,Member.lastname,Tool.name.label("toolname"),Logs.message).outerjoin(Tool).outerjoin(Member).order_by(Logs.time_reported.desc())
+        #q = db.session.query(Logs.time_reported,Logs.event_type,Member.firstname,Member.lastname,Tool.name.label("toolname"),Logs.message).outerjoin(Tool).outerjoin(Member).order_by(Logs.time_reported.desc())
+
+        # Query main DB to Build relational tables
+        tools={}
+        members={}
+        for t in Tool.query.all():
+            tools[t.id] = t.name
+        for m in Member.query.all():
+            members[m.id] = {
+                    'member': m.member,
+                    'first': m.firstname,
+                    'last': m.lastname
+                    }
+
+        q = db.session.query(Logs).order_by(Logs.time_reported.desc())
 
         if ('offset' in request.values):
             limit=int(request.values['offset'])
@@ -1140,13 +1167,13 @@ def create_routes():
         if offset>0: w=q.offset(offset)
 
         if ('member' in request.values):
-            q=q.filter(Member.mamber==request.values['member'])
+            q=q.filter(Log.member_id==members[request.values['member']])
         if ('tool' in request.values):
-            q=q.filter(Tool.name==request.values['tool'])
+            q=q.filter(Log.tool_id==tools[request.values['tool']])
         if ('memberid' in request.values):
-            q=q.filter(Member.id==request.values['memberid'])
+            q=q.filter(Log.member_id==request.values['memberid'])
         if ('toolid' in request.values):
-            q=q.filter(Tool.id==request.values['toolid'])
+            q=q.filter(Log.tool_id==request.values['toolid'])
         if ('before' in request.values):
             q=q.filter(Logs.time_reported<=request.values['before'])
         if ('after' in request.values):
@@ -1157,17 +1184,22 @@ def create_routes():
         logs=[]
         for l in dbq:
             r={}
-            print l.firstname,l.lastname,l.event_type,l.time_reported
-            if l.lastname:
-                r['user'] = l.lastname+", "+l.firstname
+            if l.member_id in members:
+                r['user'] = members[l.member_id]['last']+", "+l.members[l.member_id]['firstname']
             else:
-                r['user']=""
+                r['user']="Member #"+str(l.member_id)
+            
+            if l.tool_id in tools:
+                r['tool'] = tools[l.tool_id]
+            else:
+                r['tool']="Tool #"+str(l.tool_id)
+            
+
             if (l.event_type in evt):
                 r['event']=evt[l.event_type]
             else:
                 r['event']=l.event
             r['time'] = l.time_reported
-            r['toolname'] = l.toolname
             if l.message:
                 r['message']=l.message
             else:

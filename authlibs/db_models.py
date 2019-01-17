@@ -11,7 +11,8 @@ db = SQLAlchemy()
 
 # Define User Data model
 class User(db.Model,UserMixin):
-    __tablename__ = 'users';
+    __tablename__ = 'users'
+    __bind_key__ = 'main'
     rnd_api_key = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
     id = db.Column(db.Integer, primary_key=True)
     active = db.Column('is_active',db.Boolean(), nullable=False, server_default='1')
@@ -31,21 +32,15 @@ class User(db.Model,UserMixin):
 
 class Tool(db.Model):
     __tablename__ = 'tools'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
     frontend = db.Column(db.String(50))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
-class FrontEnd(db.Model):
-    __tablename__ = 'frontends'
-    id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.Integer, default=0) # 0=RATT
-    name = db.Column(db.String(50), unique=True)
-    tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
-    # tool_id defines WHICH tool a RATT is refereing to w/ old API
-
 class AccessByMember(db.Model):
     __tablename__ = 'accessbymember'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer, primary_key=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'),nullable=False)
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'),nullable=False)
@@ -59,45 +54,24 @@ class AccessByMember(db.Model):
     level = db.Column(db.Integer(),default=0)
     __table_args__ = (db.UniqueConstraint('member_id', 'resource_id', name='_member_resource_uc'),)
     
-class Logs(db.Model):
-    __tablename__ = 'log'
-    id = db.Column(db.Integer, primary_key=True)
-    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
-    tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
-    doneby = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
-    message = db.Column(db.String(100))
-    time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
-    time_reported = db.Column(db.DateTime(timezone=True))
-    event_type = db.Column(db.Integer(),index=True)
-    event_subtype = db.Column(db.Integer(),index=True)
-
-class UsageLog(db.Model):
-    __tablename__ = 'usagelog'
-    id = db.Column(db.Integer, primary_key=True)
-    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
-    tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
-    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
-    time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
-    time_reported = db.Column(db.DateTime(timezone=True))
-    idleSecs = db.Column(db.Integer())
-    activeSecs = db.Column(db.Integer())
-    enabledSecs = db.Column(db.Integer())
-
 # Define roles
 class Role(db.Model):
     __tablename__ = 'roles'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(50), unique=True)
 
 # Define User to Role Mapping
 class UserRoles(db.Model):
     __tablename__ = 'user_roles'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     role_id = db.Column(db.Integer(), db.ForeignKey('roles.id', ondelete='CASCADE'))
 
 class Resource(db.Model):
     __tablename__ = 'resources'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(50), unique=True)
     description = db.Column(db.String(50))
@@ -111,6 +85,7 @@ class Resource(db.Model):
 
 class ResourceAlias(db.Model):
     __tablename__ = 'resourcealiases'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     alias = db.Column(db.String(50), unique=True)
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
@@ -119,6 +94,7 @@ class ResourceAlias(db.Model):
 # Members and their data
 class Member(db.Model):
     __tablename__ = 'members'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     member = db.Column(db.String(50), unique=True)
     email = db.Column(db.String(50))
@@ -138,6 +114,7 @@ class Member(db.Model):
 
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     paysystem = db.Column(db.String(50))
     subid = db.Column(db.String(50),nullable=False)
@@ -162,6 +139,7 @@ class Subscription(db.Model):
 # Waiver Data
 class Waiver(db.Model):
     __tablename__ = 'waivers'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     waiver_id = db.Column(db.String(50))
     firstname = db.Column(db.String(50))
@@ -174,6 +152,7 @@ class Waiver(db.Model):
 class MemberTag(db.Model):
     # TODO: Handle change from tagsbymember
     __tablename__ = 'tags_by_member'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     #tag_id = db.Column(db.String(50)) "old" hashed data
     tag_ident = db.Column(db.String(50))  # "new" 10-digit,zero paded, raw,  unhashed data
@@ -187,8 +166,42 @@ class MemberTag(db.Model):
 class Blacklist(db.Model):
     # TODO: Handle change from tagsbymember
     __tablename__ = 'blacklist'
+    __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     entry = db.Column(db.String(50))
     entrytype = db.Column(db.String(50))
     reason = db.Column(db.String(50))
     updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
+
+##
+## LOGS
+##
+## Separate databse / binding
+##
+
+class Logs(db.Model):
+    __tablename__ = 'log'
+    __bind_key__ = 'logs'
+    id = db.Column(db.Integer, primary_key=True)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
+    doneby = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    message = db.Column(db.String(100))
+    time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
+    time_reported = db.Column(db.DateTime(timezone=True))
+    event_type = db.Column(db.Integer(),index=True)
+    event_subtype = db.Column(db.Integer(),index=True)
+
+class UsageLog(db.Model):
+    __tablename__ = 'usagelog'
+    __bind_key__ = 'logs'
+    id = db.Column(db.Integer, primary_key=True)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
+    time_reported = db.Column(db.DateTime(timezone=True))
+    idleSecs = db.Column(db.Integer())
+    activeSecs = db.Column(db.Integer())
+    enabledSecs = db.Column(db.Integer())
+

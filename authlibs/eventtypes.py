@@ -9,6 +9,22 @@ class RATTBE_LOGEVENT_CONFIG_OTHER:
     id=1000
     desc='Other Event'
 
+class RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_MANUAL:
+    id=1001
+    desc='Created New Member Manual'
+
+class RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS:
+    id=1002
+    desc='Created New Member from Pay System'
+
+class RATTBE_LOGEVENT_CONFIG_PAY_MEMBER_IMPORT_ERR:
+    id=1003
+    desc='Payment Import Error'
+
+class RATTBE_LOGEVENT_CONFIG_PAY_MEMBER_REASSIGN:
+    id=1005
+    desc='Payment Reassignment'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'
