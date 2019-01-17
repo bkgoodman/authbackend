@@ -99,6 +99,7 @@ def _addSubscriptionData(subs,paytype):
         bad.append(b['entry'])
     logger.info("BLACKLIST: %s" % bad)
     for sub in subs:
+        #print  "FOUND",sub['name'],sub['email'],sub['active'], "Exp:",authutils.parse_datetime(sub['expires']), "Cre:",authutils.parse_datetime(sub['created'])
         if sub['customerid'] in bad:
             logger.info("BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['name']))
         else:
@@ -110,11 +111,20 @@ def _addSubscriptionData(subs,paytype):
             else:
                 # We found another one. Which one do we use??
 
-                # If we found a canceled one
                 if s.active.lower() == "true"  and sub['active'].lower() != "true":
-                    print "SKIPPING inactive record for ",sub['name'],sub['email']
-                    continue
-                print "OVERWRITE record for ",sub['name'],sub['email']
+                    # skip if old was active, but new is inactive
+                    #print "SKIPPING INACTIVE record for ",sub['name'],sub['email'],sub['created']
+                    continue 
+                elif s.created_date > authutils.parse_datetime(sub['created']):
+                    #print "Old",s.created_date
+                    #print "New",authutils.parse_datetime(sub['created'])
+                    #print "SKIPPING older records ",sub['name'],sub['email'],sub['created']
+                    continue 
+
+                elif s.active.lower() == "true"  and sub['active'].lower() == "true":
+                    print "WARNING - Two active records for  record for ",sub['name'],sub['email'],sub['created']
+
+                #print "OVERWRITE record for ",sub['name'],sub['email'],sub['created']
             s.paysystem = paytype
             s.subid = sub['subid']
             s.customerid = sub['customerid']
@@ -128,13 +138,7 @@ def _addSubscriptionData(subs,paytype):
             s.checked_date = datetime.now()
             s.active = sub['active']
             users.append((sub['name'],sub['active'],sub['email'],paytype,sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
-            try:
-                db.session.commit()  # BKG TEMP FIX BUG TODO - NOT HERE!
-                print "APPEND",sub['subid'],sub['name'],sub['email'],s.created_date,s.updated_date,s.active
-            except BaseException as e:
-                print "ERROR APPEND",sub['subid'],sub['name'],sub['email'],s.created_date,s.updated_date,s.active
-                db.session.rollback()  # BKG TEMP FIX BUG TODO - NOT HERE!
-    #db.session.commit() DO THIS
+    db.session.commit() 
 
 
 

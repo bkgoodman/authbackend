@@ -55,8 +55,8 @@
 			<td colspan=2><h3>Payment Info</h3></td>
 	  </tr> 
 	  <tr>
-			<td><div>Subscription ID</div></td>
-			<td>{{ subscription.subid }}</td>
+			<td><div>Payment Mebership ID</div></td>
+			<td><a href="{{ url_for("payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a></td>
 	  </tr> 
 	  <tr>
 			<td><div>Active</div></td>

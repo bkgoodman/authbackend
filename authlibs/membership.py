@@ -52,24 +52,29 @@ def searchMembers(searchstr):
 
 ''' Try to match subscriptions to existing member records - TODO - "new/update" flag '''
 def matchMissingMembers(missing):
-	newMembers = []
-	''' Return UNMACHED ones - i.e. new subs'''
-	for s in missing:
-		q = Member.query
-		q = q.filter(Member.alt_email == s.email)
-		q = q.filter(Member.stripe_name == s.name) # TODO BKG FIX - Depricate - use first and last names only
-		mm = q.one_or_none()
-		if mm:
-			logger.debug("MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
-			s.member_id = mm.id
-			# We APPEAR to have a match Just update the sub record w/ existing member ID
-			# Remember - this gets committed at the VERY end when everything is DONE
-		else:
-			# No match - create new one
-			logger.debug("NO MATCH - %s %s %s" % (s.name,s.email,s.subid))
-			newMembers.append(s)
-			
-	return newMembers
+    newMembers = []
+    ''' Return UNMACHED ones - i.e. new subs'''
+    for s in missing:
+        q = Member.query
+        q = q.filter(Member.alt_email == s.email)
+        q = q.filter(Member.stripe_name == s.name) # TODO BKG FIX - Depricate - use first and last names only
+        try:
+            mm = q.one_or_none()
+            if mm:
+                logger.debug("MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+                s.member_id = mm.id
+                # We APPEAR to have a match Just update the sub record w/ existing member ID
+                # Remember - this gets committed at the VERY end when everything is DONE
+            else:
+                # No match - create new one
+                logger.debug("NO MATCH - %s %s %s" % (s.name,s.email,s.subid))
+                newMembers.append(s)
+        except:
+            mm=None
+            logger.error("MULTIPLE MATCHES - FIX MANUALLY  - %s %s %s" % (s.name,s.email,s.subid))
+
+
+    return newMembers
 
 def createMember(m):
     """Add a member entry to the database"""
@@ -96,8 +101,8 @@ def getMissingMembers():
     missing = missing.filter(Subscription.plan != 'trial')
     missing = missing.all()
 
-		for s in missing:
-			logger.debug("Have Sub: %s %s id %s" % (s.subid,s.name,s.email))
+    for s in missing:
+            logger.debug("Have Sub: %s %s id %s" % (s.subid,s.name,s.email))
 
     return missing
 
@@ -149,7 +154,7 @@ def addMissingMembers(missing):
             mm.time_updated = p.created_date
             db.session.add(mm)
             db.session.flush()
-            s = Subscription.query.filter(Subscription.subid==p.subid).one()
+            s = Subscription.query.filter(Subscription.email==p.email).filter(Subscription.name==p.name).one()
             logger.debug("Adding new member %s for subscription %s MemberID %s" % (mname, p.subid,mm.id))
             s.member_id=mm.id
             newMembers.append(mm)

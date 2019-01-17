@@ -60,10 +60,10 @@ def getSubscriptionsJSON():
     # Resulting structure keys
     #  customerid,subid,firstname,lastname,userid,email,membertype,plan,active,created,updatedon,expires,phone
     # For Stripe, customerid and subid are different.
-    #subs = getSubscriptions()
-    import pickle
+    subs = getSubscriptions()
+    #import pickle
     #pickle.dump(subs,open("slack_prod_data.pickle","w"))
-    subs = pickle.load(open("slack_prod_data.pickle"))
+    #subs = pickle.load(open("slack_prod_data.pickle"))
     #print(subs)
     subscribers = list()
     noemail = list()

@@ -44,11 +44,11 @@
 		</tr>
 		<tr>
 		  <td>Subscription</td>
-		  <td>{{ subscription.subid }}
-			{% if subscription.subid %}
+	   	  <td><a href="{{ url_for("payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
+			{% if subscription.membership %}
 				{% if current_user.privs('Finance') %}
 				<input type="submit" name="Unlink" value="unlink" />
-				<input type="hidden" name="subscription" value="{{ subscription.subid }}" />
+				<input type="hidden" name="membership" value="{{ subscription.membership }}" />
 				<input type="hidden" name="member_id" value="{{ member.id }}" />
 				{% endif %}
 			{% else %}

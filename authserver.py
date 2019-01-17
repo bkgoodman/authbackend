@@ -528,7 +528,12 @@ def create_routes():
     @login_required
     def search_members():
        """Takes input of searchstr from form, displays matching member list"""
-       searchstr = safestr(request.form['searchstr'])
+       if 'searchstr' in request.form:
+           searchstr = safestr(request.form['searchstr'])
+       elif 'searchstr' in request.values:
+           searchstr = safestr(request.values['searchstr'])
+
+    
        members = membership.searchMembers(searchstr)
        return render_template('members.html',members=members,searchstr=searchstr)
 
@@ -582,18 +587,18 @@ def create_routes():
         member = {}
 
         if request.method=="POST" and 'Unlink' in  request.form:
-            s = Subscription.query.filter(Subscription.subid==request.form['subscription']).one()
+            s = Subscription.query.filter(Subscription.membership==request.form['membership']).one()
             s.member_id = None
             db.session.commit()
             btn = '''<form method="POST">
                     <input type="hidden" name="member_id" value="%s" />
-                    <input type="hidden" name="subscription" value="%s" />
+                    <input type="hidden" name="membership" value="%s" />
                     <input type="submit" value="Undo" name="Undo" />
-                    </form>''' % (request.form['member_id'],request.form['subscription'])
+                    </form>''' % (request.form['member_id'],request.form['membership'])
             flash(Markup("Unlinked. %s" % btn))
         elif 'Undo' in request.form:
             # Relink cleared member ID
-            s = Subscription.query.filter(Subscription.subid == request.form['subscription']).one()
+            s = Subscription.query.filter(Subscription.membership == request.form['membership']).one()
             s.member_id = request.form['member_id']
             db.session.commit()
             flash ("Undone.")
@@ -865,7 +870,7 @@ def create_routes():
 
     @app.route('/payments', methods = ['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finamce'])
     def payments():
         """(Controller) Show Payment system controls"""
         cdate = pay.getLastUpdatedDate()
@@ -875,27 +880,27 @@ def create_routes():
     @app.route('/payments/missing/assign/<string:assign>', methods = ['GET'])
     @app.route('/payments/missing', methods = ['GET','POST'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finamce'])
     def payments_missing(assign=None):
         """Find subscriptions with no members"""
         for x in dir(request): print x
         print "VALUES",request.values
         if 'Undo' in request.form:
-            s = Subscription.query.filter(Subscription.subid == request.form['subscription']).one()
+            s = Subscription.query.filter(Subscription.membership == request.form['membership']).one()
             s.member_id = None
             db.session.commit()
             flash ("Undone.")
         if 'Assign' in request.form:
-            if 'member' not in request.form or 'subscription' not in request.form:
+            if 'member' not in request.form or 'membership' not in request.form:
                 flash("Must select a member and a subscription to link")
-            elif request.form['member']=="" or request.form['subscription']=="":
+            elif request.form['member']=="" or request.form['membership']=="":
                 flash("Must select a member and a subscription to link")
             else:
-                s = Subscription.query.filter(Subscription.subid == request.form['subscription']).one()
+                s = Subscription.query.filter(Subscription.membership == request.form['membership']).one()
                 s.member_id = db.session.query(Member.id).filter(Member.member == request.form['member'])
                 db.session.commit()
-                btn = '<form method="POST"><input type="hidden" name="subscription" value="%s" /><input type="submit" value="Undo" name="Undo" /></form>' % request.form['subscription']
-                flash(Markup("Linked %s to %s %s" % (request.form['member'],request.form['subscription'],btn)))
+                btn = '<form method="POST"><input type="hidden" name="membership" value="%s" /><input type="submit" value="Undo" name="Undo" /></form>' % request.form['membership']
+                flash(Markup("Linked %s to %s %s" % (request.form['member'],request.form['membership'],btn)))
 
         subscriptions = Subscription.query.filter(Subscription.member_id == None).all()
         members = Member.query.outerjoin(Subscription).filter(Subscription.member_id == None)
@@ -909,7 +914,7 @@ def create_routes():
 
     @app.route('/payments/manual', methods = ['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finamce'])
     def manual_payments():
        sqlstr = """select member,plan,expires_date,updated_date from payments where paysystem = 'manual'"""
        members = query_db(sqlstr)
@@ -918,7 +923,7 @@ def create_routes():
 
     @app.route('/payments/manual/extend/<member>', methods = ['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finamce'])
     def payments_manual_extend(member):
         safe_id = safestr(member)
         sqlstr = "update payments set expires_date=DATETIME(expires_date,'+31 days') where member = '%s' " % safe_id
@@ -930,7 +935,7 @@ def create_routes():
 
     @app.route('/payments/manual/expire/<member>', methods = ['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finamce'])
     def payments_manual_expire(member):
         safe_id = safestr(member)
         sqlstr = "update payments set expires_date=datetime('now')  where member = '%s' " % safe_id
@@ -942,7 +947,7 @@ def create_routes():
 
     @app.route('/payments/manual/delete/<member>', methods = ['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finamce'])
     def payments_manual_delete(member):
         safe_id = safestr(member)
         sqlstr = "delete from payments where member = '%s' " % safe_id
@@ -954,7 +959,7 @@ def create_routes():
 
     @app.route('/payments/test', methods = ['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finamce'])
     def test_payments():
        """(Controller) Validate the connection to the payment system(s)"""
        if pay.testPaymentSystems():
@@ -963,9 +968,16 @@ def create_routes():
     	  flash("Error: One or more Payment systems is Unreachable, review logs.")
        return redirect(url_for('payments'))
 
+    @app.route('/payments/membership/<string:membership>', methods = ['GET'])
+    @login_required
+    @roles_required(['Admin','Finamce'])
+    def payment_membership(membership):
+       (subscription,member)=db.session.query(Subscription,Member).outerjoin(Member).filter(Subscription.membership==membership).one_or_none()
+       return render_template('payments_membership.html',subscription=subscription,member=member)
+
     @app.route('/payments/update', methods = ['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finamce'])
     def update_payments():
         """(Controller) Sync Payment data and update Member data (add missing, deactivate, etc)"""
         # TODO: Error handling
@@ -976,7 +988,7 @@ def create_routes():
 
     @app.route('/payments/<string:id>', methods=['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finamce'])
     def payments_member(id):
         pid = safestr(id)
         # Note: When debugging Payments system duplication, there may be multiple records
@@ -988,7 +1000,7 @@ def create_routes():
         return render_template('payments_member.html',user=user)
     @app.route('/payments/reports', methods = ['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finance'])
     def payments_reports():
         """(Controller) View various Payment data attributes"""
         f = request.args.get('filter','')
@@ -1007,7 +1019,7 @@ def create_routes():
 
     @app.route('/payments/fees', methods = ['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finance'])
     def payments_fees():
         """(Controller) Charge Fee to a user, Schedule recurring Fee, view past paid fees"""
         f = request.args.get('days','90')
@@ -1021,7 +1033,7 @@ def create_routes():
 
     @app.route("/payments/fees/charge", methods = ['POST'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finance'])
     def payments_fees_charge():
         """(Controller) Charge a one-time fee to a user"""
         fee = {}
@@ -1063,7 +1075,7 @@ def create_routes():
 
     @app.route('/blacklist', methods=['GET'])
     @login_required
-    @roles_required('Admin','Finance')
+    @roles_required(['Admin','Finance'])
     def blacklist_show():
         """(Controller) Show all the Blacklist entries"""
         sqlstr = "select entry,entrytype,reason,updated_date from blacklist"
