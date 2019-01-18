@@ -128,7 +128,6 @@ def requires_auth(f):
         return f(*args, **kwargs)
     return decorated
 
-# bkg_login_required
 # This is to allow non "member" accounts in via API
 # NOTE we are decorating the one we are importing from flask-user
 def api_only(f):
@@ -563,6 +562,37 @@ def create_routes():
        members = membership.searchMembers(searchstr)
        return render_template('members.html',members=members,searchstr=searchstr)
 
+    # resource is a DB model resource
+    def getResourcePrivs(resource=None,member=None,resourcename=None,memberid=None):
+        if resourcename:
+            resource=Resource.query.filter(Resource.name==resourcename).one()
+        if not member and not memberid:
+            member=current_user
+        print "GET FOR USER",member.id,member.member
+        print "GET FOR RESOURCE",resource,resource.id,resource.name
+        #p = AccessByMember.query.join(AccessByMember.id==resource.id).filter(AccessByMember.member_id==member.id).all()
+        p = AccessByMember.query.join(Resource,((Resource.id == resource.id) & (Resource.id == AccessByMember.resource_id))).join(Member,((AccessByMember.member_id == member.id) & (Member.id == member.id))).one_or_none()
+        if p:
+            return p.level
+        else:
+            return -1
+        return 0
+
+
+    #----------
+    #
+    # Brad's test stuff
+    #
+    #------------
+
+    @app.route('/test', methods=['GET'])
+    def bkgtest():
+        names=['frontdoor','woodshop','laser']
+        result={}
+        for n in names:
+            #result[n]=getResourcePrivs(Resource.query.filter(Resource.name==n).one())
+            result[n]=getResourcePrivs(resourcename=n)
+        return json_dump(result,indent=2), 200, {'Content-type': 'application/json'}
     # --------------------------------------
     # Member viewing and editing functions
     # Routes
@@ -676,22 +706,28 @@ def create_routes():
     def member_editaccess(id):
         """Controller method to display gather current access details for a member and display the editing interface"""
         mid = safestr(id)
-        memberid = db.session.query(Member.id).filter(Member.member == mid)
-        tags = MemberTag.query.filter(MemberTag.member_id == memberid).all()
+        member = db.session.query(Member).filter(Member.member == mid).one()
+        tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
 
-        member = Member.query.filter(Member.id == memberid)
-
-        q = db.session.query(Resource).outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == memberid)))
+        q = db.session.query(Resource).outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == member.id)))
         q = q.add_columns(AccessByMember.active,AccessByMember.level)
 
 
+        # Put all the records together for renderer
         access = []
         for (r,active,level) in q.all():
+            myPerms=getResourcePrivs(resource=r)
+            if (current_user.privs('Admin')):
+                myPerms=AccessByMember.LEVEL_RM
             if not active: 
                 level=""
             else:
-                level=AccessByMember.ACCESS_LEVEL[int(level)]
-            access.append({'resource':r,'active':active,'level':level})
+                # TODO FIX remove the try except
+                try:
+                    level=AccessByMember.ACCESS_LEVEL[int(level)]
+                except:
+                    level=0
+            access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms})
         return render_template('member_access.html',member=member,access=access,tags=tags)
 
     @app.route('/members/<string:id>/access', methods = ['POST'])
@@ -701,12 +737,42 @@ def create_routes():
         """Controller method to receive POST and update user access"""
         mid = safestr(id)
         access = {}
+        # Find all the items. If they were changed, and we are allowed
+        # to change them - make it so in DB
+        member = Member.query.filter(Member.member == mid).one()
+        print 
         for key in request.form:
-            match = re.search(r"^access_(.+)",key)
-            if match:
-                access[match.group(1)] = 1
-        clearAccess(mid)
-        addAccess(mid,access)
+            print "KEY",key
+            if key.startswith("orgaccess_"):
+                oldcheck = request.form[key]=='on'
+                r = key.replace("orgaccess_","")
+                if "privs_"+r in request.form:
+                    p = int(request.form['privs_'+r])
+                else:
+                    p = 0
+
+                newcheck=False
+                resource = Resource.query.filter(Resource.name==r).one()
+                # TODO do we have privs to do this?? (Check levels too)
+                # TODO Don't allow someone to "demote" someone of higher privledge
+                if "access_"+r in request.form:
+                    acc = AccessByMember.query.filter(AccessByMember.member_id==member.id).filter(AccessByMember.resource_id==resource.id).one_or_none()
+                    if not acc:
+                        acc = AccessByMember(member_id=member.id,resource_id=resource.id)
+                        db.session.add(acc)
+                    acc.level=p
+                    print "ADDED ",member.member,"TO RESOURCE",resource.name,"LEVEL",p
+                    db.session.add(acc)
+                else:
+                    # Check off
+                    acc = AccessByMember.query.filter(AccessByMember.member_id == member.id)
+                    acc = acc.filter(resource.id == AccessByMember.resource_id)
+                    acc = acc.one_or_none()
+                    if acc: db.session.delete(acc)
+                    print "DELETED ",member.member,"ON RESOURCE",resource.name
+
+        print 
+        db.session.commit()
         flash("Member access updated")
         kick_backend()
         return redirect(url_for('member_editaccess',id=mid))

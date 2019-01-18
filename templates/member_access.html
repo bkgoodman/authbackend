@@ -3,7 +3,10 @@
 <div class=body>
 	<div class="sectionhead">Edit user access to Resources</div>
     <p>Member: <a href="{{ url_for('member_show',id=member.id) }}">{{ member.member }}</a></p>
-	<div class="sectionhead">Tags <a href="{{ url_for('member_tags',id=member.id) }}"><i>(Add/Change)</i></a>:</div>
+	<div class="sectionhead">Tags 
+		{% if current_user.privs("Useredit") %}
+	<a href="{{ url_for('member_tags',id=member.id) }}"><i>(Add/Change)</i></a>:</div>
+	{% endif %}
 	{% if tags|length > 0 %}
 	  {% for t in tags %}
 		<li>{{ t.tag_ident }} {{ t.tag_type }} (Name: {{ t.tag_name }})</li>
@@ -13,24 +16,45 @@
 	{% endif %}
 	<br>
 	
-	<p>I AM {{ current_user }}</p>
 	<p>
-	<form action="{{ url_for('member_setaccess',id=member.id) }}" method="post">
+	<form action="{{ url_for('member_setaccess',id=member.member) }}" method="post">
 	  <table>
 		<tr>
 		  <th>Resource</th>
 		  <th>Description</th>
 		  <th>Contact</th>
-		  <th>Allowed?</th>
-		  <th>Level</th>
+		  <th>Allowed</th>
+		  <th>Permissions</th>
 		</tr>
 		{% for a in access %}
 		  <tr>
 			<td>{{ a.resource.name }}</td>
 			<td>{{ a.resource.description }}</td>
 			<td>{{ a.resource.owneremail }}</td>
-			<td><input type="checkbox" name="access_{{ a.name }}" {{ 'checked' if (a.active == 1) else '' }} /></td>			
+			<td>
+				{% if a.myPerms >= 1 %}
+				<input type="checkbox" 
+					name="access_{{ a.resource.name }}" {{ 'checked' if (a.active == 1) else '' }} 
+				/>
+				<input type="hidden" 
+					name="orgaccess_{{ a.resource.name }}" value="{{ 'on' if (a.active == 1) else 'off' }}"
+				/>
+				{% else %}
+				{{ '&#10004;'|safe  if (a.active == 1) else '' }} 
+				{% endif %}
+			</td>			
+			{% if a.myPerms >= 2 %}
+			<td>
+			<select name="privs_{{ a.resource.name }}">
+				<option name="User" value="0" />User</option>
+				<option name="Trainer" value="1" />Trainer</option>
+				<option name="ARM" value="2" />Ass't RM</option>
+				<option name="RM" value="3" />RM</option>
+			</select>
+			</td>
+			{% else %}
 			<td>{{ a.level }}</td>
+			{% endif %}
 		  </tr>
 	    {% endfor %}
 	  </table>

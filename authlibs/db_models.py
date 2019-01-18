@@ -31,7 +31,7 @@ class Member(db.Model,UserMixin):
     time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
     email_confirmed_at = db.Column(db.DateTime())
 
-    password = db.Column(db.String(255),nullable=False)
+    password = db.Column(db.String(255),nullable=True)
     roles= db.relationship('Role', secondary = 'userroles')
 
     # Use this instead of "has_roles" - it treats "admin" like everyone

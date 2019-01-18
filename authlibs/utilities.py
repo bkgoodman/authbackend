@@ -79,3 +79,4 @@ def parse_datetime(dt):
                 #2019-01-11 17:09:01.736307
                 result= datetime.strptime(dt,"%Y-%m-%d %H:%M:%S.%f")
   return result
+

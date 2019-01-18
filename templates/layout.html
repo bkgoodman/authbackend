@@ -38,7 +38,13 @@
   </p><div><a href="{{ url_for('index') }}">Home</a></div>
  {% if current_user %}
   <p>
-  	Current User: {{ current_user }}
+  <address>Logged in as: {{ current_user.email }}</address>
   <p>
+<p>Privileges:
+{% if current_user.privs('Admin') %}[Admin] {% endif %}
+{% if current_user.privs('Finance') %}[Finance] {% endif %}
+{% if current_user.privs('Useredit') %}[Useredit] {% endif %}
+{% if current_user.privs('RATT') %}[RATT] {% endif %}
+</p>
   {% endif %}
 </div>

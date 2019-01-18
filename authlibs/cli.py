@@ -23,7 +23,7 @@ def addadmin(cmd,**kwargs):
   admin_role = Role.query.filter(Role.name=='Admin').first()
   if not admin_role:
       admin_role = Role(name='Admin')
-  user = User(email=cmd[1],password=user_manager.hash_password(cmd[2]),email_confirmed_at=datetime.utcnow())
+  user = Member(email=cmd[1],password=user_manager.hash_password(cmd[2]),email_confirmed_at=datetime.utcnow())
   db.session.add(user)
   user.roles.append(admin_role)
   db.session.commit()
@@ -45,11 +45,11 @@ def hashpw(cmd,**kwargs):
   print kwargs['um'].hash_password(cmd[1])
 
 def deleteadmin(cmd,**kwargs):
-  User.query.filter(User.email==cmd[1]).delete()
+  Member.query.filter(User.email==cmd[1]).delete()
   db.session.commit()
 
 def changepassword(cmd,**kwargs):
-  user = Member.query.filter(Member.email==cmd[1]).first()
+  user = Member.query.filter(Member.member.like(cmd[1])).one()
   user.password=kwargs['um'].hash_password(cmd[2])
   db.session.commit()
 
@@ -71,13 +71,13 @@ def changekey(cmd,**kwargs):
 def revoke(cmd, **kwargs):
     x=UserRoles.query.join(Member)
     x = x.join(Role)
-    x = x.filter(Member.email == cmd[1])
+    x = x.filter(Member.member.ilike(cmd[1]))
     x = x.filter(Role.name.ilike(cmd[2]))
     x = x.one()
     db.session.commit()
 
 def grant(cmd, **kwargs):
-    member = Member.query.filter(Member.email==cmd[1]).one()
+    member = Member.query.filter(Member.member.ilike(cmd[1])).one()
     member.roles.append(Role.query.filter(Role.name.ilike(cmd[2])).one())
     db.session.commit()
 
@@ -104,7 +104,7 @@ commands = {
 		'cmd':hashpw
 	},
 	"changepassword":{
-		'usage':"changepassword -- Change password",
+		'usage':"changepassword {memberid} -- Change password",
 		'cmd':changepassword
 	},
 	"changekey":{
@@ -128,19 +128,19 @@ commands = {
 		'cmd':cli_syncmemberpayments
 	},
 	"grant":{
-		'usage':"grant {email@makeitlabs.com} {priv} -- Grant a Backend GUI Privlage to user",
+		'usage':"grant {memberid} {priv} -- Grant a Backend GUI Privlage to user",
 		'cmd':grant
 	},
 	"revoke":{
-		'usage':"revoke {email@makeitlabs.com} {priv} -- Revoke a Backend GUI Privlage to user",
+		'usage':"revoke {memberid} {priv} -- Revoke a Backend GUI Privlage to user",
 		'cmd':revoke
 	},
 	"activate":{
-		'usage':"activate {email@makeitlabs.com} -- Activate a GUI account (Confirm email, activate)",
+		'usage':"activate {memberid} -- Activate a GUI account (Confirm email, activate)",
 		'cmd':activate
 	},
 	"deactivate":{
-		'usage':"deactivate {email@makeitlabs.com} -- Dectivate a GUI account",
+		'usage':"deactivate {memberid} -- Dectivate a GUI account",
 		'cmd':deactivate
 	}
 }

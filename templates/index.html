@@ -50,11 +50,5 @@ Welcome to the Admin interface.
         </td>
     </tr>
 </table>
-<p>Privileges:
-{% if current_user.privs('Admin') %}[Admin] {% endif %}
-{% if current_user.privs('Finance') %}[Finance] {% endif %}
-{% if current_user.privs('Useredit') %}[Useredit] {% endif %}
-{% if current_user.privs('RATT') %}[RATT] {% endif %}
-</p>
 </div>
 {% endblock %}
