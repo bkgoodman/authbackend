@@ -188,7 +188,7 @@ class Logs(db.Model):
     doneby = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     message = db.Column(db.String(100))
     time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
-    time_reported = db.Column(db.DateTime(timezone=True))
+    time_reported = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
     event_type = db.Column(db.Integer(),index=True)
     event_subtype = db.Column(db.Integer(),index=True)
 

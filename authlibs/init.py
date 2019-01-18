@@ -16,7 +16,11 @@ import ConfigParser
 from db_models import db, User, Member, Role, defined_roles
 from datetime import datetime
 
+# SET THIS 
+GLOBAL_LOGGER_LEVEL = logging.DEBUG
+
 logger = logging.getLogger(__name__)
+logger.setLevel(GLOBAL_LOGGER_LEVEL)
 
 
 
@@ -47,6 +51,7 @@ def createDefaultUsers(app):
         user.roles.append(admin_role)
         db.session.commit()
     # TODO - other default users?
+
 class GlobalConfig(object):
   """ These are all Authbackend-Specifc. Reference via app.globalConfig 
 

@@ -14,10 +14,11 @@ from db_models import db, Subscription, Member, Blacklist, Logs
 import ConfigParser
 import eventtypes
 from flask import current_app
+from init import GLOBAL_LOGGER_LEVEL
 
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(GLOBAL_LOGGER_LEVEL)
 
 import google_admin as google
 
@@ -72,7 +73,7 @@ def matchMissingMembers(missing):
                 newMembers.append(s)
         except:
             mm=None
-            logger.error("MULTIPLE MATCHES - FIX MANUALLY  - %s %s %s" % (s.name,s.email,s.subid))
+            logger.warning("MULTIPLE MATCHES - FIX MANUALLY  - %s %s %s" % (s.name,s.email,s.subid))
 
 
     return newMembers
@@ -103,7 +104,7 @@ def getMissingMembers():
     missing = missing.all()
 
     for s in missing:
-            logger.debug("Have Sub: %s %s id %s" % (s.subid,s.name,s.email))
+            logger.debug("Missing Subscription: %s %s id %s" % (s.subid,s.name,s.email))
 
     return missing
 
@@ -114,7 +115,7 @@ def addMissingMembers(missing):
     members = []
     bl_entries = Blacklist.query.all()
     ignorelist = []
-    logsession=db.scoped_session( db.get_engine(current_app, 'logs'))
+                     
     for b in bl_entries:
         ignorelist.append(b.entry)
     for p in missing:
@@ -158,11 +159,10 @@ def addMissingMembers(missing):
             db.session.flush()
             s = Subscription.query.filter(Subscription.email==p.email).filter(Subscription.name==p.name).one()
             logger.debug("Adding new member %s for subscription %s MemberID %s" % (mname, p.subid,mm.id))
-            s.member_id=mm
-            logsession.add(Logs(member_id=mm.id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id))
+            s.member_id=mm.id
+            db.session.add(Logs(member_id=mm.id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id))
             newMembers.append(mm)
     # NOTE we are not committing until all slack and google accounts have been created!!
-    logsession.commit()
     return newMembers
 
 def googleEmailExists(m):

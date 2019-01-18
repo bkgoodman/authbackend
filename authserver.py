@@ -52,12 +52,13 @@ import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
 from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver
 import argparse
+from authlibs.init import GLOBAL_LOGGER_LEVEL
 
 waiversystem = {}
 waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(GLOBAL_LOGGER_LEVEL)
     
 # RULE - only call this from web APIs - not internal functions
 # Reason: If we have calls or scripts that act on many records,
@@ -1184,8 +1185,9 @@ def create_routes():
         logs=[]
         for l in dbq:
             r={}
+            r['time']=l.time_logged
             if l.member_id in members:
-                r['user'] = members[l.member_id]['last']+", "+l.members[l.member_id]['firstname']
+                r['user'] = members[l.member_id]['last']+", "+members[l.member_id]['first']
             else:
                 r['user']="Member #"+str(l.member_id)
             
@@ -1199,7 +1201,6 @@ def create_routes():
                 r['event']=evt[l.event_type]
             else:
                 r['event']=l.event
-            r['time'] = l.time_reported
             if l.message:
                 r['message']=l.message
             else:
