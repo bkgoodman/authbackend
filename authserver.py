@@ -25,6 +25,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 # NEwer login functionality
 import logging
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
+from flask_login import logout_user
 from authlibs import eventtypes
 from flask_sqlalchemy import SQLAlchemy
 #; older login functionality
@@ -127,6 +128,25 @@ def requires_auth(f):
             return error_401()
         if not check_auth(auth.username, auth.password):
             return authenticate()
+        return f(*args, **kwargs)
+    return decorated
+
+# bkg_login_required
+# This is to allow non "member" accounts in via API
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not current_user:
+            print "TRY API AUTH"
+            auth = request.authorization
+            if not auth:
+                print "NOT AUTHORIZED"
+                return error_401()
+            if not check_auth(auth.username, auth.password):
+                return authenticate() # Send a "Login required" Error
+        print "CURRENT_USER",current_user
+        #for x in dir(request):
+        #    print x
         return f(*args, **kwargs)
     return decorated
 
@@ -499,14 +519,16 @@ def create_routes():
     def login():
        return render_template('login.html')
 
+    # BKG LOGIN CHECK - when do we use thigs?
     @app.route('/login/check', methods=['post'])
     def login_check():
         """Validate username and password from form against static credentials"""
-        user = User.get(request.form['username'])
+        user = User.query.filter(User.email == request.form['username']).one_or_none()
         if (user and user.password == request.form['password']):
             login_user(user)
         else:
             flash('Username or password incorrect')
+            return redirect(url_for('login'))
 
         return redirect(url_for('index'))
 
@@ -641,6 +663,11 @@ def create_routes():
        access = access.all()
        return render_template('member_show.html',member=member,access=access,subscription=subscription)
 
+    # See what rights the user has on the given resource
+    # User and resource User and Resource class objects
+    def getAccessLevel(user,resource):
+        pass
+
     @app.route('/members/<string:id>/access', methods = ['GET'])
     @login_required
     def member_editaccess(id):
@@ -666,6 +693,7 @@ def create_routes():
 
     @app.route('/members/<string:id>/access', methods = ['POST'])
     @login_required
+    @roles_required(['Admin','Finance','Edituser'])
     def member_setaccess(id):
         """Controller method to receive POST and update user access"""
         mid = safestr(id)
