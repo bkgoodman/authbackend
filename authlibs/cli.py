@@ -5,7 +5,7 @@
 from datetime import datetime
 import random,string
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember
+from authlibs.db_models import db, ApiKey,  Role, UserRoles, Member, Resource, AccessByMember
 from authlibs.payments import cli_updatepayments
 from authlibs.membership import cli_syncmemberpayments
 from flask_sqlalchemy import SQLAlchemy
@@ -48,7 +48,7 @@ def deleteadmin(cmd,**kwargs):
   db.session.commit()
 
 def changepassword(cmd,**kwargs):
-  user = User.query.filter(User.email==cmd[1]).first()
+  user = Member.query.filter(Member.email==cmd[1]).first()
   user.password=kwargs['um'].hash_password(cmd[2])
   db.session.commit()
 

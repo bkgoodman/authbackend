@@ -8,12 +8,12 @@ Flask, Configuration, SQLAlchemy and Database Initialization
 
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
-from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
+from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app 
 from flask_sqlalchemy import SQLAlchemy
 import logging
 import sys
 import ConfigParser
-from db_models import db, User, Member, Role, defined_roles
+from db_models import db,  Member, Role, defined_roles, ApiKey
 from datetime import datetime
 
 # SET THIS 
@@ -42,6 +42,7 @@ def createDefaultRoles(app):
 
 def createDefaultUsers(app):
     createDefaultRoles(app)
+    """
     # Create default admin role and user if not present
     admin_role = Role.query.filter(Role.name=='Admin').first()
     if not User.query.filter(User.email == app.globalConfig.AdminUser).first():
@@ -50,6 +51,7 @@ def createDefaultUsers(app):
         db.session.add(user)
         user.roles.append(admin_role)
         db.session.commit()
+    """
     # TODO - other default users?
 
 class GlobalConfig(object):
@@ -124,5 +126,5 @@ def authbackend_init(name):
   app.config.from_object(__name__+'.ConfigClass')
   app.globalConfig = GlobalConfig()
   db.init_app(app)
-  user_manager = UserManager(app, db, User)
+  user_manager = UserManager(app, db, Member)
   return app

@@ -31,77 +31,11 @@ from flask import Flask, request, session, g, redirect, url_for, \
 # NEwer login functionality
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_sqlalchemy import SQLAlchemy
-"""
-from sqlalchemy.exc import IntegrityError
-import sqlite3, re, time
-from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash, Response
-# NEwer login functionality
-from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from flask_sqlalchemy import SQLAlchemy
-#; older login functionality
-#from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
-from contextlib import closing
-import pytz
-import json
-import pycurl, sys
-import ConfigParser
-import xml.etree.ElementTree as ET
-from StringIO import StringIO
-from authlibs import utilities as authutil
-from authlibs import payments as pay
-from authlibs import smartwaiver as waiver
-from authlibs import google_admin as google
-from authlibs import membership as membership
-from json import dumps as json_dump
-from json import loads as json_loads
-from functools import wraps
-import logging
-logging.basicConfig(stream=sys.stderr)
-import pprint
-import paho.mqtt.publish as mqtt_pub
-"""
 from datetime import datetime
 from authlibs import utilities as authutil
-from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver
+from authlibs.db_models import db, ApiKey, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver
 import json
 
-"""
-# Load general configuration from file
-defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
-Config = ConfigParser.ConfigParser(defaults)
-Config.read('makeit.ini')
-ServerHost = Config.get('General','ServerHost')
-ServerPort = Config.getint('General','ServerPort')
-AdminUser = Config.get('General','AdminUser')
-AdminPasswd = Config.get('General','AdminPassword')
-DeployType = Config.get('General','Deployment')
-DEBUG = Config.getboolean('General','Debug')
-
-# Flask-User Settings
-USER_APP_NAME = 'Basic'
-USER_PASSLIB_CRYPTCONTEXT_SCHEMES=['bcrypt']
-# Don;t want to include these, but it depends on them, so..
-USER_ENABLE_EMAIL = True        # Enable email authentication
-USER_ENABLE_USERNAME = False    # Disable username authentication
-USER_EMAIL_SENDER_NAME = USER_APP_NAME
-USER_EMAIL_SENDER_EMAIL = "noreply@example.com"
-
-# SQLAlchemy setting
-#SQLALCHEMY_DATABASE_URI = "sqlite:///"+Database
-SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-# Load Waiver system data from file
-waiversystem = {}
-waiversystem['Apikey'] = Config.get('Smartwaiver','Apikey')
-
-def create_app():
-    # App setup
-    app = Flask(__name__)
-    app.config.from_object(__name__)
-    app.secret_key = Config.get('General','SecretKey')
-    return app
-"""
 
 import sqlite3
 from flask import g
@@ -111,15 +45,6 @@ def connect_source_db():
     con = sqlite3.connect("original.db",check_same_thread=False)
     con.row_factory = sqlite3.Row
     return con
-
-"""
-def connect_db():
-    global args.overwrite
-    print "USING",args.overwrite
-    con = sqlite3.connect(args.overwrite,check_same_thread=False)
-    con.row_factory = sqlite3.Row
-    return con
-"""
 
 def safestr(unsafe_str):
     """Sanitize input strings used in some operations"""
@@ -137,14 +62,6 @@ def init_db():
         with app.open_resource('flaskr.sql', mode='r') as f:
             db.cursor().executescript(f.read())
         db.commit()
-
-"""
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = connect_db()
-    return db
-"""
 
 def get_source_db():
     db = getattr(g, '_source_database', None)
@@ -725,20 +642,43 @@ if __name__ == '__main__':
         # is while within this block. Therefore, you can now run........
 
         # Create default admin role and user if not present
-        user = User(email='finance@makeitlabs.com',password=app.user_manager.hash_password("finance"),email_confirmed_at=datetime.utcnow())
-        db.session.add(user)
-        user.roles.append(Role.query.filter(Role.name=='Finance').one())
+        member = Member(member="admin", email='admin@makeitlabs.com',
+            password=app.user_manager.hash_password("admin"),
+            active=True,email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+        member.roles.append(Role.query.filter(Role.name=='Admin').one())
 
-        user = User(email='ratt@makeitlabs.com',password=app.user_manager.hash_password("ratt"),email_confirmed_at=datetime.utcnow())
-        db.session.add(user)
-        user.roles.append(Role.query.filter(Role.name=='RATT').one())
+        member = Member(member="financce", email='finance@makeitlabs.com',
+            password=app.user_manager.hash_password("finance"),
+            active=True,email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+        member.roles.append(Role.query.filter(Role.name=='Finance').one())
 
-        user = User(email='useredit@makeitlabs.com',password=app.user_manager.hash_password("useredit"),email_confirmed_at=datetime.utcnow())
-        db.session.add(user)
-        user.roles.append(Role.query.filter(Role.name=='Useredit').one())
+        member = Member(member="ratt", email='ratt@makeitlabs.com',
+            password=app.user_manager.hash_password("ratt"),
+            active=True,email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+        member.roles.append(Role.query.filter(Role.name=='RATT').one())
 
-        user = User(email='noprivs@makeitlabs.com',password=app.user_manager.hash_password("noprivs"),email_confirmed_at=datetime.utcnow())
-        db.session.add(user)
+        member = Member(member="useredit", email='useredit@makeitlabs.com',
+            password=app.user_manager.hash_password("useredit"),
+            active=True,email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+        member.roles.append(Role.query.filter(Role.name=='Useredit').one())
+
+        member = Member(member="noprivs",email='noprivs@makeitlabs.com',
+            password=app.user_manager.hash_password("noprivs"),
+            active=True,email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+
+        member = Member(member="inactive",email='inactive@makeitlabs.com',
+            password=app.user_manager.hash_password("inactive"),email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+
+        member = Member(member="unconfirmed",email='unconfirmed@makeitlabs.com',
+            active=True,email_confirmed_at=datetime.utcnow(),
+            password=app.user_manager.hash_password("unconfirmed"))
+        db.session.add(member)
         db.session.commit()
 
     if not args.overwrite:

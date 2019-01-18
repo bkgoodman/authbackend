@@ -9,26 +9,44 @@ defined_roles=['Admin','RATT','Finance','Useredit']
 
 db = SQLAlchemy()
 
-# Define User Data model
-class User(db.Model,UserMixin):
-    __tablename__ = 'users'
+# Members and their data
+class Member(db.Model,UserMixin):
+    __tablename__ = 'members'
     __bind_key__ = 'main'
-    rnd_api_key = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
-    id = db.Column(db.Integer, primary_key=True)
-    active = db.Column('is_active',db.Boolean(), nullable=False, server_default='1')
-    email = db.Column(db.String(25),nullable=False, unique=True, server_default='')
+    id = db.Column(db.Integer(), primary_key=True)
+    member = db.Column(db.String(50), unique=True)
+    email = db.Column(db.String(50))
+    alt_email = db.Column(db.String(50))
+    firstname = db.Column(db.String(50))
+    slack = db.Column(db.String(50))
+    lastname = db.Column(db.String(50))
+    phone = db.Column(db.String(50))
+    plan = db.Column(db.String(50))
+    access_enabled = db.Column(db.Integer())
+    access_reason = db.Column(db.String(50))
+    active = db.Column(db.Integer())
+    nickname = db.Column(db.String(50))
+    stripe_name = db.Column(db.String(50))
+    time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
     email_confirmed_at = db.Column(db.DateTime())
+
     password = db.Column(db.String(255),nullable=False)
-    created_by = db.Column(db.String(25), nullable=False, server_default='admin')
-    created_on = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
-    comment = db.Column(db.String(255), nullable=True, server_default='')
-    api_key = db.Column(db.String(255), nullable=True, server_default=rnd_api_key)
-    roles= db.relationship('Role', secondary = 'user_roles')
+    roles= db.relationship('Role', secondary = 'member_roles')
 
     # Use this instead of "has_roles" - it treats "admin" like everyone
     def privs(self,x):
         return self.has_roles('Admin') or self.has_roles(x)
 
+class ApiKey(db.Model):
+    __tablename__ = 'apikeys'
+    __bind_key__ = 'main'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50),nullable=False)
+    username = db.Column(db.String(50),nullable=False)
+    password = db.Column(db.String(50),nullable=True)
+    tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'),nullable=True)
 
 class Tool(db.Model):
     __tablename__ = 'tools'
@@ -69,10 +87,10 @@ class Role(db.Model):
 
 # Define User to Role Mapping
 class UserRoles(db.Model):
-    __tablename__ = 'user_roles'
+    __tablename__ = 'member_roles'
     __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
-    member_id = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     role_id = db.Column(db.Integer(), db.ForeignKey('roles.id', ondelete='CASCADE'))
 
 class Resource(db.Model):
@@ -97,26 +115,6 @@ class ResourceAlias(db.Model):
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
 
-# Members and their data
-class Member(db.Model):
-    __tablename__ = 'members'
-    __bind_key__ = 'main'
-    id = db.Column(db.Integer(), primary_key=True)
-    member = db.Column(db.String(50), unique=True)
-    email = db.Column(db.String(50))
-    alt_email = db.Column(db.String(50))
-    firstname = db.Column(db.String(50))
-    slack = db.Column(db.String(50))
-    lastname = db.Column(db.String(50))
-    phone = db.Column(db.String(50))
-    plan = db.Column(db.String(50))
-    access_enabled = db.Column(db.Integer())
-    access_reason = db.Column(db.String(50))
-    active = db.Column(db.Integer())
-    nickname = db.Column(db.String(50))
-    stripe_name = db.Column(db.String(50))
-    time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
-    time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
 
 class Subscription(db.Model):
     __tablename__ = 'subscriptions'

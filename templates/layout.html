@@ -36,4 +36,9 @@
   <p>
     
   </p><div><a href="{{ url_for('index') }}">Home</a></div>
+ {% if current_user %}
+  <p>
+  	Current User: {{ current_user }}
+  <p>
+  {% endif %}
 </div>

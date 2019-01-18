@@ -51,7 +51,7 @@ logging.basicConfig(stream=sys.stderr)
 import pprint
 import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
-from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver, MemberTag
+from authlibs.db_models import db, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver, MemberTag
 import argparse
 from authlibs.init import GLOBAL_LOGGER_LEVEL
 
@@ -88,18 +88,12 @@ def create_app():
 
 # Flask-Login use this to reload the user object from the user ID stored in the session
 
-'''
-@login_manager.user_loader
-def load_user(id):
-    return User.get(id)
-'''
-
 def check_auth(username, password):
     """This function is called to check if a username /
     password combination is valid.
     """
     print "CHECK_AUTH",username,password
-    if password == "" or password is None or not User.query.filter_by(email=username,api_key=password).first():
+    if password == "" or password is None or not Member.query.filter_by(email=username,api_key=password).first():
         print "BAD AUTH"
         return False
     else:
@@ -133,18 +127,17 @@ def requires_auth(f):
 
 # bkg_login_required
 # This is to allow non "member" accounts in via API
-def login_required(f):
+# NOTE we are decorating the one we are importing from flask-user
+def api_only(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not current_user:
-            print "TRY API AUTH"
-            auth = request.authorization
-            if not auth:
-                print "NOT AUTHORIZED"
-                return error_401()
-            if not check_auth(auth.username, auth.password):
-                return authenticate() # Send a "Login required" Error
-        print "CURRENT_USER",current_user
+        print "TRY API AUTH"
+        auth = request.authorization
+        if not auth:
+            print "NOT AUTHORIZED"
+            return error_401()
+        if not check_auth(auth.username, auth.password):
+            return authenticate() # Send a "Login required" Error
         #for x in dir(request):
         #    print x
         return f(*args, **kwargs)
@@ -515,13 +508,20 @@ def create_routes():
     def newroute():
         return "Hello new route"
 
+    # THIS IS THE WRONG PAGE
+    # Flask login uses /user/sign-in
+    """
     @app.route('/login')
     def login():
        return render_template('login.html')
+    """
 
     # BKG LOGIN CHECK - when do we use thigs?
+    # This is from old flask-login module??
+    '''
     @app.route('/login/check', methods=['post'])
     def login_check():
+        print "LOGIN CHECK"
         """Validate username and password from form against static credentials"""
         user = User.query.filter(User.email == request.form['username']).one_or_none()
         if (user and user.password == request.form['password']):
@@ -531,6 +531,7 @@ def create_routes():
             return redirect(url_for('login'))
 
         return redirect(url_for('index'))
+    '''
 
     @app.route('/logout')
     @login_required
@@ -538,7 +539,7 @@ def create_routes():
        """Seriously? What do you think logout() does?"""
        logout_user()
        flash("Thanks for visiting, you've been logged out.")
-       return redirect(url_for('login'))
+       return redirect(url_for('user.login'))
 
     @app.route("/index")
     @app.route('/')
@@ -1318,6 +1319,7 @@ def create_routes():
         return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
 
     @app.route('/api/v1/whoami', methods=['GET'])
+    @api_only
     def whoami():
         print dir(request)
         print "TYPE",type(current_user)
