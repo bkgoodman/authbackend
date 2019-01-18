@@ -430,6 +430,8 @@ if __name__ == '__main__':
                   mem.nickname = first
                   mem.stripe_name = x[11]
                   mem.time_created = created
+                  mem.password = "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  mem.email_confirmed_at=created
                   #print mem
                   #print x[0],x[1],first,last,x[4],x[5],x[6],x[7],x[8],x[9],x[10],x[11],created
              

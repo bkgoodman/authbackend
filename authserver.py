@@ -51,7 +51,7 @@ logging.basicConfig(stream=sys.stderr)
 import pprint
 import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
-from authlibs.db_models import db, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver, MemberTag
+from authlibs.db_models import db, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver, MemberTag, ApiKey
 import argparse
 from authlibs.init import GLOBAL_LOGGER_LEVEL
 
@@ -92,12 +92,15 @@ def check_auth(username, password):
     """This function is called to check if a username /
     password combination is valid.
     """
-    print "CHECK_AUTH",username,password
     if password == "" or password is None or not Member.query.filter_by(email=username,api_key=password).first():
-        print "BAD AUTH"
         return False
     else:
-        print "GOOD AUTH"
+        return True
+
+def check_api_access(username,password):
+    if password == "" or password is None or not ApiKey.query.filter_by(username=username,password=password).first():
+        return False
+    else:
         return True
 
 def authenticate():
@@ -136,10 +139,9 @@ def api_only(f):
         if not auth:
             print "NOT AUTHORIZED"
             return error_401()
-        if not check_auth(auth.username, auth.password):
+        if not check_api_access(auth.username, auth.password):
             return authenticate() # Send a "Login required" Error
-        #for x in dir(request):
-        #    print x
+        g.apikey=auth.username
         return f(*args, **kwargs)
     return decorated
 
@@ -1217,13 +1219,13 @@ def create_routes():
         if offset>0: w=q.offset(offset)
 
         if ('member' in request.values):
-            q=q.filter(Log.member_id==members[request.values['member']])
+            q=q.filter(Logs.member_id==members[request.values['member']])
         if ('tool' in request.values):
-            q=q.filter(Log.tool_id==tools[request.values['tool']])
+            q=q.filter(Logs.tool_id==tools[request.values['tool']])
         if ('memberid' in request.values):
-            q=q.filter(Log.member_id==request.values['memberid'])
+            q=q.filter(Logs.member_id==request.values['memberid'])
         if ('toolid' in request.values):
-            q=q.filter(Log.tool_id==request.values['toolid'])
+            q=q.filter(Logs.tool_id==request.values['toolid'])
         if ('before' in request.values):
             q=q.filter(Logs.time_reported<=request.values['before'])
         if ('after' in request.values):
@@ -1321,18 +1323,7 @@ def create_routes():
     @app.route('/api/v1/whoami', methods=['GET'])
     @api_only
     def whoami():
-        print dir(request)
-        print "TYPE",type(current_user)
-        print "TYPE",current_user.has_role('Admin')
-        print "DIR",dir(current_user)
-        user=None
-        email=None
-        if  request.authorization:
-            user=User.query.filter(User.email==request.authorization.username).first()
-            if user:
-              email=user.email
-        print email
-        return json_dump("I don't know", 200, {'Content-type': 'text/plain'})
+        return json_dump("You have a valid API key %s" % g.apikey, 200, {'Content-type': 'text/plain'})
 
     @app.route('/api/v3/test', methods=['GET'])
     @requires_auth

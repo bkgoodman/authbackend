@@ -24,7 +24,7 @@ class Member(db.Model,UserMixin):
     plan = db.Column(db.String(50))
     access_enabled = db.Column(db.Integer())
     access_reason = db.Column(db.String(50))
-    active = db.Column(db.Integer())
+    active = db.Column(db.Integer()) # Applies to membership AND GUI login (flask-user)
     nickname = db.Column(db.String(50))
     stripe_name = db.Column(db.String(50))
     time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
@@ -32,7 +32,7 @@ class Member(db.Model,UserMixin):
     email_confirmed_at = db.Column(db.DateTime())
 
     password = db.Column(db.String(255),nullable=False)
-    roles= db.relationship('Role', secondary = 'member_roles')
+    roles= db.relationship('Role', secondary = 'userroles')
 
     # Use this instead of "has_roles" - it treats "admin" like everyone
     def privs(self,x):
@@ -87,7 +87,7 @@ class Role(db.Model):
 
 # Define User to Role Mapping
 class UserRoles(db.Model):
-    __tablename__ = 'member_roles'
+    __tablename__ = 'userroles'
     __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
