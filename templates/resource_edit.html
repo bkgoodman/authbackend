@@ -5,8 +5,13 @@
   <form action={{ url_for('resource_update',resource=resource.name) }} method="post">
 	<table>
 	  <tr><td>Name: {{ resource.name }}</td></tr>
-	  <tr><td>Description: <input type=text size=25 name=rdescription value="{{ resource.description }}"></td></tr>
-	  <tr><td>Owner Email: <input type=text size=25 name=remail value={{ resource.owneremail }}></td></tr>
+	  <tr><td>Description: <input type=text size=25 name="rdesc" value="{{ resource.description }}"></td></tr>
+	  <tr><td>Owner Email: <input type=text size=25 name="remail" value="{{ resource.owneremail }}"></td></tr>
+	  <tr><td>Public Slack Channel: <input type=text size=50 name="slack_chan" value="{{ resource.slack_chan }}"></td></tr>
+	  <tr><td>Admin Slack Channel: <input type=text size=50 name="slack_admin_chan" value="{{ resource.slack_admin_chan }}"></td></tr>
+	  <tr><td>Info URL: <input type=text size=80 name="info_url" value="{{ resource.info_url }}"></td></tr>
+	  <tr><td>Short Info Text: <input type=text size=80 name="info_text" value="{{ resource.info_text }}"></td></tr>
+	  <tr><td>Slack Info Text: <input type=text name="slack_info_text" value="{{ resource.slack_info_text }}"></td></tr>
 	</table>
 	<input type=submit value="Make changes">
   </form>

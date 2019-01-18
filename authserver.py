@@ -50,7 +50,7 @@ logging.basicConfig(stream=sys.stderr)
 import pprint
 import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
-from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver
+from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver, MemberTag
 import argparse
 from authlibs.init import GLOBAL_LOGGER_LEVEL
 
@@ -646,14 +646,23 @@ def create_routes():
     def member_editaccess(id):
         """Controller method to display gather current access details for a member and display the editing interface"""
         mid = safestr(id)
-        sqlstr = "select tag_ident,tag_type,tag_name from tags_by_member where member_id = '%s'" % mid
-        tags = query_db(sqlstr)
-        sqlstr = """select * from resources r LEFT OUTER JOIN accessbymember a ON a.resource_id = r.id  AND a.member_id = (SELECT m.id FROM members m WHERE m.member='%s');""" % mid
-        m = query_db(sqlstr)
-        member = {}
-        member['id'] = mid
-        member['access']= m
-        return render_template('member_access.html',member=member,tags=tags)
+        memberid = db.session.query(Member.id).filter(Member.member == mid)
+        tags = MemberTag.query.filter(MemberTag.member_id == memberid).all()
+
+        member = Member.query.filter(Member.id == memberid)
+
+        q = db.session.query(Resource).outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == memberid)))
+        q = q.add_columns(AccessByMember.active,AccessByMember.level)
+
+
+        access = []
+        for (r,active,level) in q.all():
+            if not active: 
+                level=""
+            else:
+                level=AccessByMember.ACCESS_LEVEL[int(level)]
+            access.append({'resource':r,'active':active,'level':level})
+        return render_template('member_access.html',member=member,access=access,tags=tags)
 
     @app.route('/members/<string:id>/access', methods = ['POST'])
     @login_required
@@ -781,7 +790,12 @@ def create_routes():
        res = {}
        res['name'] = safestr(request.form['rname'])
        res['description'] = safestr(request.form['rdesc'])
-       res['owneremail'] = safeemail(request.form['rcontact'])
+       res['owneremail'] = safeemail(request.form['remail'])
+       res['slack_chan'] = safestr(request.form['slack_chan'])
+       res['slack_admin_chan'] = safestr(request.form['slack_admin_chan'])
+       res['info_url'] = safestr(request.form['info_url'])
+       res['info_text'] = safestr(request.form['info_text'])
+       res['slack_info_text'] = safestr(request.form['slack_info_text'])
        result = _createResource(res)
        flash(result['message'])
        return redirect(url_for('resources'))
@@ -790,11 +804,10 @@ def create_routes():
     @login_required
     def resource_show(resource):
         """(Controller) Display information about a given resource"""
-        rname = safestr(resource)
-        sqlstr = "SELECT name, owneremail, description from resources where name = '%s'" % rname
-        print sqlstr
-        r = query_db(sqlstr,(),True)
-        print r
+        r = Resource.query.filter(Resource.name==resource).one_or_none()
+        if not r:
+            flash("Resource not found")
+            return redirect(url_for('resources'))
         return render_template('resource_edit.html',resource=r)
 
     @app.route('/resources/<string:resource>', methods=['POST'])
@@ -803,11 +816,18 @@ def create_routes():
     def resource_update(resource):
         """(Controller) Update an existing resource from HTML form POST"""
         rname = safestr(resource)
-        rdesc = safestr(request.form['rdescription'])
-        remail = safestr(request.form['remail'])
-        sqlstr = "update resources set description='%s',owneremail='%s', last_updated=Datetime('now') where name='%s'" % (rdesc,remail,rname)
-        execute_db(sqlstr)
-        get_db().commit()
+        r = Resource.query.filter(Resource.name==resource).one_or_none()
+        if not r:
+            flash("Error: Resource not found")
+            return redirect(url_for('resources'))
+        r.description = (request.form['rdesc'])
+        r.owneremail = safeemail(request.form['remail'])
+        r.slack_chan = safestr(request.form['slack_chan'])
+        r.slack_admin_chan = safestr(request.form['slack_admin_chan'])
+        r.info_url = safestr(request.form['info_url'])
+        r.info_text = safestr(request.form['info_text'])
+        r.slack_info_text = safestr(request.form['slack_info_text'])
+        db.session.commit()
         flash("Resource updated")
         return redirect(url_for('resources'))
 
