@@ -115,6 +115,7 @@ def get_slack_users():
             return {}
         slack_users={}
         discards=[]
+        slack_email_to_users={}
         for x in slackdata['members']:
             u={}
             u['name']=x['name']
@@ -146,19 +147,24 @@ def get_slack_users():
                 u['name']=x['name']
                 #print u['first_name'],u['last_name'],x['name']
                 slack_users[x['name']]=u
+                e = x['profile']['email']
+                if e.lower().endswith('@makeitlabs.com'):
+                    e=e.split("@")[0]
+                    slack_email_to_users[e]=u['name']
             else:
-                """
-                print
-                print "ERROR",x['name'],"was not migrated"
-                print
-                """
+                if 'email' not in x['profile']:
+                    #print "ERROR",x['name'],"was not migrated NO EMAIL",
+                    # These were all bots
+                    pass
+                else:
+                    print "ERROR",x['name'],x['profile']['email'],"was not migrated"
                 discards.append(x['name'])
             
         #print "DISCARDS",discards
         #print "IMPORTS",len(slack_users)
         #for x in slack_users:
         #    print x,slack_users[x]
-        return slack_users
+        return slack_users,slack_email_to_users
 
 
 def testdt(a):
@@ -284,7 +290,7 @@ if __name__ == '__main__':
               """
 
           # Find odd slack users
-          su = get_slack_users()
+          (su,slack_email_to_users) = get_slack_users()
           """
           for x in su:
               vv=x.split(".")
@@ -313,6 +319,7 @@ if __name__ == '__main__':
           match = {
                   'no':0,
                   'exact':0,
+                  'exact_email':0,
                   'nodelim':0,
                   'oddcase':0,
                   'odddelim':0,
@@ -325,13 +332,13 @@ if __name__ == '__main__':
           }
           for x in  members:
               found = False
-              if x[0] in su: 
+              if x[0].lower() in slack_email_to_users:
+                  match['exact_email']+=1
+                  corrected_slack_ids[x[0]]=slack_email_to_users[x[0].lower()]
+                  found=True
+              elif x[0] in su: 
                   match['exact']+=1
                   corrected_slack_ids[x[0]]=x[0]
-                  found=True
-              if x[0] in slack_explicit_matches:
-                  match['explicit']+=1
-                  corrected_slack_ids[x[0]]=slack_explicit_matches[x[0]]
                   found=True
               else:
                   # case mismatch
@@ -354,7 +361,7 @@ if __name__ == '__main__':
                           match['odddelim']+=1
                           corrected_slack_ids[x[0]]=yy
                           found=True
-                      if (slack_first==first) and (slack_last==last):
+                      if (slack_first.lower()==first.lower()) and (slack_last.lower()==last.lower()):
                           match['firstlast']+=1
                           #print "PROBABLY",x[0],yy
                           # found=True Than's Mike Sullivan :(
@@ -373,6 +380,11 @@ if __name__ == '__main__':
                       if (slack_first[0]==first[0]) and (slack_last==last):
                           match['first0last']+=1
                           #print "POSSIBLY",x[0],yy
+              if not found and  x[0] in slack_explicit_matches:
+                  match['explicit']+=1
+                  print "CORRECTED ",x[0],"SLACK ID",slack_explicit_matches[x[0]]
+                  corrected_slack_ids[x[0]]=slack_explicit_matches[x[0]]
+                  found=True
               if not found:
                   #print "No match for ",x[0]
                   match['no']+=1
