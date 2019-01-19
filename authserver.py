@@ -718,16 +718,20 @@ def create_routes():
         for (r,active,level) in q.all():
             myPerms=getResourcePrivs(resource=r)
             if (current_user.privs('Admin')):
-                myPerms=AccessByMember.LEVEL_RM
+                myPerms=AccessByMember.LEVEL_ADMIN
             if not active: 
-                level=""
+                level=0
             else:
                 # TODO FIX remove the try except
                 try:
-                    level=AccessByMember.ACCESS_LEVEL[int(level)]
+                    level=int(level)
                 except:
                     level=0
-            access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms})
+            levelText=AccessByMember.ACCESS_LEVEL[level]
+            if level ==0:
+                levelText=""
+            access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms,'levelText':levelText})
+        print "ACCESS IS",access
         return render_template('member_access.html',member=member,access=access,tags=tags)
 
     @app.route('/members/<string:id>/access', methods = ['POST'])

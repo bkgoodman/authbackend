@@ -5,8 +5,9 @@
     <p>Member: <a href="{{ url_for('member_show',id=member.id) }}">{{ member.member }}</a></p>
 	<div class="sectionhead">Tags 
 		{% if current_user.privs("Useredit") %}
-	<a href="{{ url_for('member_tags',id=member.id) }}"><i>(Add/Change)</i></a>:</div>
+	<a href="{{ url_for('member_tags',id=member.id) }}"><i>(Add/Change)</i></a>:
 	{% endif %}
+	</div>
 	{% if tags|length > 0 %}
 	  {% for t in tags %}
 		<li>{{ t.tag_ident }} {{ t.tag_type }} (Name: {{ t.tag_name }})</li>
@@ -46,14 +47,28 @@
 			{% if a.myPerms >= 2 %}
 			<td>
 			<select name="privs_{{ a.resource.name }}">
-				<option name="User" value="0" />User</option>
-				<option name="Trainer" value="1" />Trainer</option>
-				<option name="ARM" value="2" />Ass't RM</option>
-				<option name="RM" value="3" />RM</option>
+				<option name="User" value="0" 
+				{{ 'selected' if (a.level == 0) else '' }}
+				/>User</option>
+
+				<option name="Trainer" value="1" 
+				{{ 'selected' if (a.level == 1) else '' }}
+			  	{{ 'disabled' if (a.myPerms <= 1) else '' }}
+				/>Trainer</option>
+
+				<option name="ARM" value="2" 
+				{{ 'selected' if (a.level == 2) else '' }}
+			  	{{ 'disabled' if (a.myPerms <= 2) else '' }}
+				/>Ass't RM</option>
+
+				<option name="RM" value="3" 
+				{{ 'selected' if (a.level == 3) else '' }}
+			  	{{ 'disabled' if (a.myPerms <= 3) else '' }}
+				/>RM</option>
 			</select>
 			</td>
 			{% else %}
-			<td>{{ a.level }}</td>
+			<td>{{ a.levelText }}</td>
 			{% endif %}
 		  </tr>
 	    {% endfor %}

@@ -72,11 +72,12 @@ class AccessByMember(db.Model):
     level = db.Column(db.Integer(),default=0)
     __table_args__ = (db.UniqueConstraint('member_id', 'resource_id', name='_member_resource_uc'),)
 
-    ACCESS_LEVEL=['User','Trainer','ARM','RM']
+    ACCESS_LEVEL=['User','Trainer','ARM','RM','Admin']
     LEVEL_USER=0
     LEVEL_TRAINER=1
     LEVEL_ARM=2
     LEVEL_RM=3
+    LEVEL_ADMIN=4
     
 # Define roles
 class Role(db.Model):
