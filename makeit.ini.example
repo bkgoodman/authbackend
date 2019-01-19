@@ -54,3 +54,5 @@ keyfile=/data/certs/client.key
 ;ciphers
 
 
+[Slack]
+BOT_API_TOKEN=<slackbot api token>
