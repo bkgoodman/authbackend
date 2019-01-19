@@ -568,9 +568,6 @@ def create_routes():
             resource=Resource.query.filter(Resource.name==resourcename).one()
         if not member and not memberid:
             member=current_user
-        print "GET FOR USER",member.id,member.member
-        print "GET FOR RESOURCE",resource,resource.id,resource.name
-        #p = AccessByMember.query.join(AccessByMember.id==resource.id).filter(AccessByMember.member_id==member.id).all()
         p = AccessByMember.query.join(Resource,((Resource.id == resource.id) & (Resource.id == AccessByMember.resource_id))).join(Member,((AccessByMember.member_id == member.id) & (Member.id == member.id))).one_or_none()
         if p:
             return p.level
@@ -717,12 +714,11 @@ def create_routes():
         access = []
         for (r,active,level) in q.all():
             myPerms=getResourcePrivs(resource=r)
-            if (current_user.privs('Admin')):
+            if (current_user.privs('HeadRM')):
                 myPerms=AccessByMember.LEVEL_ADMIN
             if not active: 
                 level=0
             else:
-                # TODO FIX remove the try except
                 try:
                     level=int(level)
                 except:
@@ -731,12 +727,10 @@ def create_routes():
             if level ==0:
                 levelText=""
             access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms,'levelText':levelText})
-        print "ACCESS IS",access
         return render_template('member_access.html',member=member,access=access,tags=tags)
 
     @app.route('/members/<string:id>/access', methods = ['POST'])
     @login_required
-    @roles_required(['Admin','Finance','Edituser'])
     def member_setaccess(id):
         """Controller method to receive POST and update user access"""
         mid = safestr(id)
@@ -744,36 +738,78 @@ def create_routes():
         # Find all the items. If they were changed, and we are allowed
         # to change them - make it so in DB
         member = Member.query.filter(Member.member == mid).one()
+        if ((member.id == current_user.id) and not (current_user.privs('Admin'))):
+            flash("You can't change your own access")
+            return redirect(url_for('member_editaccess',id=mid))
         print 
         for key in request.form:
             print "KEY",key
             if key.startswith("orgaccess_"):
                 oldcheck = request.form[key]=='on'
                 r = key.replace("orgaccess_","")
+                resource = Resource.query.filter(Resource.name==r).one()
+                if current_user.privs('HeadRM'):
+                    myPerms=AccessByMember.LEVEL_ADMIN
+                else:
+                    myPerms=getResourcePrivs(resource=resource)
                 if "privs_"+r in request.form:
                     p = int(request.form['privs_'+r])
                 else:
                     p = 0
 
+                try:
+                    alstr = AccessByMember.ACCESS_LEVEL[p]
+                except:
+                    alstr = "???"
+
                 newcheck=False
-                resource = Resource.query.filter(Resource.name==r).one()
+                if "access_"+r in request.form:
+                    newcheck=True
+
                 # TODO do we have privs to do this?? (Check levels too)
                 # TODO Don't allow someone to "demote" someone of higher privledge
-                if "access_"+r in request.form:
-                    acc = AccessByMember.query.filter(AccessByMember.member_id==member.id).filter(AccessByMember.resource_id==resource.id).one_or_none()
-                    if not acc:
-                        acc = AccessByMember(member_id=member.id,resource_id=resource.id)
-                        db.session.add(acc)
-                    acc.level=p
-                    print "ADDED ",member.member,"TO RESOURCE",resource.name,"LEVEL",p
-                    db.session.add(acc)
-                else:
-                    # Check off
+                if myPerms >= 1:
+                    # Find existing privs or not
+                    # There are THREE levels of privileges at play here:
+                    # acc.level - The OLD level for this record
+                    # p - the NEW level we are trying to change to
+                    # myPerm - The permissions level of the user making this change
+
+                    # Find existing record
                     acc = AccessByMember.query.filter(AccessByMember.member_id == member.id)
                     acc = acc.filter(resource.id == AccessByMember.resource_id)
                     acc = acc.one_or_none()
-                    if acc: db.session.delete(acc)
-                    print "DELETED ",member.member,"ON RESOURCE",resource.name
+
+                    if acc:
+                        print r,"had previous record",acc.active,acc.level
+
+                    if acc is None and newcheck == False:
+                        # Was off - and no change - Do nothing
+                        print r,"did'nt exist - no change"
+                        continue
+                    elif acc is None and newcheck == True:
+                        # Was off - but we turned it on - Create new one
+                        print "CREATING NEW",r
+                        db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id))
+                        acc = AccessByMember(member_id=member.id,resource_id=resource.id)
+                        db.session.add(acc)
+                    elif acc and newcheck == False and p<=myPerms:
+                        flash("You aren't authorized to disable %s privs on %s" % (alstr,r))
+
+                    if (p>=myPerms):
+                        flash("You aren't authorized to grant %s privs on %s" % (alstr,r))
+                    elif (acc.level >= myPerms):
+                        flash("You aren't authorized to demote %s privs on %s" % (alstr,r))
+                    elif acc.level != p:
+                        db.session.add(Logs(member_id=mm.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=alstr))
+                        acc.level=p
+
+                    if acc and newcheck == False and acc.level < myPerms:
+                        #delete
+                        print r,"DELETING"
+                        db.session.add(Logs(member_id=mm.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id))
+                        db.session.delete(acc)
+
 
         print 
         db.session.commit()
@@ -1265,8 +1301,11 @@ def create_routes():
         # Query main DB to Build relational tables
         tools={}
         members={}
+        resources={}
         for t in Tool.query.all():
             tools[t.id] = t.name
+        for r in Resource.query.all():
+            resources[r.id] = r.name
         for m in Member.query.all():
             members[m.id] = {
                     'member': m.member,
@@ -1290,10 +1329,14 @@ def create_routes():
 
         if ('member' in request.values):
             q=q.filter(Logs.member_id==members[request.values['member']])
-        if ('tool' in request.values):
-            q=q.filter(Logs.tool_id==tools[request.values['tool']])
         if ('memberid' in request.values):
             q=q.filter(Logs.member_id==request.values['memberid'])
+        if ('resource' in request.values):
+            q=q.filter(Logs.resource_id==resources[request.values['resource']])
+        if ('resourceid' in request.values):
+            q=q.filter(Logs.resource_id==request.values['resourceid'])
+        if ('tool' in request.values):
+            q=q.filter(Logs.tool_id==tools[request.values['tool']])
         if ('toolid' in request.values):
             q=q.filter(Logs.tool_id==request.values['toolid'])
         if ('before' in request.values):
@@ -1317,6 +1360,10 @@ def create_routes():
             else:
                 r['tool']="Tool #"+str(l.tool_id)
             
+            if l.resource_id in resources:
+                r['resource'] = resources[l.resource_id]
+            else:
+                r['resource']="Resource #"+str(l.resource_id)
 
             if (l.event_type in evt):
                 r['event']=evt[l.event_type]

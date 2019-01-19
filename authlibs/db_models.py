@@ -5,7 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, UserMixin
 import random, string
 
-defined_roles=['Admin','RATT','Finance','Useredit']
+defined_roles=['Admin','RATT','Finance','Useredit','HeadRM']
 
 db = SQLAlchemy()
 
@@ -190,6 +190,7 @@ class Logs(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
     doneby = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     message = db.Column(db.String(100))
     time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)

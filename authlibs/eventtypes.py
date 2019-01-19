@@ -25,6 +25,7 @@ class RATTBE_LOGEVENT_CONFIG_PAY_MEMBER_REASSIGN:
     id=1005
     desc='Payment Reassignment'
 
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'
@@ -114,6 +115,22 @@ class RATTBE_LOGEVENT_TOOL_COMBO_FAILED:
 class RATTBE_LOGEVENT_TOOL_LOGOUT:
     id=3015
     desc="Logged-out"
+
+class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
+    id=4000
+    desc='Resource access granted'
+
+class RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED:
+    id=4001
+    desc='Resource access granted'
+
+class RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED:
+    id=4002
+    desc='Resource access granted'
+
+class RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE:
+    id=4004
+    desc='Resource privlage change'
 
 
 def get_events():
