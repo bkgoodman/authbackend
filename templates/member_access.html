@@ -73,6 +73,24 @@
 		  </tr>
 	    {% endfor %}
 	  </table>
+	 {% if current_user.privs("Admin") %}
+	 <hr />
+	 <h3>Assigned Roles</h3>
+	 {% for r in roles %}
+	 {{ r.name }}<input type="checkbox" name="role_{{ r.name }}" {{ 'checked' if (r.id) else '' }} /><br />
+	 <input type="hidden" name="orgrole_{{ r.name }}" value="{{ 'on' if (r.id) else 'off' }}" />
+	 {% endfor %}
+	 <hr />
+	 {% endif %}
+
+	 {% if current_user.privs("Useredit") %}
+	 <h3>Change Password</h3>
+	 <p>
+	 Password: <input type="password" name="password1" value="" size=20 /><br />
+	 Reenter:<input type="password" name="password2" value="" size=20 />
+	 </p>
+	 {% endif %}
+	 <hr />
 	<input type=submit value="Make changes"/>
 	</form>
   </div>

@@ -69,7 +69,7 @@ def kick_backend():
       topic= app.globalConfig.mqtt_base_topic+"/control/broadcast/acl/update"
       mqtt_pub.single(topic, "update", hostname=app.globalConfig.mqtt_host,port=app.globalConfig.mqtt_port,**app.globalConfig.mqtt_opts)
     except BaseException as e:
-        logger.warning("MQTT acl/update failed to publish: "+str(e))
+        logger.debug("MQTT acl/update failed to publish: "+str(e))
 
 def create_app():
     # App setup
@@ -133,10 +133,8 @@ def requires_auth(f):
 def api_only(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        print "TRY API AUTH"
         auth = request.authorization
         if not auth:
-            print "NOT AUTHORIZED"
             return error_401()
         if not check_api_access(auth.username, auth.password):
             return authenticate() # Send a "Login required" Error
@@ -283,7 +281,6 @@ def _addPaymentData(subs,paytype):
     bad = []
     for b in blacklist:
         bad.append(b['entry'])
-    print "BLACKLIST: %s" % bad
     for sub in subs:
         if sub['customerid'] in bad:
             print "BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['userid'])
@@ -522,7 +519,6 @@ def create_routes():
     '''
     @app.route('/login/check', methods=['post'])
     def login_check():
-        print "LOGIN CHECK"
         """Validate username and password from form against static credentials"""
         user = User.query.filter(User.email == request.form['username']).one_or_none()
         if (user and user.password == request.form['password']):
@@ -590,6 +586,28 @@ def create_routes():
             #result[n]=getResourcePrivs(Resource.query.filter(Resource.name==n).one())
             result[n]=getResourcePrivs(resourcename=n)
         return json_dump(result,indent=2), 200, {'Content-type': 'application/json'}
+
+    @app.route('/admin', methods=['GET'])
+    @login_required
+    @roles_required('Admin')
+    def admin_page():
+        roles=Role.query.all()
+        admins =Member.query.join(UserRoles,UserRoles.member_id == Member.id).join(Role,Role.id == UserRoles.role_id)
+        admins = admins.add_column(Role.name).group_by(Member.member).all()
+        roles=[]
+        for x in admins:
+            roles.append({'member':x[0],'role':x[1]})
+
+        privs=AccessByMember.query.filter(AccessByMember.level>0).join(Member,Member.id==AccessByMember.member_id)
+        privs = privs.join(Resource,Resource.id == AccessByMember.resource_id)
+        privs = privs.add_columns(Resource.name,AccessByMember.level,Member.member)
+        privs = privs.all()
+        p=[]
+        for x in privs:
+            print "MEMBER",x[3]
+            p.append({'member':x[3],'resource':x[1],'priv':AccessByMember.ACCESS_LEVEL[int(x[2])]})
+
+        return render_template('admin_page.html',privs=p,roles=roles)
     # --------------------------------------
     # Member viewing and editing functions
     # Routes
@@ -709,6 +727,10 @@ def create_routes():
         q = db.session.query(Resource).outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == member.id)))
         q = q.add_columns(AccessByMember.active,AccessByMember.level)
 
+        roles=[]
+        for r in db.session.query(Role.name).outerjoin(UserRoles,((UserRoles.role_id==Role.id) & (UserRoles.member_id == member.id))).add_column(UserRoles.id).all():
+            roles.append({'name':r[0],'id':r[1]})
+
 
         # Put all the records together for renderer
         access = []
@@ -727,7 +749,7 @@ def create_routes():
             if level ==0:
                 levelText=""
             access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms,'levelText':levelText})
-        return render_template('member_access.html',member=member,access=access,tags=tags)
+        return render_template('member_access.html',member=member,access=access,tags=tags,roles=roles)
 
     @app.route('/members/<string:id>/access', methods = ['POST'])
     @login_required
@@ -741,9 +763,32 @@ def create_routes():
         if ((member.id == current_user.id) and not (current_user.privs('Admin'))):
             flash("You can't change your own access")
             return redirect(url_for('member_editaccess',id=mid))
-        print 
+        if (('password1' in request.form and 'password2' in request.form) and
+            (request.form['password1'] != "") and 
+            current_user.privs('Admin')):
+                if request.form['password1'] == request.form['password2']:
+                    member.password=current_app.user_manager.hash_password(request.form['password1'])
+                    flash("Password Changed")
+                else:
+                    flash("Password Mismatch")
+
         for key in request.form:
-            print "KEY",key
+            if key.startswith("orgrole_") and current_user.privs('Admin'):
+                r = key.replace("orgrole_","")
+                oldval=request.form["orgrole_"+r] == "on"
+                newval="role_"+r in request.form
+
+                if oldval and not newval:
+                    rr = UserRoles.query.filter(UserRoles.member_id == member.id).filter(UserRoles.role_id == db.session.query(Role.id).filter(Role.name == r)).one_or_none()
+                    if rr: 
+                        db.session.delete(rr)
+                        flash("Removed %s privs" % r)
+                elif newval and not oldval:
+                    rr = UserRoles(member_id = member.id,role_id = db.session.query(Role.id).filter(Role.name == r))
+                    flash("Added %s privs" % r)
+                    db.session.add(rr)
+
+
             if key.startswith("orgaccess_"):
                 oldcheck = request.form[key]=='on'
                 r = key.replace("orgaccess_","")
@@ -780,16 +825,11 @@ def create_routes():
                     acc = acc.filter(resource.id == AccessByMember.resource_id)
                     acc = acc.one_or_none()
 
-                    if acc:
-                        print r,"had previous record",acc.active,acc.level
-
                     if acc is None and newcheck == False:
                         # Was off - and no change - Do nothing
-                        print r,"did'nt exist - no change"
                         continue
                     elif acc is None and newcheck == True:
                         # Was off - but we turned it on - Create new one
-                        print "CREATING NEW",r
                         db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id))
                         acc = AccessByMember(member_id=member.id,resource_id=resource.id)
                         db.session.add(acc)
@@ -801,17 +841,15 @@ def create_routes():
                     elif (acc.level >= myPerms):
                         flash("You aren't authorized to demote %s privs on %s" % (alstr,r))
                     elif acc.level != p:
-                        db.session.add(Logs(member_id=mm.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=alstr))
+                        db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=alstr))
                         acc.level=p
 
                     if acc and newcheck == False and acc.level < myPerms:
                         #delete
-                        print r,"DELETING"
                         db.session.add(Logs(member_id=mm.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id))
                         db.session.delete(acc)
 
 
-        print 
         db.session.commit()
         flash("Member access updated")
         kick_backend()
@@ -986,7 +1024,6 @@ def create_routes():
         #authusers = query_db(sqlstr)
         sqlstr = "select a.id,a.member_id,m.member AS member from accessbymember a LEFT JOIN Members m ON m.id == a.member_id WHERE a.resource_id = (SELECT id FROM resources WHERE name='%s');" % rid
         authusers = query_db(sqlstr)
-        print "AUTHUSERS",authusers
         return render_template('resource_users.html',resource=rid,users=authusers)
 
     #TODO: Create safestring converter to replace string; converter?
@@ -996,7 +1033,6 @@ def create_routes():
        """Endpoint for a resource to log via API"""
        # TODO - verify resources against global list
        if request.method == 'POST':
-        print "LOGGING FOR RESOURCE"
         # YYYY-MM-DD HH:MM:SS
         # TODO: Filter this for safety
         logdatetime = request.form['logdatetime']
@@ -1007,10 +1043,8 @@ def create_routes():
         sqlstr = "INSERT into logs (logdatetime,resource,level,userid,msg) VALUES ('%s','%s','%s','%s','%s')" % (logdatetime,resource,level,userid,msg)
         execute_db(sqlstr)
         get_db().commit()
-        print "Committed"
         return render_template('logged.html')
        else:
-        print "QUERYING LOGS FOR RESOURCE"
         if current_user.is_authenticated:
             r = safestr(resource)
             sqlstr = "SELECT logdatetime,resource,level,userid,msg from logs where resource = '%s'" % r
@@ -1041,8 +1075,6 @@ def create_routes():
     @roles_required(['Admin','Finamce'])
     def payments_missing(assign=None):
         """Find subscriptions with no members"""
-        for x in dir(request): print x
-        print "VALUES",request.values
         if 'Undo' in request.form:
             s = Subscription.query.filter(Subscription.membership == request.form['membership']).one()
             s.member_id = None
@@ -1085,7 +1117,6 @@ def create_routes():
     def payments_manual_extend(member):
         safe_id = safestr(member)
         sqlstr = "update payments set expires_date=DATETIME(expires_date,'+31 days') where member = '%s' " % safe_id
-        print(sqlstr)
         execute_db(sqlstr)
         get_db().commit()
         flash("Member %s was updated in the payments table" % safe_id)
@@ -1185,7 +1216,6 @@ def create_routes():
         member = {}
         dt = """Datetime('now','-%s days')""" % f
         sqlstr = """select member, amount, fee_date, fee_name, fee_group, fee_description from feespaid where fee_date > %s""" % dt
-        print(sqlstr)
         fees = query_db(sqlstr)
         return render_template('fees.html',days=f,member=member,fees=fees)
 
@@ -1196,7 +1226,6 @@ def create_routes():
         """(Controller) Charge a one-time fee to a user"""
         fee = {}
         mandatory_fields = ['memberid','amount','name','description','group']
-        print request
         for f in mandatory_fields:
             fee[f] = ''
             if f in request.form:
@@ -1294,7 +1323,6 @@ def create_routes():
         limit = 200
         offset = 0
         format='html'
-        print request.values
         evt= get_events()
         #q = db.session.query(Logs.time_reported,Logs.event_type,Member.firstname,Member.lastname,Tool.name.label("toolname"),Logs.message).outerjoin(Tool).outerjoin(Member).order_by(Logs.time_reported.desc())
 

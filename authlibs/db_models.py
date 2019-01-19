@@ -72,6 +72,7 @@ class AccessByMember(db.Model):
     level = db.Column(db.Integer(),default=0)
     __table_args__ = (db.UniqueConstraint('member_id', 'resource_id', name='_member_resource_uc'),)
 
+
     ACCESS_LEVEL=['User','Trainer','ARM','RM','Admin']
     LEVEL_USER=0
     LEVEL_TRAINER=1
@@ -191,7 +192,6 @@ class Logs(db.Model):
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
-    doneby = db.Column(db.Integer(), db.ForeignKey('users.id', ondelete='CASCADE'))
     message = db.Column(db.String(100))
     time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
     time_reported = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
