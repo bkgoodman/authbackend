@@ -181,6 +181,7 @@ if __name__ == '__main__':
     parser.add_argument("--overwrite",help="Overwrite entire database with migrated data")
     parser.add_argument("--testdt",help="Only test datetime functions",action="store_true")
     parser.add_argument("--testdata",help="Add test data to database",action="store_true")
+    parser.add_argument("--noslack",help="Do not handle slack users",action="store_true")
     parser.add_argument("--nomigrate",help="Don't migrate data. Just create DB (and optionally add test data)",action="store_true")
     #(args,extras) = parser.parse_known_args(sys.argv[1:])
     args = parser.parse_args(sys.argv[1:])
@@ -290,109 +291,112 @@ if __name__ == '__main__':
               """
 
           # Find odd slack users
-          (su,slack_email_to_users) = get_slack_users()
-          """
-          for x in su:
-              vv=x.split(".")
-              if (len(vv)!=2): print x
-          """
-
-          # Members to Slack IDs
-
-
-          corrected_slack_ids={}
-          slack_explicit_matches={}
-          try:
-            for x in open("../explicit_slack_ids.txt").readlines():
-                (a,b,c)=x.split()
-                slack_explicit_matches[b]=c
-          except:
-              print """
-          ***
-          *** explicit_slac_id_.txt not found - not importing
-          ***
+          if not args.noslack:
+              (su,slack_email_to_users) = get_slack_users()
+              """
+              for x in su:
+                  vv=x.split(".")
+                  if (len(vv)!=2): print x
               """
 
-          dbm = {}
-          mc = ",".join(membercols)
-          members = query_source_db("select "+mc+" from members;")
-          match = {
-                  'no':0,
-                  'exact':0,
-                  'exact_email':0,
-                  'nodelim':0,
-                  'oddcase':0,
-                  'odddelim':0,
-                  'dotlast':0,
-                  'firstonly':0,
-                  'lastonly':0,
-                  'firstlast':0,
-                  'first0last':0,
-                  'explicit':0,
-          }
-          for x in  members:
-              found = False
-              if x[0].lower() in slack_email_to_users:
-                  match['exact_email']+=1
-                  corrected_slack_ids[x[0]]=slack_email_to_users[x[0].lower()]
-                  found=True
-              elif x[0] in su: 
-                  match['exact']+=1
-                  corrected_slack_ids[x[0]]=x[0]
-                  found=True
-              else:
-                  # case mismatch
-                  for yy in su:
-                      if yy.lower() == x[0].lower():
-                          match['oddcase']+=1
-                          corrected_slack_ids[x[0]]=yy
-                          found=True
-              if not found:
-                  first=x[0].split(".")[0].lower()
-                  last=x[0].split(".")[-1].lower()
-                  for yy in su:
-                      slack_first = su[yy]['first_name'].lower()
-                      slack_last = su[yy]['last_name'].lower()
-                      if yy.lower() == first+last:
-                          match['nodelim']+=1
-                          corrected_slack_ids[x[0]]=yy
-                          found=True
-                      if yy.lower() == first+"_"+last:
-                          match['odddelim']+=1
-                          corrected_slack_ids[x[0]]=yy
-                          found=True
-                      if (slack_first.lower()==first.lower()) and (slack_last.lower()==last.lower()):
-                          match['firstlast']+=1
-                          #print "PROBABLY",x[0],yy
-                          # found=True Than's Mike Sullivan :(
-                      if yy.lower() == first[0]+"."+last:
-                          #print "DOTLAST POSSIBLY",x[0],yy
-                          match['dotlast']+=1
-                      if yy.lower() == first:
-                          #print "FIRSTONLY POSSIBLY",x[0],yy
-                          match['firstonly']+=1
-                      if yy.lower() == last:
-                          #print "LASTONLY POSSIBLY",x[0],yy
-                          match['lastonly']+=1
-                      if yy.lower().endswith(last):
-                          #print "POSSIBLY",x[0],yy
-                          match['lastonly']+=1
-                      if (slack_first[0]==first[0]) and (slack_last==last):
-                          match['first0last']+=1
-                          #print "POSSIBLY",x[0],yy
-              if not found and  x[0] in slack_explicit_matches:
-                  match['explicit']+=1
-                  print "CORRECTED ",x[0],"SLACK ID",slack_explicit_matches[x[0]]
-                  corrected_slack_ids[x[0]]=slack_explicit_matches[x[0]]
-                  found=True
-              if not found:
-                  #print "No match for ",x[0]
-                  match['no']+=1
-                  
-                  
+              # Members to Slack IDs
 
-          print "Slack: ",match
-          print "Loaded ",len(corrected_slack_ids),"Slack IDs"
+
+              slack_explicit_matches={}
+              try:
+                for x in open("../explicit_slack_ids.txt").readlines():
+                    (a,b,c)=x.split()
+                    slack_explicit_matches[b]=c
+              except:
+                  print """
+              ***
+              *** explicit_slac_id_.txt not found - not importing
+              ***
+                  """
+
+          dbm = {}
+          corrected_slack_ids={}
+          mc = ",".join(membercols)
+
+          members = query_source_db("select "+mc+" from members;")
+          if not args.noslack:
+              match = {
+                      'no':0,
+                      'exact':0,
+                      'exact_email':0,
+                      'nodelim':0,
+                      'oddcase':0,
+                      'odddelim':0,
+                      'dotlast':0,
+                      'firstonly':0,
+                      'lastonly':0,
+                      'firstlast':0,
+                      'first0last':0,
+                      'explicit':0,
+              }
+              for x in  members:
+                  found = False
+                  if x[0].lower() in slack_email_to_users:
+                      match['exact_email']+=1
+                      corrected_slack_ids[x[0]]=slack_email_to_users[x[0].lower()]
+                      found=True
+                  elif x[0] in su: 
+                      match['exact']+=1
+                      corrected_slack_ids[x[0]]=x[0]
+                      found=True
+                  else:
+                      # case mismatch
+                      for yy in su:
+                          if yy.lower() == x[0].lower():
+                              match['oddcase']+=1
+                              corrected_slack_ids[x[0]]=yy
+                              found=True
+                  if not found:
+                      first=x[0].split(".")[0].lower()
+                      last=x[0].split(".")[-1].lower()
+                      for yy in su:
+                          slack_first = su[yy]['first_name'].lower()
+                          slack_last = su[yy]['last_name'].lower()
+                          if yy.lower() == first+last:
+                              match['nodelim']+=1
+                              corrected_slack_ids[x[0]]=yy
+                              found=True
+                          if yy.lower() == first+"_"+last:
+                              match['odddelim']+=1
+                              corrected_slack_ids[x[0]]=yy
+                              found=True
+                          if (slack_first.lower()==first.lower()) and (slack_last.lower()==last.lower()):
+                              match['firstlast']+=1
+                              #print "PROBABLY",x[0],yy
+                              # found=True Than's Mike Sullivan :(
+                          if yy.lower() == first[0]+"."+last:
+                              #print "DOTLAST POSSIBLY",x[0],yy
+                              match['dotlast']+=1
+                          if yy.lower() == first:
+                              #print "FIRSTONLY POSSIBLY",x[0],yy
+                              match['firstonly']+=1
+                          if yy.lower() == last:
+                              #print "LASTONLY POSSIBLY",x[0],yy
+                              match['lastonly']+=1
+                          if yy.lower().endswith(last):
+                              #print "POSSIBLY",x[0],yy
+                              match['lastonly']+=1
+                          if (slack_first[0]==first[0]) and (slack_last==last):
+                              match['first0last']+=1
+                              #print "POSSIBLY",x[0],yy
+                  if x[0] in slack_explicit_matches:
+                      match['explicit']+=1
+                      print "CORRECTED ",x[0],"SLACK ID",slack_explicit_matches[x[0]]
+                      corrected_slack_ids[x[0]]=slack_explicit_matches[x[0]]
+                      found=True
+                  if not found:
+                      #print "No match for ",x[0]
+                      match['no']+=1
+                      
+                      
+
+              print "Slack: ",match
+              print "Loaded ",len(corrected_slack_ids),"Slack IDs"
               
 
           ##
@@ -418,9 +422,11 @@ if __name__ == '__main__':
                       first = nm[0]
                       last = nm[1]
                   elif len(nm)==3:
+                      print "WARNING-Check first/last for ",x[0],nm[0],nm[1],nm[2]
                       first=nm[0]
                       last=nm[1]+nm[2]
                   else:
+                      print "WARNING-Check first/last for ",x[0]
                       first=""
                       last=""
 
