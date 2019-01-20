@@ -11,6 +11,7 @@ Some rough documentation as of December 2018.
 
 `pip install flask-login`
 `pip install flask-user`
+`pip install flask-oauth`
 `pip install stripe`
 `pip install apiclient`
 `pip install --upgrade google-api-python-client`
@@ -36,7 +37,7 @@ to something other thatn "Production"
 The database is normally the makeit.db. You will probably need to copy this over from somewhere (i.e. live server).
 If you don't have a "live" one to grab and use, you can create an example one with:
 
-./migrate_db.py --overwrite makeit.db --testdata --nomigrate
+`./migrate_db.py --overwrite makeit.db --testdata --nomigrate`
 
 This utility can also be used to migrate a database to a "new" schema - but this obviously will change drastically from
 time-to-time, depending on which versions you are migrating to and form. The "--testdata" and "--testonly" flags won't
@@ -44,16 +45,33 @@ actually do any data migration, but will just give you a blank database with som
 
 You can also start with a VERY minimal database with:
 
-python authserver.py --createdb
+`python authserver.py --createdb`
 
 ## Full data migration
 
 Again, this is dependent on you having some extra data files for 
 old database, etc - and will vary from versons - but generaly:
 
+```
 ./migrate_db.py --overwrite makeit.db
 python authserver.py --command updatepayments
 python authserver.py --command memberpaysync --test
+```
+
+## OAuth Stuff
+
+On the machine(s) you are connecting to a test deployment with,
+add the following line to your /etc/hosts:
+
+`x.x.x.x rattdev.com`
+
+(x.x.x.x being the IP address of the test backend server)
+
+When running locally - use http://rattdev.com:5000 as the URL you are connecting to.
+This is because the OAuth login is configured to allow this as a valid URL.
+
+If you don't do this - you will get an error on OAuth login saying there is a 
+redirect URL mismatch.
 
 
 ## Running development server
