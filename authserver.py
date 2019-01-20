@@ -24,6 +24,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response, Markup
 # NEwer login functionality
 import logging
+from werkzeug.contrib.fixers import ProxyFix
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_oauth import OAuth
 from flask_login import logout_user
@@ -42,7 +43,7 @@ from authlibs import cli
 from authlibs import utilities as authutil
 from authlibs import payments as pay
 from authlibs import smartwaiver as waiver
-from authlibs import google_admin as google
+from authlibs import google_admin as google_admin
 from authlibs import membership as membership
 from json import dumps as json_dump
 from json import loads as json_loads
@@ -55,6 +56,9 @@ from datetime import datetime
 from authlibs.db_models import db, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver, MemberTag, ApiKey
 import argparse
 from authlibs.init import GLOBAL_LOGGER_LEVEL
+from flask_dance.contrib.google import  google as google_flask
+from flask_dance.consumer import oauth_authorized
+import google_oauth
 
 waiversystem = {}
 waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
@@ -1420,15 +1424,15 @@ def create_routes():
         for n in newusers:
             # Using emailstr search to get around wierd hierarchical name mismatch
             emailstr = "%s.%s@makeitlabs.com" % (n['firstname'],n['lastname'])
-            users = google.searchEmail(emailstr)
+            users = google_admin.searchEmail(emailstr)
             if users == []:
                 # TODO: Change this to logging
                 print "Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname'])
                 ts = time.time()
                 password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
                 print "Create with password %s and email to %s" % (password,n['email'])
-                user = google.createUser(n['firstname'],n['lastname'],n['email'],password)
-                google.sendWelcomeEmail(user,password,n['email'])
+                user = google_admin.createUser(n['firstname'],n['lastname'],n['email'],password)
+                google_admin.sendWelcomeEmail(user,password,n['email'])
                 print("Welcome email sent")
             else:
                 print "Member appears to have an account: %s" % users
@@ -1440,15 +1444,15 @@ def create_routes():
         for n in newusers:
             # Using emailstr search to get around wierd hierarchical name mismatch
             emailstr = "%s.%s@makeitlabs.com" % (n['firstname'],n['lastname'])
-            users = google.searchEmail(emailstr)
+            users = google_admin.searchEmail(emailstr)
             if users == []:
                 # TODO: Change this to logging
                 print "Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname'])
                 ts = time.time()
                 password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
                 print "Create with password %s and email to %s" % (password,n['email'])
-                user = google.createUser(n['firstname'],n['lastname'],n['email'],password)
-                google.sendWelcomeEmail(user,password,n['email'])
+                user = google_admin.createUser(n['firstname'],n['lastname'],n['email'],password)
+                google_admin.sendWelcomeEmail(user,password,n['email'])
                 print("Welcome email sent")
             else:
                 print "Member appears to have an account: %s" % users
@@ -1595,60 +1599,45 @@ def create_routes():
         else:
             return "Boo, wrong host"
 
+    """
 
-    oauth = OAuth()
-    google = oauth.remote_app('google',
-                          base_url='https://www.google.com/accounts/',
-                          authorize_url='https://accounts.google.com/o/oauth2/auth',
-                          request_token_url=None,
-                          request_token_params={'scope': 'https://www.googleapis.com/auth/userinfo.email',
-                                                'response_type': 'code'},
-                          access_token_url='https://accounts.google.com/o/oauth2/token',
-                          access_token_method='POST',
-                          access_token_params={'grant_type': 'authorization_code'},
-                          consumer_key=app.globalConfig.Config.get("OAuth","GOOGLE_CLIENT_ID"),
-                          consumer_secret=app.globalConfig.Config.get("OAuth","GOOGLE_CLIENT_SECRET"))
     @app.route('/oauthlogin')
+    @oauth_authorized.connect_via(app.google_bp)
     def oauth_login():
-        callback=url_for('google_oauth_authorize', _external=True)
-        return google.authorize(callback=callback)
+        resp_json = google_flask.get("/oauth2/v2/userinfo").json()
+        print resp_json
+        return "Completed."
+
+    @app.route('/oauthlogin2')
+    @google_flask.authorization_required
+    def oauth_login2():
+        resp_json = google_flask.get("/oauth2/v2/userinfo").json()
+        print resp_json
+        return "Completed @{login}."
 
     @app.route("/google_oauth_authorize")
-    @google.authorized_handler
-    def google_oauth_authorize(resp):
-        print "GOOGLE AUTH"
-        access_token = resp['access_token']
-        print resp
-        print access_token
-        session['access_token'] = access_token, ''
-        #return redirect(url_for('index'))
-
-        access_token = session.get('access_token')
-        if access_token is None:
-            return redirect(url_for('login'))
-
-        access_token = access_token[0]
-        from urllib2 import Request, urlopen, URLError
-
-        headers = {'Authorization': 'OAuth '+access_token}
-        req = Request('https://www.googleapis.com/oauth2/v1/userinfo',
-                      None, headers)
-        try:
-            res = urlopen(req)
-        except URLError, e:
-            if e.code == 401:
-                # Unauthorized - bad token
-                session.pop('access_token', None)
-                return redirect(url_for('login'))
-            return res.read()
-
-        return res.read()
+    def google_oauth_authorize():
+        callback=url_for('google_oauth_authorize', _external=True)
+        return google_flask.authorize(callback=callback)
+    """
 
 
 def init_db(app):
     # DB Models in db_models.py, init'd to SQLAlchemy
     db.init_app(app)
 
+def has_no_empty_params(rule):
+    defaults = rule.defaults if rule.defaults is not None else ()
+    arguments = rule.arguments if rule.arguments is not None else ()
+    return len(defaults) >= len(arguments)
+
+
+def site_map(app):
+    links = []
+    for rule in app.url_map.iter_rules():
+        # Filter out rules we can't navigate to in a browser
+        print rule
+        # and rules that require parameters
         
 # Start development web server
 if __name__ == '__main__':
@@ -1677,5 +1666,6 @@ if __name__ == '__main__':
         if  args.command:
             cli.cli_command(extras,app=app,um=app.user_manager)
             sys.exit(0)
-    create_routes()
+        create_routes()
+        print site_map(app)
     app.run(host=app.globalConfig.ServerHost, port=app.globalConfig.ServerPort, debug=app.globalConfig.Debug)

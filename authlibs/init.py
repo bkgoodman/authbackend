@@ -15,6 +15,12 @@ import sys
 import ConfigParser
 from db_models import db,  Member, Role, defined_roles, ApiKey
 from datetime import datetime
+from werkzeug.contrib.fixers import ProxyFix
+from flask_dance.consumer import oauth_authorized
+from flask_dance.contrib.google import make_google_blueprint
+from flask_dance.contrib.google import  google as google_flask
+import requests
+import google_user_auth
 
 # SET THIS 
 GLOBAL_LOGGER_LEVEL = logging.DEBUG
@@ -125,6 +131,9 @@ def authbackend_init(name):
   app = Flask(name)
   app.config.from_object(__name__+'.ConfigClass')
   app.globalConfig = GlobalConfig()
+
+  google_user_auth.authinit(app)
+
   db.init_app(app)
   user_manager = UserManager(app, db, Member)
   return app

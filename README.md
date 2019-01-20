@@ -11,13 +11,15 @@ Some rough documentation as of December 2018.
 
 `pip install flask-login`
 `pip install flask-user`
-`pip install flask-oauth`
+`pip install flask-dance`
 `pip install stripe`
 `pip install apiclient`
 `pip install --upgrade google-api-python-client`
 `pip install paho-mqtt`
 `pip install pytz`
 `pip install --upgrade oauth2client`
+`pip install google-oauth`
+`sudo pip install sqlalchemy_utils`
 
 ## Creating stub database
 
@@ -75,6 +77,10 @@ redirect URL mismatch.
 
 
 ## Running development server
+
+In a non-production enviroment, allow non-SSL OAuth with:
+
+`export OAUTHLIB_INSECURE_TRANSPORT=1`
 
 `python authserver.py`
 
