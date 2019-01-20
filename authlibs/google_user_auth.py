@@ -1,47 +1,35 @@
-from flask import Blueprint, redirect, url_for, session
+from flask import Blueprint, redirect, url_for, session, flash
 from flask_dance.contrib.google import make_google_blueprint, google
-from flask_dance.consumer.backend.sqla import SQLAlchemyBackend
+from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
 from flask_login import current_user, login_user, logout_user
 from flask_dance.consumer import oauth_authorized
 from sqlalchemy.orm.exc import NoResultFound
 from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
-from db_models import db, Member
+from db_models import db, Member, OAuth
 
-SCOPE1="https://www.googleapis.com/auth/plus.me"
-SCOPE2="https://www.googleapis.com/plus/v1/people/me"
-SCOPE3="https://www.googleapis.com/auth/userinfo.profile"
-SCOPE4="https://www.googleapis.com/auth/userinfo.email"
-SCOPE7="https://www.googleapis.com/auth/plus.login"
-#SCOPE5="https://www.googleapis.com/auth/userinfo"
-#SCOPE6="https://www.googleapis.com/oauth2/v1/userinfo"
 
-SCOPE=SCOPE7
+""" 
+TODO FIX BUG
+
+You can (and probably should) set OAUTHLIB_RELAX_TOKEN_SCOPE when running in production.
+"""
+
 def authinit(app):
     userauth = Blueprint('userauth', __name__)
 
     google_blueprint = make_google_blueprint(
         client_id=app.globalConfig.Config.get("OAuth","GOOGLE_CLIENT_ID"),
         client_secret=app.globalConfig.Config.get("OAuth","GOOGLE_CLIENT_SECRET"),
-        #scope=['https://www.googleapis.com/auth/userinfo.email'],
-        scope=[
-        "https://www.googleapis.com/auth/plus.me",
-        "https://www.googleapis.com/auth/userinfo.email",
-    ],
+        scope=["https://www.googleapis.com/auth/plus.me",
+        "https://www.googleapis.com/auth/userinfo.email"
+        ],
         offline=True
         )
 
-    """,
-            "https://www.googleapis.com/auth/plus.profile.agerange.read",
-            "https://www.googleapis.com/auth/userinfo.profile",
-            "https://www.googleapis.com/auth/plus.me",
-            "https://www.googleapis.com/auth/plus.profile.language.read"],
-            """
-    """
-    google_blueprint.backend = SQLAlchemyBackend(user.UserAuth, db.session,
+    google_blueprint.backend = SQLAlchemyBackend(OAuth, db.session,
                                                  user=current_user,
-                                                 user_required=False)
+                                                 user_required=True)
 
-    """
     app.register_blueprint(google_blueprint, url_prefix="/google_login")
 
     @userauth.route("/google_login")
@@ -60,17 +48,21 @@ def authinit(app):
             account_info_json = resp.json()
             email = account_info_json['email']
             print "EMAIL IS",email
-            query = User.query.filter_by(email=email)
+            member=email.split("@")[0]
+            if not email.endswith("@makeitlabs.com"):
+                flash("Invalid Domain")
+                return redirect(url_for('index'))
+            query = Member.query.filter_by(member=member)
 
             try:
                 user = query.one()
+                print "GOT USER",user
+                flash("Welcome!")
+                login_user(user, remember=True)
+                return redirect(url_for('index'))
             except NoResultFound:
-                user = User()
-                user.name = account_info_json['name']
-                user.email = account_info_json['email']
-                db.session.add(user)
-                db.session.commit()
-            login_user(Member, remember=True)
+                flash("Invalid User")
+                return redirect(url_for('index'))
 
 
     @userauth.route('/google_logout')

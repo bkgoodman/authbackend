@@ -4,6 +4,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, UserMixin
 import random, string
+from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
 
 defined_roles=['Admin','RATT','Finance','Useredit','HeadRM']
 
@@ -211,3 +212,9 @@ class UsageLog(db.Model):
     activeSecs = db.Column(db.Integer())
     enabledSecs = db.Column(db.Integer())
 
+class OAuth(OAuthConsumerMixin, db.Model):
+    __tablename__ = 'oauth'
+    __bind_key__ = 'main'
+    user_id = db.Column(db.Integer, db.ForeignKey(Member.id))
+    user = db.relationship(Member)
+    pass

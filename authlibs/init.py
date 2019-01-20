@@ -136,4 +136,5 @@ def authbackend_init(name):
 
   db.init_app(app)
   user_manager = UserManager(app, db, Member)
+  user_manager.USER_ENABLE_AUTH0 = True
   return app
