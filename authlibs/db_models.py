@@ -3,6 +3,7 @@
 # Single file containing all required DB models, for now
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, UserMixin
+from flask_login.mixins import AnonymousUserMixin
 import random, string
 from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
 
@@ -10,6 +11,11 @@ defined_roles=['Admin','RATT','Finance','Useredit','HeadRM']
 
 db = SQLAlchemy()
 
+# This class mirrors the "member" class, but is used for 
+# Anonymous (i.e. logged-out) sessions
+class AnonymousMember(AnonymousUserMixin):
+    def privs(self,x):
+        return False
 # Members and their data
 class Member(db.Model,UserMixin):
     __tablename__ = 'members'
@@ -38,6 +44,29 @@ class Member(db.Model,UserMixin):
     # Use this instead of "has_roles" - it treats "admin" like everyone
     def privs(self,x):
         return self.has_roles('Admin') or self.has_roles(x)
+
+    def get(self,id):
+        return Member.query.filter(Member.member ==id).one()
+
+    def get_id(self):
+        """Return the email address to satisfy Flask-Login's requirements."""
+        return self.email
+    '''
+        def is_active(self):
+        """True, as all users are active."""
+        return True
+    '''
+
+
+    def is_authenticated(self):
+        """Return True if the user is authenticated."""
+        #return self.authenticated
+        return True
+
+    def is_anonymous(self):
+        """False, as anonymous users aren't supported."""
+        return False
+
 
 class ApiKey(db.Model):
     __tablename__ = 'apikeys'

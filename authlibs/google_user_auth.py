@@ -5,7 +5,9 @@ from flask_login import current_user, login_user, logout_user
 from flask_dance.consumer import oauth_authorized
 from sqlalchemy.orm.exc import NoResultFound
 from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
-from db_models import db, Member, OAuth
+from db_models import db, Member, OAuth, AnonymousMember
+from flask_login import LoginManager
+from flask_user import UserManager
 
 
 """ 
@@ -13,6 +15,10 @@ TODO FIX BUG
 
 You can (and probably should) set OAUTHLIB_RELAX_TOKEN_SCOPE when running in production.
 """
+def our_login():
+    # Do something like this but not this
+    return redirect(url_for('login'))
+
 
 def authinit(app):
     userauth = Blueprint('userauth', __name__)
@@ -30,7 +36,20 @@ def authinit(app):
                                                  user=current_user,
                                                  user_required=True)
 
-    app.register_blueprint(google_blueprint, url_prefix="/google_login")
+    user_manager = UserManager(app, db, Member)
+    user_manager.USER_ENABLE_AUTH0 = True
+    user_manager.unauthenticated_view = our_login
+    login_manager=LoginManager()
+    login_manager.login_view="google.login"
+    login_manager.init_app(app)
+    login_manager.anonymous_user=AnonymousMember
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        if not user_id.lower().endswith("@makeitlabs.com"): return None
+        mid = user_id.split("@")[0]
+        return Member.query.filter(Member.member == mid).one_or_none()
+        #return Member.get(user_id)
 
     @userauth.route("/google_login")
     def google_login():
@@ -39,7 +58,6 @@ def authinit(app):
         resp = google.get(SCOPE)
         assert resp.ok, resp.text
         return resp.text
-
 
     @oauth_authorized.connect_via(google_blueprint)
     def google_logged_in(blueprint, token):
@@ -82,3 +100,5 @@ def authinit(app):
         session.clear()
         logout_user()
         return redirect(url_for('main.index'))
+
+    app.register_blueprint(google_blueprint, url_prefix="/google_login")

@@ -26,8 +26,8 @@ from flask import Flask, request, session, g, redirect, url_for, \
 import logging
 from werkzeug.contrib.fixers import ProxyFix
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from flask_oauth import OAuth
-from flask_login import logout_user
+#from flask_oauth import OAuth
+from flask_login import logout_user, login_user
 from authlibs import eventtypes
 from flask_sqlalchemy import SQLAlchemy
 #; older login functionality
@@ -56,7 +56,7 @@ from datetime import datetime
 from authlibs.db_models import db, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver, MemberTag, ApiKey
 import argparse
 from authlibs.init import GLOBAL_LOGGER_LEVEL
-from flask_dance.contrib.google import  google as google_flask
+from flask_dance.contrib.google import  google 
 from flask_dance.consumer import oauth_authorized
 import google_oauth
 
@@ -506,34 +506,42 @@ def teardown_request(exception):
 ########
 
 def create_routes():
-    @app.route('/new')
+    @app.route('/test/anyone')
+    def TestAnyone():
+        return "Anyone can see this"
+
+    @app.route('/test/std')
     @login_required
-    def newroute():
-        return "Hello new route"
+    def TestStd():
+        return "Standard auth required"
+
+    @app.route('/test/oauth')
+    #@google.authorization_required
+    def TestOauth():
+        return "Google auth Required"
 
     # THIS IS THE WRONG PAGE
     # Flask login uses /user/sign-in
-    """
     @app.route('/login')
     def login():
        return render_template('login.html')
-    """
 
     # BKG LOGIN CHECK - when do we use thigs?
     # This is from old flask-login module??
-    '''
     @app.route('/login/check', methods=['post'])
     def login_check():
         """Validate username and password from form against static credentials"""
-        user = User.query.filter(User.email == request.form['username']).one_or_none()
-        if (user and user.password == request.form['password']):
+        user = Member.query.filter(Member.member.ilike(request.form['username'])).one_or_none()
+        if not user:
+            flash("Username not found - please use your member ID")
+            return redirect(url_for('login'))
+        if (user and current_app.user_manager.verify_password( request.form['password'],user.password)):
             login_user(user)
         else:
             flash('Username or password incorrect')
             return redirect(url_for('login'))
 
         return redirect(url_for('index'))
-    '''
 
     @app.route('/logout')
     @login_required
@@ -541,7 +549,7 @@ def create_routes():
        """Seriously? What do you think logout() does?"""
        logout_user()
        flash("Thanks for visiting, you've been logged out.")
-       return redirect(url_for('user.login'))
+       return redirect(url_for('login'))
 
     @app.route("/index")
     @app.route('/')
@@ -1667,5 +1675,7 @@ if __name__ == '__main__':
             cli.cli_command(extras,app=app,um=app.user_manager)
             sys.exit(0)
         create_routes()
-        print site_map(app)
+        #print site_map(app)
+    #app.login_manager.login_view="test"
+    #print app.login_manager.login_view
     app.run(host=app.globalConfig.ServerHost, port=app.globalConfig.ServerPort, debug=app.globalConfig.Debug)

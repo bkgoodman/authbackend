@@ -33,10 +33,20 @@ logger.setLevel(GLOBAL_LOGGER_LEVEL)
 # Load general configuration from file
 
 def get_config():
-  defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
-  Config = ConfigParser.ConfigParser(defaults)
-  Config.read('makeit.ini')
-  return Config
+    config={}
+    defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
+    ConfigObj = ConfigParser.ConfigParser(defaults)
+    ConfigObj.read('makeit.ini')
+    """
+    This doesn't work for some reason???
+    for s in ConfigObj.sections():
+        config[s]={}
+        for o in ConfigObj.options(s):
+            print "GET",o
+            config[s][o]=ConfigObj.get(s,o)
+            print "GOT",o
+    """
+    return ConfigObj
 
 def createDefaultRoles(app):
     for role in defined_roles:
@@ -95,7 +105,14 @@ class GlobalConfig(object):
 
 
 class ConfigClass(object):
-  """ These are all Flask-Defined. Reference via app.config """
+  """ Many UPPSERCASE variables here are used by Flask directly.
+      Variables can generally be reference three different ways:
+
+      1. app.config.ServerHost
+      2. app.config.Config.get('General,ServerHost')
+      3. app.config.config['General']['SeverHost']
+
+  """
   Config = get_config()
   ServerHost = Config.get('General','ServerHost')
   ServerPort = Config.getint('General','ServerPort')
@@ -135,6 +152,4 @@ def authbackend_init(name):
   google_user_auth.authinit(app)
 
   db.init_app(app)
-  user_manager = UserManager(app, db, Member)
-  user_manager.USER_ENABLE_AUTH0 = True
   return app
