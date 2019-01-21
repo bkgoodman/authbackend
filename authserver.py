@@ -505,20 +505,37 @@ def teardown_request(exception):
 # Routes
 ########
 
+def testdata():
+    text="""
+    From Reqest: {0}
+    Name: {1} 
+    Email: {2}
+    Authenticated {3}
+    Active {4}
+    Anonymous {5}
+    ID  {6}
+    """.format(request,current_user.member,current_user.email,current_user.is_authenticated,
+            current_user.is_active,
+            current_user.is_anonymous,
+            current_user.get_id(),
+            )
+    return text, 200, {'Content-type': 'text/plain'}
 def create_routes():
+    @app.route('/whoami')
     @app.route('/test/anyone')
     def TestAnyone():
-        return "Anyone can see this"
+        return testdata()
 
+    
     @app.route('/test/std')
     @login_required
     def TestStd():
-        return "Standard auth required"
+        return testdata()
 
     @app.route('/test/oauth')
     #@google.authorization_required
     def TestOauth():
-        return "Google auth Required"
+        return testdata()
 
     # THIS IS THE WRONG PAGE
     # Flask login uses /user/sign-in
@@ -532,9 +549,9 @@ def create_routes():
     def login_check():
         """Validate username and password from form against static credentials"""
         user = Member.query.filter(Member.member.ilike(request.form['username'])).one_or_none()
-        if not user:
-            flash("Username not found - please use your member ID")
-            return redirect(url_for('login'))
+        if not user or not  user.password:
+            # User has no password - make the use oauth
+            return redirect(url_for('google.login'))
         if (user and current_app.user_manager.verify_password( request.form['password'],user.password)):
             login_user(user)
         else:

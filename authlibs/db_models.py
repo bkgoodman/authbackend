@@ -14,6 +14,8 @@ db = SQLAlchemy()
 # This class mirrors the "member" class, but is used for 
 # Anonymous (i.e. logged-out) sessions
 class AnonymousMember(AnonymousUserMixin):
+    member=None
+    email=None
     def privs(self,x):
         return False
 # Members and their data
@@ -51,21 +53,6 @@ class Member(db.Model,UserMixin):
     def get_id(self):
         """Return the email address to satisfy Flask-Login's requirements."""
         return self.email
-    '''
-        def is_active(self):
-        """True, as all users are active."""
-        return True
-    '''
-
-
-    def is_authenticated(self):
-        """Return True if the user is authenticated."""
-        #return self.authenticated
-        return True
-
-    def is_anonymous(self):
-        """False, as anonymous users aren't supported."""
-        return False
 
 
 class ApiKey(db.Model):
