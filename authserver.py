@@ -538,6 +538,16 @@ def create_routes():
     def TestOauth():
         return testdata()
 
+    @app.route('/test/admin')
+    @roles_required('Admin')
+    def TestAdmin():
+        return testdata()
+
+    @app.route('/test/useredit')
+    @roles_required(['Admin','Useredit'])
+    def TestUseredit():
+        return testdata()
+
     # THIS IS THE WRONG PAGE
     # Flask login uses /user/sign-in
     @app.route('/login')
@@ -657,6 +667,7 @@ def create_routes():
 
     @app.route('/members', methods= ['POST'])
     @login_required
+    @roles_required(['Admin','Useredit'])
     def member_add():
         """Controller method for POST requests to add a user"""
         member = {}

@@ -84,6 +84,7 @@ def revoke(cmd, **kwargs):
     x = x.filter(Member.member.ilike(cmd[1]))
     x = x.filter(Role.name.ilike(cmd[2]))
     x = x.one()
+    db.session.delete(x)
     db.session.commit()
 
 def grant(cmd, **kwargs):

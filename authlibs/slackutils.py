@@ -149,7 +149,6 @@ def get_unmatched_members():
 
 
 def create_routes(app):
-    @login_required
     @roles_required(['Admin','Useredit'])
     @app.route('/slack', methods=['GET','POST'])
     def slack_page():
