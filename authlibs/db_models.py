@@ -95,7 +95,8 @@ class AccessByMember(db.Model):
     LEVEL_TRAINER=1
     LEVEL_ARM=2
     LEVEL_RM=3
-    LEVEL_ADMIN=4
+    LEVEL_ADMIN=4 # Or HeadRM
+    LEVEL_NOACCESS=-1
     
 # Define roles
 class Role(db.Model):

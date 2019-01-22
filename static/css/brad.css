@@ -1,0 +1,41 @@
+#compacttable td, #compacttable tr, #compacttable th {
+	padding:3px;
+}
+
+.compacttable > thead > tr > th,
+.compacttable > tbody > tr > th,
+.compacttable > tfoot > tr > th,
+.compacttable > thead > tr > td,
+.compacttable > tbody > tr > td,
+.compacttable > tfoot > tr > td {
+	padding: 3px;
+}
+
+
+         
+ .brad_fadeout {
+     animation:signup-response 3s 1;
+    -webkit-animation:signup-response 3s 1;
+    animation-fill-mode: forwards;
+
+    animation-delay:1s;
+    -webkit-animation-delay:3s; /* Safari and Chrome */
+    -webkit-animation-fill-mode: forwards;
+
+-webkit-transition: all 500ms ease;
+-moz-transition: all 500ms ease;
+-ms-transition: all 500ms ease;
+-o-transition: all 500ms ease;
+transition: all 500ms ease;
+
+} 
+
+@keyframes signup-response{
+    from {opacity :1;}
+    to {opacity :0;}
+}
+
+@-webkit-keyframes signup-response{
+    from {opacity :1;}
+    to {opacity :0;}
+}

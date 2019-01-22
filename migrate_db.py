@@ -196,7 +196,7 @@ if __name__ == '__main__':
         ******
         ****** WRITING DATABASE
         ******
-        ****** I will overwrite your ENTIRE DATABASE
+        ****** I will overwrite your ENTIRE DATABASEes
         ******
         ****** PRESS CONTROL-C IF YOU DON'T WANT TO DESTROY IT!!!
         ******
@@ -207,6 +207,7 @@ if __name__ == '__main__':
 
     try:
       os.unlink(args.overwrite)
+      os.unlink("log.db")
     except:
       pass
     

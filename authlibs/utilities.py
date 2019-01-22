@@ -7,6 +7,8 @@ import sqlite3
 import re
 import pytz
 from datetime import datetime,date
+from flask_user import current_user
+from db_models import db, AccessByMember, Member, Resource
     
 def hash_rfid(rfid):
     "Given an integer RFID, create a hashed value for storage"
@@ -79,4 +81,36 @@ def parse_datetime(dt):
                 #2019-01-11 17:09:01.736307
                 result= datetime.strptime(dt,"%Y-%m-%d %H:%M:%S.%f")
   return result
+
+# resource is a DB model resource
+def getResourcePrivs(resource=None,member=None,resourcename=None,memberid=None):
+    if resourcename:
+        resource=Resource.query.filter(Resource.name==resourcename).one()
+    if not member and not memberid:
+        member=current_user
+    p = AccessByMember.query.join(Resource,((Resource.id == resource.id) & (Resource.id == AccessByMember.resource_id))).join(Member,((AccessByMember.member_id == member.id) & (Member.id == member.id))).one_or_none()
+    if p:
+        level= p.level
+    else:
+        level = -1
+
+    if (member and member.privs('HeadRM')):
+        level=AccessByMember.LEVEL_ADMIN
+    if member and member.active.lower() != "true": 
+        level=0
+    else:
+        try:
+            level=int(level)
+        except:
+            level=0
+
+    if level == -1:
+        levelText="No Access"
+    else:
+        try:
+            levelText=AccessByMember.ACCESS_LEVEL[level]
+        except:
+            levelText="#"+str(level)
+
+    return (level,levelText)
 

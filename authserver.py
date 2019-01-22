@@ -61,6 +61,10 @@ from flask_dance.consumer import oauth_authorized
 import google_oauth
 from  authlibs import slackutils
 
+""" GET PAGES"""
+
+from authlibs.auth import auth
+
 waiversystem = {}
 waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
 
@@ -600,6 +604,7 @@ def create_routes():
        return render_template('members.html',members=members,searchstr=searchstr)
 
     # resource is a DB model resource
+    ### DEPREICATED TODO FIX BKG - Use one in "utiliteis"
     def getResourcePrivs(resource=None,member=None,resourcename=None,memberid=None):
         if resourcename:
             resource=Resource.query.filter(Resource.name==resourcename).one()
@@ -1704,6 +1709,7 @@ if __name__ == '__main__':
             sys.exit(0)
         kick_backend()
         create_routes()
+        auth.register_pages(app)
         slackutils.create_routes(app)
         #print site_map(app)
     #app.login_manager.login_view="test"
