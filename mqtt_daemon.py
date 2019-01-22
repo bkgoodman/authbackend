@@ -8,7 +8,7 @@ This is a daemon only used to log stuff via MQTT
 
 from authlibs.eventtypes import *
 import sqlite3, re, time
-from authlibs.db_models import db, User, Role, UserRoles, Member, Resource, AccessByMember, Logs, Tool, UsageLog
+from authlibs.db_models import db,  Role, UserRoles, Member, Resource, AccessByMember, Logs, Tool, UsageLog
 import argparse
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
@@ -20,56 +20,27 @@ import ConfigParser,sys,os
 import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as sub
 from datetime import datetime
-
-# Load general configuration from file
-defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
-Config = ConfigParser.ConfigParser(defaults)
-Config.read('makeit.ini')
-ServerHost = Config.get('General','ServerHost')
-ServerPort = Config.getint('General','ServerPort')
-Database = Config.get('General','Database')
-AdminUser = Config.get('General','AdminUser')
-AdminPasswd = Config.get('General','AdminPassword')
-DeployType = Config.get('General','Deployment')
-DEBUG = Config.getboolean('General','Debug')
-
-# Flask-User Settings
-USER_APP_NAME = 'Basic'
-USER_PASSLIB_CRYPTCONTEXT_SCHEMES=['bcrypt']
-# Don;t want to include these, but it depends on them, so..
-USER_ENABLE_EMAIL = True        # Enable email authentication
-USER_ENABLE_USERNAME = False    # Disable username authentication
-USER_EMAIL_SENDER_NAME = USER_APP_NAME
-USER_EMAIL_SENDER_EMAIL = "noreply@example.com"
-
-# SQLAlchemy setting
-SQLALCHEMY_DATABASE_URI = "sqlite:///"+Database
-SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-def create_app():
-    # App setup
-    app = Flask(__name__)
-    app.config.from_object(__name__)
-    app.secret_key = Config.get('General','SecretKey')
-    return app
+from authlibs.init import authbackend_init, createDefaultUsers
 
 
-def get_mqtt_opts():
+
+
+def get_mqtt_opts(app):
     opts={}
     ka=None
-    base_topic = Config.get("MQTT","BaseTopic")
-    host = Config.get("MQTT","BrokerHost")
-    port = Config.getint("MQTT","BrokerPort")
-    if Config.has_option("MQTT","keepalive"):
-        opts['keepalive']=Config.getint("MQTT","keepalive")
-    if Config.has_option("MQTT","SSL") and Config.getboolean("MQTT","SSL"):
+    base_topic = app.globalConfig.Config.get("MQTT","BaseTopic")
+    host = app.globalConfig.Config.get("MQTT","BrokerHost")
+    port = app.globalConfig.Config.getint("MQTT","BrokerPort")
+    if app.globalConfig.Config.has_option("MQTT","keepalive"):
+        opts['keepalive']=app.globalConfig.Config.getint("MQTT","keepalive")
+    if app.globalConfig.Config.has_option("MQTT","SSL") and app.globalConfig.Config.getboolean("MQTT","SSL"):
         tls={}
-        for (k,v) in Config.items("MQTT_SSL"):
+        for (k,v) in app.globalConfig.Config.items("MQTT_SSL"):
             tls[k]=v
         opts['tls']=tls
 
-    if Config.has_option("MQTT","username"):
-        auth={'username':Config.get("MQTT","username"),'password':Config.get("MQTT","password")}
+    if app.globalConfig.Config.has_option("MQTT","username"):
+        auth={'username':app.globalConfig.Config.get("MQTT","username"),'password':app.globalConfig.Config.get("MQTT","password")}
         opts['auth']=auth
 
     return (host,port,base_topic,opts)
@@ -270,25 +241,23 @@ if __name__ == '__main__':
     parser.add_argument("--command",help="Special command",action="store_true")
     (args,extras) = parser.parse_known_args(sys.argv[1:])
 
-    app = create_app()
-    db.init_app(app)
-    user_manager = UserManager(app, db, User)
+    app=authbackend_init(__name__)
+
     with app.app_context():
       # The callback for when the client receives a CONNACK response from the server.
-      (host,port,base_topic,opts) = get_mqtt_opts()
-      sub.callback(on_message, "ratt/#", hostname=host, port=port,**opts)
-      sub.loop_forever()
+      (host,port,base_topic,opts) = get_mqtt_opts(app)
       while True:
-        sub.loop_misc()
-        time.sleep(1)
-        """
-        if True: #try:
+          try:
+            sub.callback(on_message, "ratt/#", hostname=host, port=port,**opts)
+            sub.loop_forever()
+            sub.loop_misc()
+            time.sleep(1)
             msg = sub.simple("ratt/#", hostname=host,port=port,**opts)
             print("%s %s" % (msg.topic, msg.payload))
-            #on_message(msg)
-        else: #except:
+          except KeyboardInterrupt:    #on_message(msg)
+            sys.exit(0)
+          except:
             print "EXCEPT"
             time.sleep(1)
-        """
 
 

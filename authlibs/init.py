@@ -126,7 +126,7 @@ class ConfigClass(object):
 
   # Flask-User Settings
   USER_APP_NAME = 'Basic'
-  USER_PASSLIB_CRYPTCONTEXT_SCHEMES=['bcrypt']
+  USER_PASSLIB_CRYPTCONTEXT_SCHEMES=['pbkdf2_sha256']
   # Don;t want to include these, but it depends on them, so..
   USER_ENABLE_EMAIL = True        # Enable email authentication
   USER_ENABLE_USERNAME = False    # Disable username authentication

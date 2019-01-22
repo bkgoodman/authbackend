@@ -1,4 +1,4 @@
-# vim:tabstop=2:expandtab
+#vim:tabstop=2:expandtab
 
 # Command Line Interface
 
@@ -10,14 +10,16 @@ from authlibs.payments import cli_updatepayments
 from authlibs.membership import cli_syncmemberpayments
 from flask_sqlalchemy import SQLAlchemy
 from init import GLOBAL_LOGGER_LEVEL
+from slackutils import cli_slack
+import getpass
 
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
 
 def do_help(cmd=None,**kwargs):
-		print "Commands"
-		for x in commands: print "  ",commands[x]['usage']
+    print "Commands"
+    for x in sorted(commands): print "  ",commands[x]['usage']
 
 def addadmin(cmd,**kwargs):
   admin_role = Role.query.filter(Role.name=='Admin').first()
@@ -50,7 +52,15 @@ def deleteadmin(cmd,**kwargs):
 
 def changepassword(cmd,**kwargs):
   user = Member.query.filter(Member.member.like(cmd[1])).one()
-  user.password=kwargs['um'].hash_password(cmd[2])
+  if len(cmd) <3:
+      pw1=getpass.getpass("Password:")
+      pw2=getpass.getpass("Reenter :")
+      if pw1 != pw2:
+          print "Password mismatch"
+          return
+      user.password=kwargs['um'].hash_password(pw2)
+  else:
+      user.password=kwargs['um'].hash_password(cmd[2])
   db.session.commit()
 
 def activate(cmd,**kwargs):
@@ -103,8 +113,8 @@ commands = {
 		'usage':"hashpw {password} -- Return a hashed password",
 		'cmd':hashpw
 	},
-	"changepassword":{
-		'usage':"changepassword {memberid} -- Change password",
+	"passwd":{
+		'usage':"passwd {memberid} [password]-- Change password",
 		'cmd':changepassword
 	},
 	"changekey":{
@@ -142,6 +152,10 @@ commands = {
 	"deactivate":{
 		'usage':"deactivate {memberid} -- Dectivate a GUI account",
 		'cmd':deactivate
+	},
+	"slack":{
+		'usage':"slack -- Match slack users to members",
+		'cmd':cli_slack
 	}
 }
 

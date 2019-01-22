@@ -1687,10 +1687,10 @@ if __name__ == '__main__':
             pass
         if app.globalConfig.DeployType.lower() != "production":
           app.jinja_env.globals['DEPLOYTYPE'] = app.globalConfig.DeployType
-          kick_backend()
         if  args.command:
             cli.cli_command(extras,app=app,um=app.user_manager)
             sys.exit(0)
+        kick_backend()
         create_routes()
         #print site_map(app)
     #app.login_manager.login_view="test"

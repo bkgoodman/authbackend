@@ -140,12 +140,18 @@ def get_unmatched_slack_ids():
     #    print "MSNG",x,users[x]['email']
     return missing
 
-if __name__ == "__main__":
-    app = init.authbackend_init(__name__)
-    with app.app_context():
+def get_unmatched_members():
+    members =   Member.query.filter((Member.slack == "") | (Member.slack == None)).all()
+    print "Members without slack records: ",len(members)
+    return members
+
+
+def cli_slack(cmd,**kwargs):
+        db.session.query(Member).all()
         automatch_missing_slack_ids()
         print "UNMATCHED"
         get_unmatched_slack_ids()
+        get_unmatched_members()
                 
 
 

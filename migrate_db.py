@@ -663,31 +663,31 @@ if __name__ == '__main__':
         # Create default admin role and user if not present
         member = Member(member="admin", email='admin@makeitlabs.com',
             password=app.user_manager.hash_password("admin"),
-            active=True,email_confirmed_at=datetime.utcnow())
+            active="true",email_confirmed_at=datetime.utcnow())
         db.session.add(member)
         member.roles.append(Role.query.filter(Role.name=='Admin').one())
 
         member = Member(member="financce", email='finance@makeitlabs.com',
             password=app.user_manager.hash_password("finance"),
-            active=True,email_confirmed_at=datetime.utcnow())
+            active="true",email_confirmed_at=datetime.utcnow())
         db.session.add(member)
         member.roles.append(Role.query.filter(Role.name=='Finance').one())
 
         member = Member(member="ratt", email='ratt@makeitlabs.com',
             password=app.user_manager.hash_password("ratt"),
-            active=True,email_confirmed_at=datetime.utcnow())
+            active="true",email_confirmed_at=datetime.utcnow())
         db.session.add(member)
         member.roles.append(Role.query.filter(Role.name=='RATT').one())
 
         member = Member(member="useredit", email='useredit@makeitlabs.com',
             password=app.user_manager.hash_password("useredit"),
-            active=True,email_confirmed_at=datetime.utcnow())
+            active="true",email_confirmed_at=datetime.utcnow())
         db.session.add(member)
         member.roles.append(Role.query.filter(Role.name=='Useredit').one())
 
         member = Member(member="noprivs",email='noprivs@makeitlabs.com',
             password=app.user_manager.hash_password("noprivs"),
-            active=True,email_confirmed_at=datetime.utcnow())
+            active="true",email_confirmed_at=datetime.utcnow())
         db.session.add(member)
 
         member = Member(member="inactive",email='inactive@makeitlabs.com',
@@ -695,7 +695,7 @@ if __name__ == '__main__':
         db.session.add(member)
 
         member = Member(member="unconfirmed",email='unconfirmed@makeitlabs.com',
-            active=True,email_confirmed_at=datetime.utcnow(),
+            active="true",email_confirmed_at=datetime.utcnow(),
             password=app.user_manager.hash_password("unconfirmed"))
         db.session.add(member)
         db.session.commit()

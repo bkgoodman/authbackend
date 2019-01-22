@@ -18,30 +18,6 @@ import paho.mqtt.publish as mqtt_pub
 import json
 from datetime import datetime
 
-# Load general configuration from file
-defaults = {'ServerPort': 5000, 'ServerHost': '127.0.0.1'}
-Config = ConfigParser.ConfigParser(defaults)
-Config.read('makeit.ini')
-ServerHost = Config.get('General','ServerHost')
-ServerPort = Config.getint('General','ServerPort')
-Database = Config.get('General','Database')
-AdminUser = Config.get('General','AdminUser')
-AdminPasswd = Config.get('General','AdminPassword')
-DeployType = Config.get('General','Deployment')
-DEBUG = Config.getboolean('General','Debug')
-
-# Flask-User Settings
-USER_APP_NAME = 'Basic'
-USER_PASSLIB_CRYPTCONTEXT_SCHEMES=['bcrypt']
-# Don;t want to include these, but it depends on them, so..
-USER_ENABLE_EMAIL = True        # Enable email authentication
-USER_ENABLE_USERNAME = False    # Disable username authentication
-USER_EMAIL_SENDER_NAME = USER_APP_NAME
-USER_EMAIL_SENDER_EMAIL = "noreply@example.com"
-
-# SQLAlchemy setting
-SQLALCHEMY_DATABASE_URI = "sqlite:///"+Database
-SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 def create_app():
     # App setup
