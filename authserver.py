@@ -59,6 +59,7 @@ from authlibs.init import GLOBAL_LOGGER_LEVEL
 from flask_dance.contrib.google import  google 
 from flask_dance.consumer import oauth_authorized
 import google_oauth
+from  authlibs import slackutils
 
 waiversystem = {}
 waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
@@ -1058,7 +1059,7 @@ def create_routes():
 
     #TODO: Create safestring converter to replace string; converter?
     @app.route('/resources/<string:resource>/log', methods=['GET','POST'])
-    @roles_required('Admin','RATT')
+    @roles_required(['Admin','RATT'])
     def logging(resource):
        """Endpoint for a resource to log via API"""
        # TODO - verify resources against global list
@@ -1692,6 +1693,7 @@ if __name__ == '__main__':
             sys.exit(0)
         kick_backend()
         create_routes()
+        slackutils.create_routes(app)
         #print site_map(app)
     #app.login_manager.login_view="test"
     #print app.login_manager.login_view

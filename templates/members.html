@@ -99,5 +99,8 @@
 	  </table>
 	  <input type="submit" value="Create new member">
 	</form>
+	{% if current_user.privs("Useredit") %}
+	<a href="{{ url_for('slack_page') }}">Connect Slack Accounts</a>
+	{% endif %}
   </div>
 {% endblock %}

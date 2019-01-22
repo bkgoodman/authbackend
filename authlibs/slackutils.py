@@ -19,8 +19,10 @@ import os,time,json,datetime,sys
 import linecache
 import init
 from db_models import db, ApiKey, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver
-
 from slackclient import SlackClient
+from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
+from flask import Flask, request, session, g, redirect, url_for, \
+	abort, render_template, flash, Response, Markup
 
 Config = init.get_config()
 slack_token = Config.get('Slack','BOT_API_TOKEN')
@@ -134,7 +136,7 @@ def get_unmatched_slack_ids():
         if 'found' in users[x]: 
             found+=1
         else:
-            missing.append(x)
+            missing.append({'name':x,'email':users[x]['email']})
     print "SLACK DB: TOTAL",len(users),"FOUND IN MEMBERS:",found,"ORPHANS",len(missing)
     #for x in missing:
     #    print "MSNG",x,users[x]['email']
@@ -146,12 +148,42 @@ def get_unmatched_members():
     return members
 
 
+def create_routes(app):
+    @login_required
+    @roles_required(['Admin','Useredit'])
+    @app.route('/slack', methods=['GET','POST'])
+    def slack_page():
+        if "Undo" in request.form:
+            m = Member.query.filter(Member.member==request.form['member_id']).one()
+            m.slack=None
+            db.session.commit()
+            flash("Undone.")
+
+        if "Link" in request.form:
+            print request.form['member']
+            print request.form['slack']
+            if not current_user.privs('Useredit'):
+                flash("No privilges to assign")
+            else:
+                m = Member.query.filter(Member.member==request.form['member']).one()
+                m.slack = request.form['slack']
+                db.session.commit()
+                btn = '''<form method="POST">
+                        <input type="hidden" name="member_id" value="%s" />
+                        <input type="submit" value="Undo" name="Undo" />
+                        </form>''' % (m.member)
+                flash(Markup("{0} assinged slack ID {1} {2}".format(m.member,m.slack,btn)))
+        slacks=get_unmatched_slack_ids()
+        members=get_unmatched_members()
+        return render_template('slack.html',slacks=slacks,members=members)
+
 def cli_slack(cmd,**kwargs):
         db.session.query(Member).all()
         automatch_missing_slack_ids()
-        print "UNMATCHED"
-        get_unmatched_slack_ids()
-        get_unmatched_members()
+        print "Slack"
+        print  get_unmatched_slack_ids()
+        print "Members`"
+        print get_unmatched_members()
                 
 
 

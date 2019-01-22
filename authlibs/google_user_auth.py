@@ -69,7 +69,7 @@ def authinit(app):
             member=email.split("@")[0]
             if not email.endswith("@makeitlabs.com"):
                 flash("Invalid Domain")
-                return redirect(url_for('index'))
+                return redirect(url_for('login'))
             query = Member.query.filter_by(member=member)
 
             try:
