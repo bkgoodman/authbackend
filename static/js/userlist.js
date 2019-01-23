@@ -11,6 +11,10 @@ makePostCall = function (url, data) { // here the data and url are not hardcoded
 	
 }
 
+function DoSearchButton() {
+	changedDropdownText();
+}
+
 // and here a call example
 function changedDropdownText() {
 searchstr=document.getElementById("searchfield1").value;
@@ -35,10 +39,19 @@ makePostCall("/authorize/membersearch/"+searchstr, {})
 					}
 
 					for (x in data){ 
-						console.log("DATA2",data[x]);
 						el = document.createElement("tr");
-						el.innerHTML = "<tr><td><input type=\"checkbox\" onchange=\"click_checkbox();\" class=\"auth_user_cb\" /></td>"+
-							"<td>"+data[x]['member']+"</td>"+
+						el.innerHTML = "<tr>"
+						if (USE_MEMBER_CHECKBOXES)
+							el.innerHTML += "<td><input type=\"checkbox\" onchange=\"click_checkbox();\" class=\"auth_user_cb\" /></td>";
+						td=""
+						if (MEMBER_URL) {
+							td += "<a href=\""+MEMBER_URL+data[x]['member']+"\">";
+						}
+						td += data[x]['member'];
+						if (MEMBER_URL)
+							td +="</a>";
+						el.innerHTML += "<td>"+td+"</td>";
+						el.innerHTML +=
 							"<td>"+data[x]['firstname']+"</td>"+
 							"<td>"+data[x]['lastname']+"</td>"+
 							"<td>"+data[x]['email']+"</td>"+

@@ -3,10 +3,8 @@
 {% block search %}
 <!-- The above form looks like this -->
 
-<script src="{{ url_for('authorize.static', filename='js/authpage.js') }}"></script>
-
-
 <div class="comtainer>">
+
 
 {% if message is defined %}
     <div class="alert alert-success alert-dismissible fade show"  role="alert">
@@ -27,42 +25,9 @@
 <h2>Authorize Users</h2>
 <form class="bs-example bs-example-form" action="{{ url_for('authorize.authorize') }}" method="post">
 
-<div class="input-group mb-3">
-  <div class="input-group-prepend">
-    <input class="btn btn-outline-secondary" type="submit" id="button-addon1" value="Search" name="Search" />
-  </div>
-  <input type="text" class="form-control" name="search" oninput="changedDropdownText();" id="searchfield1" placeholder="" aria-label="Example text with button addon" aria-describedby="button-addon1">
-	<div class="input-group-append" id="button-addon4">
-		<button class="btn btn-outline-secondary" type="button">Clear</button>
-	</div>
-</div>
-
-<div class="alert alert-secondary" role="alert" id="entermatchtext">
-  Enter a name to find matches
-</div>
-<table class="table table-striped compacttable" style="display:hidden" id="membertable">
-  <thead>
-    <tr>
-      <th></th>
-      <th>Member ID</th>
-      <th>First</th>
-      <th>Last</th>
-      <th>Email</th>
-    </tr>
-  </thead>
-  <tbody id="memberrows">
-	{% for member in members %}
-    <tr class="memberrow">
-<td><input type="checkbox" onchange="click_checkbox();" 
-	class="auth_user_cb"/></td>
-      <td>{{ member.member }}</td>
-      <td>{{ member.firstname }}</td>
-      <td>{{ member.lastname }}</td>
-      <td>{{ member.email }}</td>
-	{% endfor %}
-    </tr>
-  </tbody>
-</table>
+{% with add_checkboxes='1', member_url=url_for("members.member_show",id="") %}
+{% include 'userlist.html' %}
+{% endwith %}
 
 <hr />
 
