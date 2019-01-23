@@ -11,6 +11,12 @@ import json
 #from .. import requireauth as requireauth
 from .. import utilities as authutil
 
+from authlibs.init import GLOBAL_LOGGER_LEVEL
+
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(GLOBAL_LOGGER_LEVEL)
+
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
 # Version 1:

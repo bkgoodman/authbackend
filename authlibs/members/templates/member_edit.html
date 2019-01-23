@@ -1,72 +1,95 @@
-{% extends "layout.html" %}
+{% extends "layout_bootstrap.html" %}
 {% block search %}
   <div class=body>
-	<div><a href="{{ url_for('members') }}">(Back to Members list)</a></div>
+	<div><a href="{{ url_for('members.members') }}">(Back to Members list)</a></div>
 
-	<form action="{{ url_for('member_edit',id=member.member) }}" method="post">
-	  <table>
-		<tr>
-		  <td>First name</td>
-		  <td><input name="firstname" id="firstname_field" type="text" value="{{ member.firstname }}"></td>
-		</tr>
-		<tr>
-		  <td>Last name</td>
-		  <td><input name="lastname" id="lastname_field" type="text" value="{{ member.lastname }}"></td>
-		</tr>
-		<tr>
-		  <td>Strip Memeber Name<br><span style="font-size:small">(Name as it appears in Stripe payment system)</span></td>
-		  <td><input name="stripe_name" id="memberid_field" type="text" value="{{ member.stripe_name }}"></td>
-		</tr>
-		<tr>
-		 <td>Plan:<br /><span style="font-size:small">(Change via payment system)</span></td>
-		 <td>{{ member.plan }}</td>
-		</tr>
-		<!--
-		<tr>
-		  <td>Payment system:</td>
-		  <td><select name="payment">
-		  <option value="manual">Manual</option>
-		  <option value="pinpayments">Pinpayments</option>
-		  <option value="stripe">Stripe</option></select></td>
-		</tr>
-		-->
-		<tr>
-		  <td>Email<br /><span style="font-size:small">(NON @makeitlabs.com - as it appears in Stripe payment system)</span></td>
-		  <td><input name="alt_email" value="{{ member.alt_email }}"/></td>
-		</tr>
-		<tr>
-		  <td>Phone (Optional)</td>
-		  <td><input name="phone" value="{{ member.phone }}"/></td>
-		</tr>
-		<tr>
-		  <td>Slack ID</td>
-		  <td><input name="slack" value="{{ member.slack }}"/></td>
-		</tr>
-		<tr>
-		  <td>Subscription</td>
-	   	  <td><a href="{{ url_for("payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
-			{% if subscription.membership %}
-				{% if current_user.privs('Finance') %}
-				<input type="submit" name="Unlink" value="unlink" />
-				<input type="hidden" name="membership" value="{{ subscription.membership }}" />
-				<input type="hidden" name="member_id" value="{{ member.id }}" />
-				{% endif %}
-			{% else %}
-			None
-			{% endif %}
-		  </td>
-		</tr>
-	  </table>
+	<form action="{{ url_for('members.member_edit',id=member.member) }}" method="post">
+		
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="memberid_field">Member ID</label>
+				<div class="col-sm-4">
+					{{ member.member }}
+				</div>
+				</div>
+		</div>
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="firstname_field">First name</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="firstname" id="firstname_field" type="text" value="{{ member.firstname }}">
+				</div>
+				<label class="col-sm-2 col-form-label" for="lastname_field">Last name</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="lastname" id="lastname_field" type="text" value="{{ member.lastname }}">
+				</div>
+		</div>
+		<div class="form-group row">
+			 <label class="col-sm-2 col-form-label" for="plan">Plan:</label>
+				<div class="col-sm-4">
+					<div class="btn-group btn-group-toggle" data-toggle="buttons">
+						<label class="btn btn-secondary
+							{% if (member.plan == "hobbyist") %} active {% endif %}
+							">
+							<input type="radio" name="plan" value="hobbyist" id="option1" autocomplete="off"
+							{% if (member.plan == "hobbyist") %} checked="" {% endif %}
+							>Hobbyist</input>
+						</label>
+						<label class="btn btn-secondary
+							{% if (member.plan == "pro") %} active {% endif %}
+							">
+							<input type="radio" name="plan" value="pro" id="option1" autocomplete="off"
+							{% if (member.plan == "pro") %} checked="" {% endif %}
+							>Pro</input>
+					</div>
+					<small class="form-text text-muted">ProDuo must be done via stripe</small>
+				</div>
+				<label class="col-md-2 col-form-label" for="payment">Payment system:</label>
+				<div class="col-md-4">
+					<div class="btn-group btn-group-toggle" data-toggle="buttons">
+						<label class="btn btn-secondary
+							{% if (member.payment == "manual") %} active {% endif %}
+							">
+							<input type="radio" name="payment" value="manual" id="option1" autocomplete="off"
+							{% if (member.payment == "manual") %} checked="" {% endif %}
+							>Manual</input>
+						</label>
+						<label class="btn btn-secondary
+							{% if (member.payment == "stripe") %} active {% endif %}
+							">
+							<input type="radio" name="payment" value="stripe" id="option1" autocomplete="off"
+							{% if (member.payment == "stripe") %} checked="" {% endif %}
+							>Stripe</input>
+					</div>
+				</div>
+		</div>
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="alt_email">Primary Email</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="alt_email"/ value="{{ member.alt_email }}">
+					<small class="form-text text-muted"><b>Non</b> @makeitlabs.com email</small>
+				</div>
+				<label class="col-sm-2 col-form-label" for="phone">Phone</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="phone" value="{{ member.phone }}"/>
+				</div>
+		</div>
+		<div class="form-group row">
+				<label class="col-sm-2 col-form-label" for="slack">Slack ID</label>
+				<div class="col-sm-4">
+					<input class="form-control" name="slack"/ value="{{ member.slack }}">
+				</div>
+		</div>
+
 	  <input type="submit" name="SaveChanges" value="Save" />
-	</form>
 
-	<div class="sectionhead">Current Access (<a href="{{ url_for('member_editaccess',id=member.member) }}">Edit</a>):</div>
+
+
+	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=member.member) }}">Edit</a>):</div>
 	<ul class="entries">
 	{% if not access %}
 	  <i> No current access defined for this user</i>
 	{% else %}
 	  {% for a in access %}
-		<li>{{ a.description }}, Updated: {{ a.time_updated }} </li>
+		<li>{{ a.description }}  {{ a.level }} </li>
 	  {% endfor %}
 	{% endif %}
 	</ul>

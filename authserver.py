@@ -72,15 +72,6 @@ waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
     
-# RULE - only call this from web APIs - not internal functions
-# Reason: If we have calls or scripts that act on many records,
-# we probably shouldn't generate a million messages
-def kick_backend():
-    try:
-      topic= app.globalConfig.mqtt_base_topic+"/control/broadcast/acl/update"
-      mqtt_pub.single(topic, "update", hostname=app.globalConfig.mqtt_host,port=app.globalConfig.mqtt_port,**app.globalConfig.mqtt_opts)
-    except BaseException as e:
-        logger.debug("MQTT acl/update failed to publish: "+str(e))
 
 def create_app():
     # App setup
@@ -1211,7 +1202,7 @@ def create_routes():
     @app.route('/api/v1/reloadacl', methods=['GET'])
     @requires_auth
     def api_v1_reloadacl():
-        kick_backend()
+        authutil.kick_backend()
         return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
 
     @app.route('/api/v1/whoami', methods=['GET'])
@@ -1409,7 +1400,7 @@ if __name__ == '__main__':
         if  args.command:
             cli.cli_command(extras,app=app,um=app.user_manager)
             sys.exit(0)
-        kick_backend()
+        authutil.kick_backend()
         create_routes()
         auth.register_pages(app)
         members.register_pages(app)

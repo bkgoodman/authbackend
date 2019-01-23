@@ -2,10 +2,10 @@
 {% block search %}
 <div class=body>
 	<div class="sectionhead">Edit user access to Resources</div>
-    <p>Member: <a href="{{ url_for('member_show',id=member.id) }}">{{ member.member }}</a></p>
+    <p>Member: <a href="{{ url_for('members.member_show',id=member.id) }}">{{ member.member }}</a></p>
 	<div class="sectionhead">Tags 
 		{% if current_user.privs("Useredit") %}
-	<a href="{{ url_for('member_tags',id=member.id) }}"><i>(Add/Change)</i></a>:
+	<a href="{{ url_for('members.member_tags',id=member.id) }}"><i>(Add/Change)</i></a>:
 	{% endif %}
 	</div>
 	{% if tags|length > 0 %}
@@ -18,7 +18,7 @@
 	<br>
 	
 	<p>
-	<form action="{{ url_for('member_setaccess',id=member.member) }}" method="post">
+	<form action="{{ url_for('members.member_setaccess',id=member.member) }}" method="post">
 	  <table>
 		<tr>
 		  <th>Resource</th>

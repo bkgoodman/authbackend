@@ -6,11 +6,18 @@ from flask import Flask, request, session, g, redirect, url_for, \
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember
+from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs
 from functools import wraps
 import json
 #from .. import requireauth as requireauth
 from .. import utilities as authutil
+from ..utilities import _safestr as safestr
+from authlibs import eventtypes
+
+import logging
+from authlibs.init import GLOBAL_LOGGER_LEVEL
+logger = logging.getLogger(__name__)
+logger.setLevel(GLOBAL_LOGGER_LEVEL)
 
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
@@ -61,15 +68,15 @@ def member_add():
 		result = _createMember(member)
 		flash(result['message'])
 		if result['status'] == "success":
-				return redirect(url_for('member_show',id=member['memberid']))
+				return redirect(url_for('members.member_show',id=member['memberid']))
 		else:
-				return redirect(url_for('members'))
+				return redirect(url_for('members.members'))
 
 # memberedit
 @blueprint.route('/<string:id>/edit', methods = ['GET','POST'])
 @login_required
 def member_edit(id):
-		mid = utilities._safestr(id)
+		mid = authutil._safestr(id)
 		member = {}
 
 		if request.method=="POST" and 'Unlink' in  request.form:
@@ -105,8 +112,24 @@ def member_edit(id):
 		#(member,subscription)=Member.query.outerjoin(Subscription).filter(Member.member==mid).first()
 		member=db.session.query(Member,Subscription)
 		member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid)
-		(member,subscription) = member.one()
-		return render_template('member_edit.html',member=member,subscription=subscription)
+		r = member.one_or_none()
+                if not r:
+                    flash("Member not found")
+                    return redirect(url_for("members.members"))
+
+		(member,subscription) = r
+		access=db.session.query(Resource).add_column(AccessByMember.level).outerjoin(AccessByMember).outerjoin(Member)
+		access = access.filter(Member.member == mid)
+		access = access.filter(AccessByMember.active == 1)
+		access = access.all()
+                print access
+
+                acc =[]
+                for a in access:
+                    print "AY IS",a
+                    (r,level) = a
+                    acc.append({'description':r.name,'level':authutil.accessLevelString(level,user="",noaccess="")})
+		return render_template('member_edit.html',member=member,subscription=subscription,access=acc)
 
 
 @blueprint.route('/<string:id>', methods = ['GET'])
@@ -155,9 +178,7 @@ def member_editaccess(id):
 		# Put all the records together for renderer
 		access = []
 		for (r,active,level) in q.all():
-				myPerms=getResourcePrivs(resource=r)
-				if (current_user.privs('HeadRM')):
-						myPerms=AccessByMember.LEVEL_ADMIN
+				(myPerms,levelTxt)=authutil.getResourcePrivs(resource=r)
 				if not active: 
 						level=0
 				else:
@@ -213,10 +234,7 @@ def member_setaccess(id):
 						oldcheck = request.form[key]=='on'
 						r = key.replace("orgaccess_","")
 						resource = Resource.query.filter(Resource.name==r).one()
-						if current_user.privs('HeadRM'):
-								myPerms=AccessByMember.LEVEL_ADMIN
-						else:
-								myPerms=getResourcePrivs(resource=resource)
+                                                (myPerms,alstr) = authutil.getResourcePrivs(resource=resource)
 						if "privs_"+r in request.form:
 								p = int(request.form['privs_'+r])
 						else:
@@ -272,7 +290,7 @@ def member_setaccess(id):
 
 		db.session.commit()
 		flash("Member access updated")
-		kick_backend()
+		authutil.kick_backend()
 		return redirect(url_for('member_editaccess',id=mid))
 
 @blueprint.route('/<string:id>/tags', methods = ['GET'])
@@ -287,7 +305,7 @@ def member_tags(id):
 @blueprint.route('/updatebackends', methods = ['GET'])
 @login_required
 def update_backends():
-		kick_backend()
+		authutil.kick_backend()
 		flash("Backend Update Request Send")
 		return redirect(url_for('index'))
 
@@ -304,7 +322,7 @@ def member_tagadd(id):
 				flash("ERROR: The specified RFID tag is invalid, must be 10-digit all-numeric")
 		else:
 				if add_member_tag(mid,ntag,ntagtype,ntagname):
-						kick_backend()
+						authutil.kick_backend()
 						flash("Tag added.")
 				else:
 						flash("Error: That tag is already associated with a user")
@@ -322,7 +340,7 @@ def member_tagdelete(id,tag_ident):
 			sqlstr = "delete from tags_by_member where tag_ident = '%s' and member = '%s'" % (tid,mid)
 			execute_db(sqlstr)
 			get_db().commit()
-			kick_backend()
+			authutil.kick_backend()
 			flash("If that tag was associated with the current user, it was removed")
 		return redirect(url_for('member_tags',id=mid))
 

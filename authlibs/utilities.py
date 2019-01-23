@@ -8,7 +8,13 @@ import re
 import pytz
 from datetime import datetime,date
 from flask_user import current_user
-from db_models import db, AccessByMember, Member, Resource
+from db_models import db, AccessByMember, Member, Resource, Logs
+import paho.mqtt.publish as mqtt_pub
+import logging
+
+from authlibs.init import GLOBAL_LOGGER_LEVEL
+logger = logging.getLogger(__name__)
+logger.setLevel(GLOBAL_LOGGER_LEVEL)
     
 def hash_rfid(rfid):
     "Given an integer RFID, create a hashed value for storage"
@@ -82,6 +88,26 @@ def parse_datetime(dt):
                 result= datetime.strptime(dt,"%Y-%m-%d %H:%M:%S.%f")
   return result
 
+# From numberic level, get access. 
+# Allow to set certian strings for specific levels
+def accessLevelString(level,noaccess=None,user=None):
+    try:
+        level=int(level)
+    except:
+        return "??"+str(level)
+
+    if (level==AccessByMember.LEVEL_USER) and user is not None:
+        return user
+    elif level == AccessByMember.LEVEL_NOACCESS:
+        if noaccess is not None:
+            return noaccess
+        else:
+            return "No Access"
+    else:
+        try:
+            return AccessByMember.ACCESS_LEVEL[level]
+        except:
+            return "#"+str(level)
 # resource is a DB model resource
 def getResourcePrivs(resource=None,member=None,resourcename=None,memberid=None):
     if resourcename:
@@ -104,13 +130,20 @@ def getResourcePrivs(resource=None,member=None,resourcename=None,memberid=None):
         except:
             level=0
 
-    if level == -1:
-        levelText="No Access"
-    else:
-        try:
-            levelText=AccessByMember.ACCESS_LEVEL[level]
-        except:
-            levelText="#"+str(level)
+    levelText = accessLevelString(AccessByMember.ACCESS_LEVEL[level])
 
     return (level,levelText)
 
+# TODO
+def log(member_id=None,resource_id=None,eventtype=0):
+    db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id))
+
+# RULE - only call this from web APIs - not internal functions
+# Reason: If we have calls or scripts that act on many records,
+# we probably shouldn't generate a million messages
+def kick_backend():
+    try:
+      topic= app.globalConfig.mqtt_base_topic+"/control/broadcast/acl/update"
+      mqtt_pub.single(topic, "update", hostname=app.globalConfig.mqtt_host,port=app.globalConfig.mqtt_port,**app.globalConfig.mqtt_opts)
+    except BaseException as e:
+        logger.debug("MQTT acl/update failed to publish: "+str(e))
