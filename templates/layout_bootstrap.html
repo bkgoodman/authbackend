@@ -45,7 +45,9 @@
 
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
-  <a class="navbar-brand" href="#">Auth Backend</a>
+  <span class="navbar-brand">
+	<img height="30px" src="{{ url_for('static',filename='authit.png') }}"/>
+  </span>
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
@@ -78,20 +80,31 @@
         <a class="nav-link disabled" href="#">Disabled</a>
       </li>
     </ul>
-    <form class="form-inline my-2 my-lg-0">
-      <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-      <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-    </form>
+	{% if current_user %}
+    <p class="navbar-text navbar-right">
+	{{ current_user.email }}</p>
+    {% endif %}
   </div>
 </nav>
-<!-- NAVBAR -->
+<!-- NAVBAR --> 
+
+
+{% if DEPLOYTYPE  or TESTDB %}
+	<div class="alert alert-warning" role="alert">
+		{% if DEPLOYTYPE %}
+			Special Non-Production Deployment - {{ DEPLOYTYPE }}
+		{% endif %}
+		{% if DEPLOYTYPE  and TESTDB %}
+		<br />
+		{% endif %}
+		{% if TESTDB %}
+		Using TEST Database
+		{% endif %}
+	</div>
+{% endif %}
+
 
   <div class="container">
-
-  <div class="starter-template" style="padding-top:60px">
-		<div class=bannerlogo><a href="{{ url_for('index') }}"><img height=50% width=50% src="{{ url_for('static',filename='makeit.png') }}"/></a></div>
-		<div class=bannertext>Admin interface, v0.4</div>
-	</div>
 
 		{% for message in get_flashed_messages() %}
 			<div class="alert alert-warning" role="alert">{{ message }}</div>
@@ -106,17 +119,9 @@
    </div><!-- /.container -->
 
 
-    <!-- Bootstrap core JavaScript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
-    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
-    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
 
 
-
+    <!-- FOOTER -->
 			<hr />
 					<footer class="page-footer">
 						<div class="container">
@@ -126,17 +131,27 @@
 									<address>{{ current_user.email }}</address>
 								</div>
 								<div class="col">
-								</div>
-								<div class="col">
+									<div style="float:right" >
 									{% if current_user.privs('Admin') %}<span class="badge badge-primary">Admin</span> {% endif %}
 									{% if current_user.privs('Finance') %}<span class="badge badge-primary">Finance</span> {% endif %}
 									{% if current_user.privs('Useredit') %}<span class="badge badge-primary">Useredit</span> {% endif %}
 									{% if current_user.privs('RATT') %}<span class="badge badge-primary">RATT</span> {% endif %}
 									{% endif %}
+									</div>
 								</div>
 							</div>
 						</div>
 					</footer>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
+
   </body>
 </html>
 

@@ -48,12 +48,11 @@ def authorize():
       else:
           others['message']="Authorized "+" ".join(members)+" on "+" ".join(resources)
     if 'search' in request.form and (request.form['search'] != ""):
-      searchstr = authutil.safestr(request.form['search'])
-      t = "select * from members where firstname like '{0}%' or lastname like '{0}%' or alt_email like '%{0}%';".format(searchstr)
-      #print "QUERY",t
-      members = members.all()
+      searchstr = authutil._safestr(request.form['search'])
+      sstr = "%"+searchstr+"%"
+      members = Member.query.filter(((Member.member.ilike(searchstr))) | (Member.alt_email.ilike(sstr))).all()
     else:
-      members = Member.query.limit(10).all()
+      members = []
 
     resources = Resource.query.all()
     res=[]
