@@ -1,80 +1,176 @@
-{% extends "layout.html" %}
+{% extends "layout_bootstrap.html" %}
 {% block search %}
-  <div class=body>
+  <div class="container"> <!-- BASE contrainer -->
 	<div><a href="{{ url_for('members.members') }}">(Back to Members list)</a></div>
 	<div class="sectionhead">Member Details (<a href="{{ url_for('members.member_edit',id=member.member) }}">Edit</a>):</div>
-	<table>
-	  <tr>
-		<td><div>Member id: </div></td>
-		<td>{{ member.member }}</td>
-	  </tr>
-	   <tr>
-		<td><div>Name:</div></td>
-		<td>{{ member.lastname }}, {{ member.firstname }}</td>
-	  </tr>
-	   <tr>
-		<td><div>Name appearing in Stripe (payment sytem):</div></td>
-		<td>{{ member.stripe_name }}</td>
-	  </tr>
-		<tr>
-		<td><div {{ 'class=errortext' if (member.active != 'true')  }}>Active:</div></td>
-		<td>{{ member.active }} (<a href="{{ url_for('payments_member',id=member.member) }}">Expiration: {{ member.expires_date }})</a></td>
-	  </tr>
-	  <tr>
-			<td><div {{ 'class=errortext' if (member.access_enabled != 'true')  }}>Enabled:</div></td>
-			<td> {{ member.access_enabled }} {{ member.access_reason if (member.access_enabled != 'true') }}</td>
-	  </tr>
-	  <tr>
-			<td><div>Plan</div></td>
-			<td>{{ member.plan }}</td>
-	  </tr>
-	  <tr>
-			<td><div>Phone</div></td>
-			<td>{{ member.phone }}</td>
-	  </tr>
-	  <tr>
-			<td><div>Alternate email:</div></td>
-			<td>{{ member.alt_email }}</td>
-	  </tr>
-	  <tr>
-			<td><div>Slack ID:</div></td>
-			<td>{{ member.slack }}</td>
-	  </tr>
-	  <tr>
-			<td><div>Last updated:</div></td>
-			<td>{{ member.time_updated }}</td>
-	  </tr> 
-	  <tr>
-			<td><div>Waiver Completed</div></td>
-			<td>{{ member.waiver_date }}</td>
-	  </tr> 
-	  <tr>
-			<td><div><a href="{{ url_for("show_logs",memberid=member.id) }}">Show Logs for Member</a></div></td>
-	  </tr> 
-	  <tr>
-			<td colspan=2><h3>Payment Info</h3></td>
-	  </tr> 
-	  <tr>
-			<td><div>Payment Mebership ID</div></td>
-			<td><a href="{{ url_for("payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a></td>
-	  </tr> 
-	  <tr>
-			<td><div>Active</div></td>
-			<td>{{ subscription.active }}</td>
-	  </tr> 
-	  <tr>
-			<td><div>Plan</div></td>
-			<td>{{ subscription.plan }}</td>
-	  </tr> 
-	  <tr>
-			<td><div>Updated</div></td>
-			<td>{{ subscription.updated_date }}</td>
-	  </tr> 
-	  <tr>
-			<td><div>Created</div></td>
-			<td>{{ subscription.created_date }}</td>
-	  </tr> 
-	</table>
+
+
+<div class="compact form-row row">
+	<div class="col-sm-4">
+		Member id: 
+	</div>
+	<div class="col-sm-6">
+		{{ member.member }}
+	</div>
+</div>
+		
+		 
+<div class="form-row row">
+	<div class="compact col-sm-4">
+		Name:
+	</div>
+	<div class="col-sm-6">
+		{{ member.lastname }}, {{ member.firstname }}
+	</div>
+</div>
+		
+		 
+<div class="form-group row">
+	<div class="col-sm-4">
+		Name:
+		<small class="form-text text-muted">In Stripe</small>
+	</div>
+	<div class="col-sm-6">
+		{{ member.stripe_name }}
+	</div>
+</div>
+		
+		
+<div class="form-row row">
+	<div class="col-sm-4">
+		Active:
+	</div>
+	<div class="col-sm-6">
+		<span {{ 'class=alert-warning' if (member.active != 'true')  }}>
+		{{ member.active }} (<a href="{{ url_for('payments_member',id=member.member) }}">Expiration: {{ member.expires_date }})</a>
+		</span>
+	</div>
+</div>
+		
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+		Access Enabled:
+	</div>
+	<div class="col-sm-6">
+		<span {{ 'class=alert-warning' if (member.access_enabled != 'true')  }}>
+		 {{ member.access_enabled }} 
+		</span>
+	</div>
+</div>
+		
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Plan
+	</div>
+	<div class="col-sm-6">
+			{{ member.plan }}
+	</div>
+</div>
+		
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Phone
+	</div>
+	<div class="col-sm-6">
+			{{ member.phone }}
+	</div>
+</div>
+		
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Alternate email:
+	</div>
+	<div class="col-sm-6">
+			{{ member.alt_email }}
+	</div>
+</div>
+		
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Slack ID:
+	</div>
+	<div class="col-sm-6">
+			{{ member.slack }}
+	</div>
+</div>
+		
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Last updated:
+	</div>
+	<div class="col-sm-6">
+			{{ member.time_updated }}
+	</div>
+</div>
+		 
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Waiver Completed
+	</div>
+	<div class="col-sm-6">
+			{{ member.waiver_date }}
+	</div>
+</div>
+		 
+		
+			<a href="{{ url_for("show_logs",memberid=member.id) }}">Show Logs for Member</a>
+		 
+		
+			<td colspan=2><h3>Payment Info</h3>
+		 
+		
+			Payment Membership ID
+			<a href="{{ url_for("payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
+		 
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Active
+	</div>
+	<div class="col-sm-6">
+			{{ subscription.active }}
+	</div>
+</div>
+		 
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Plan
+	</div>
+	<div class="col-sm-6">
+			{{ subscription.plan }}
+	</div>
+</div>
+		 
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Updated
+	</div>
+	<div class="col-sm-6">
+			{{ subscription.updated_date }}
+	</div>
+</div>
+		 
+		
+<div class="compact form-row row">
+	<div class="col-sm-4">
+			Created
+	</div>
+	<div class="col-sm-6">
+			{{ subscription.created_date }}
+	</div>
+</div>
+	   
+
+
 	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=member.member) }}">Edit</a>):</div>
 	<ul class="entries">
 	{% if not access %}
@@ -85,5 +181,5 @@
 	  {% endfor %}
 	{% endif %}
 	</ul>
-  </div>
+  </div> <!-- BASE container -->
 {% endblock %}

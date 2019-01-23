@@ -118,13 +118,18 @@ def member_show(id):
 	 mid = authutil._safestr(id)
 	 member=db.session.query(Member,Subscription)
 	 member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid)
-	 (member,subscription) = member.one()
+	 res = member.one_or_none()
  
-	 access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
-	 access = access.filter(Member.member == mid)
-	 access = access.filter(AccessByMember.active == 1)
-	 access = access.all()
-	 return render_template('member_show.html',member=member,access=access,subscription=subscription)
+	 if res:
+		 (member,subscription) = res
+		 access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
+		 access = access.filter(Member.member == mid)
+		 access = access.filter(AccessByMember.active == 1)
+		 access = access.all()
+		 return render_template('member_show.html',member=member,access=access,subscription=subscription)
+	 else:
+		flash("Member not found")
+		return redirect(url_for("members.members"))
 
 # See what rights the user has on the given resource
 # User and resource User and Resource class objects
