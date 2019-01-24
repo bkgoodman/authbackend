@@ -60,6 +60,7 @@ from flask_dance.contrib.google import  google
 from flask_dance.consumer import oauth_authorized
 import google_oauth
 from  authlibs import slackutils
+from authlibs.main_menu import main_menu
 
 """ GET PAGES"""
 
@@ -580,7 +581,7 @@ def create_routes():
     @login_required
     def index():
        """Main page, redirects to login if needed"""
-       return render_template('index.html')
+       return render_template('index.html',menu=main_menu())
 
     @app.route('/search',methods=['GET','POST'])
     @login_required

@@ -8,75 +8,14 @@
 
 <div class="d-flex flex-wrap">
 
+{% for m in menu %}
 	<div class="menubox">
 		<div class="row menucontent">
-			<a href="{{ url_for('members.members') }}"><img class="menuimg" src="static/office.png" alt="View, Create or Edit members and their access"></a>
+			<a href="{{ m.url }}"><img class="menuimg" src="{{ m.img }}" alt="{{ m.alt }}"></a>
 		</div>
 		<div class="row menucontent">
-			<p>Members and Access</p>
+			<p>{{ m.title }}</p>
 		</div>
 	</div>
-
-	<div class="menubox">
-		<div class="row menucontent">
-			<a href="{{ url_for('payments') }}"><img  class="menuimg" src="static/finance.png" alt="View or Test Payment System integration"></a>
-		</div>
-		<div class="row menucontent">
-			<p>Payment System</p>
-		</div>
-	</div>
-
-	<div class="menubox">
-		<div class="row menucontent">
-			<a href="{{ url_for('resources') }}"><img class="menuimg" src="static/building.png" alt="View, Create or Modify Resources"></a>
-		</div>
-		<div class="row menucontent">
-			<p>Resources</p>
-		</div>
-	</div>
-
-	<div class="menubox">
-		<div class="row menucontent">
-			<a href="{{ url_for('reports') }}"><img class="menuimg" src="static/data.png" alt="View reports"></a>
-		</div>
-		<div class="row menucontent">
-			<p>Reports</p>
-		</div>
-	</div>
-
-	<div class="menubox">
-		<div class="row menucontent">
-			<a href="{{ url_for('waivers') }}"><img class="menuimg" src="static/contract.png" alt="View Waiver Data"></a>
-		</div>
-		<div class="row menucontent">
-			<p>Waivers</p>
-		</div>
-	</div>
-
-	<div class="menubox">
-		<div class="row menucontent">
-			<a href="{{ url_for('show_logs') }}"><img class="menuimg" src="static/logs.png" alt="View Logs"></a>
-		</div>
-		<div class="row menucontent">
-			<p>View Logs</p>
-		</div>
-	</div>
-
-	<div class="menubox">
-		<div class="row menucontent">
-			<a href="{{ url_for('admin_page') }}"><img class="menuimg" src="static/rattcfg.png" alt="Admin Page"></a>
-		</div>
-		<div class="row menucontent">
-			<p>Configure Front-Ends</p>
-		</div>
-	</div>
-
-	<div class="menubox">
-		<div class="row menucontent">
-			<a href="{{ url_for('toolcfg') }}"><img class="menuimg" src="static/toolcfg.png" alt="Configure Tools"></a>
-		</div>
-		<div class="row menucontent">
-		<p>Configure Tools</p>
-		</div>
-</div>
+{% endfor %}
 {% endblock %}
