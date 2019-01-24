@@ -344,5 +344,20 @@ def member_tagdelete(id,tag_ident):
 			flash("If that tag was associated with the current user, it was removed")
 		return redirect(url_for('member_tags',id=mid))
 
+def _createMember(m):
+    """Add a member entry to the database"""
+    sqlstr = "Select member from members where member = '%s'" % m['memberid']
+    members = query_db(sqlstr)
+    if members:
+        return {'status': 'error','message':'That User ID already exists'}
+    else:
+        sqlstr = """insert into members (member,firstname,lastname,phone,plan,nickname,access_enabled,active)
+                    VALUES ('%s','%s','%s','%s','','%s',0,0)
+                 """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['nickname'])
+        execute_db(sqlstr)
+        get_db().commit()
+    return {'status':'success','message':'Member %s was created' % m['memberid']}
+    kick_backend()
+
 def register_pages(app):
 	app.register_blueprint(blueprint)

@@ -66,6 +66,7 @@ from authlibs.main_menu import main_menu
 
 from authlibs.auth import auth
 from authlibs.members import members
+from authlibs.resources import resources as resource_pages
 
 waiversystem = {}
 waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
@@ -242,33 +243,6 @@ def _expirationSync():
     get_db().commit()
     kick_backend()
 
-def _createMember(m):
-    """Add a member entry to the database"""
-    sqlstr = "Select member from members where member = '%s'" % m['memberid']
-    members = query_db(sqlstr)
-    if members:
-        return {'status': 'error','message':'That User ID already exists'}
-    else:
-        sqlstr = """insert into members (member,firstname,lastname,phone,plan,nickname,access_enabled,active)
-                    VALUES ('%s','%s','%s','%s','','%s',0,0)
-                 """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['nickname'])
-        execute_db(sqlstr)
-        get_db().commit()
-    return {'status':'success','message':'Member %s was created' % m['memberid']}
-    kick_backend()
-
-def _createResource(r):
-    """Add a resource to the database"""
-    sqlstr = """insert into resources (name,description,owneremail)
-            values ('%s','%s','%s')""" % (r['name'],r['description'],r['owneremail'])
-    execute_db(sqlstr)
-    get_db().commit()
-    #TODO: Catch errors, etc
-    return {'status':'success','message':'Resource successfully added'}
-
-def _get_resources():
-	sqlstr = "SELECT name, owneremail, description from resources"
-	return query_db(sqlstr)
 
 def _clearPaymentData(paytype):
     """Remove all payment data for the configured paysystem type from the payments table"""
@@ -681,119 +655,6 @@ def create_routes():
        tools=query.all()
        resources= Resource.query.all()
        return render_template('tools.html',tools=tools,resources=resources,add=add,edit=edit,tool=edittool)
-
-    # ----------------------------------------------------
-    # Resource management (not including member access)
-    # Routes:
-    #  /resources - View
-    #  /resources/<name> - Details for specific resource
-    #  /resources/<name>/access - Show access for resource
-    # ------------------------------------------------------
-
-    @app.route('/resources', methods=['GET'])
-    @login_required
-    def resources():
-       """(Controller) Display Resources and controls"""
-       resources = _get_resources()
-       access = {}
-       return render_template('resources.html',resources=resources,access=access,editable=True)
-
-    @app.route('/resources', methods=['POST'])
-    @login_required
-    @roles_required('Admin')
-    def resource_create():
-       """(Controller) Create a resource from an HTML form POST"""
-       res = {}
-       res['name'] = safestr(request.form['rname'])
-       res['description'] = safestr(request.form['rdesc'])
-       res['owneremail'] = safeemail(request.form['remail'])
-       res['slack_chan'] = safestr(request.form['slack_chan'])
-       res['slack_admin_chan'] = safestr(request.form['slack_admin_chan'])
-       res['info_url'] = safestr(request.form['info_url'])
-       res['info_text'] = safestr(request.form['info_text'])
-       res['slack_info_text'] = safestr(request.form['slack_info_text'])
-       result = _createResource(res)
-       flash(result['message'])
-       return redirect(url_for('resources'))
-
-    @app.route('/resources/<string:resource>', methods=['GET'])
-    @login_required
-    def resource_show(resource):
-        """(Controller) Display information about a given resource"""
-        r = Resource.query.filter(Resource.name==resource).one_or_none()
-        if not r:
-            flash("Resource not found")
-            return redirect(url_for('resources'))
-        return render_template('resource_edit.html',resource=r)
-
-    @app.route('/resources/<string:resource>', methods=['POST'])
-    @login_required
-    @roles_required('Admin')
-    def resource_update(resource):
-        """(Controller) Update an existing resource from HTML form POST"""
-        rname = safestr(resource)
-        r = Resource.query.filter(Resource.name==resource).one_or_none()
-        if not r:
-            flash("Error: Resource not found")
-            return redirect(url_for('resources'))
-        r.description = (request.form['rdesc'])
-        r.owneremail = safeemail(request.form['remail'])
-        r.slack_chan = safestr(request.form['slack_chan'])
-        r.slack_admin_chan = safestr(request.form['slack_admin_chan'])
-        r.info_url = safestr(request.form['info_url'])
-        r.info_text = safestr(request.form['info_text'])
-        r.slack_info_text = safestr(request.form['slack_info_text'])
-        db.session.commit()
-        flash("Resource updated")
-        return redirect(url_for('resources'))
-
-    @app.route('/resources/<string:resource>/delete', methods=['POST'])
-    def resource_delete(resource):
-        """(Controller) Delete a resource. Shocking."""
-        rname = safestr(resource)
-        sqlstr = "delete from resources where name='%s'" % rname
-        execute_db(sqlstr)
-        get_db().commit()
-        flash("Resource deleted.")
-        return redirect(url_for('resources'))
-
-    @app.route('/resources/<string:resource>/list', methods=['GET'])
-    def resource_showusers(resource):
-        """(Controller) Display users who are authorized to use this resource"""
-        rid = safestr(resource)
-        #sqlstr = "select member from accessbymember where resource='%s'" % rid
-        #authusers = query_db(sqlstr)
-        sqlstr = "select a.id,a.member_id,m.member AS member from accessbymember a LEFT JOIN Members m ON m.id == a.member_id WHERE a.resource_id = (SELECT id FROM resources WHERE name='%s');" % rid
-        authusers = query_db(sqlstr)
-        return render_template('resource_users.html',resource=rid,users=authusers)
-
-    #TODO: Create safestring converter to replace string; converter?
-    @app.route('/resources/<string:resource>/log', methods=['GET','POST'])
-    @roles_required(['Admin','RATT'])
-    def logging(resource):
-       """Endpoint for a resource to log via API"""
-       # TODO - verify resources against global list
-       if request.method == 'POST':
-        # YYYY-MM-DD HH:MM:SS
-        # TODO: Filter this for safety
-        logdatetime = request.form['logdatetime']
-        level = safestr(request.form['level'])
-        # 'system' for resource system, rfid for access messages
-        userid = safestr(request.form['userid'])
-        msg = safestr(request.form['msg'])
-        sqlstr = "INSERT into logs (logdatetime,resource,level,userid,msg) VALUES ('%s','%s','%s','%s','%s')" % (logdatetime,resource,level,userid,msg)
-        execute_db(sqlstr)
-        get_db().commit()
-        return render_template('logged.html')
-       else:
-        if current_user.is_authenticated:
-            r = safestr(resource)
-            sqlstr = "SELECT logdatetime,resource,level,userid,msg from logs where resource = '%s'" % r
-            entries = query_db(sqlstr)
-            return render_template('resource_log.html',entries=entries)
-        else:
-            abort(401)
-
 
     # ------------------------------------------------
     # Payments controllers
@@ -1405,6 +1266,7 @@ if __name__ == '__main__':
         create_routes()
         auth.register_pages(app)
         members.register_pages(app)
+        resource_pages.register_pages(app)
         slackutils.create_routes(app)
         #print site_map(app)
     #app.login_manager.login_view="test"

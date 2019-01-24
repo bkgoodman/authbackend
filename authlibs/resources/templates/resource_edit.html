@@ -1,8 +1,8 @@
-{% extends "layout.html" %}
+{% extends "layout_bootstrap.html" %}
 {% block body %}
 <div>
 <div class="sectionhead">Edit Resource</div>
-  <form action={{ url_for('resource_update',resource=resource.name) }} method="post">
+  <form action={{ url_for('resources.resource_update',resource=resource.name) }} method="post">
 	<table>
 	  <tr><td>Name: {{ resource.name }}</td></tr>
 	  <tr><td>Description: <input type=text size=25 name="rdesc" value="{{ resource.description }}"></td></tr>
@@ -16,7 +16,7 @@
 	<input type=submit value="Make changes">
   </form>
   <div class="sectionhead">Delete resource:
-  <form action={{ url_for('resource_delete',resource=resource.name) }} method="post">
+  <form action={{ url_for('resources.resource_delete',resource=resource.name) }} method="post">
 	<p></p>
 	<input class="delete" type=submit value="Delete resource">
   </form>
