@@ -1,0 +1,71 @@
+<!-- This is meant to be INCLUDED by another page.
+			Wrap this inside another div class-content block, 
+			and inside a form (if desiered)
+	
+			(removed the "xx"es!)
+
+			{xx% include 'userlist.html' %xx}
+
+			Or to include checkbox columns:
+
+			{xx% with add_checkboxes='1' %xx}
+			{xx% include 'userlist.html' %xx}
+			{xx% endwith %}
+-->
+
+{% if add_checkboxes %}
+<script type="text/javascript">var USE_MEMBER_CHECKBOXES=1;</script>
+{% else %}
+<script type="text/javascript">var USE_MEMBER_CHECKBOXES=0;</script>
+{% endif %}
+
+{% if member_url %}
+<script type="text/javascript">var MEMBER_URL="{{ url_for("members.member_show",id="") }}";</script>
+{% else %}
+<script type="text/javascript">var MEMBER_URL=null;</script>
+{% endif %}
+
+
+<script src="{{ url_for('static', filename='js/userlist.js') }}"></script>
+
+<div class="input-group mb-3">
+  <input type="text" class="form-control" name="search" oninput="changedDropdownText();" id="searchfield1" placeholder="" aria-label="Example text with button addon" aria-describedby="button-addon1">
+	<div class="input-group-append" id="button-addon4">
+		<button class="btn btn-outline-secondary" onClick="DoSearchButton();" type="button">Search</button>
+	</div>
+</div>
+
+<div class="alert alert-secondary" role="alert" id="entermatchtext">
+  Enter a name to find matches
+</div>
+<table class="table table-striped compacttable" style="display:hidden" id="membertable">
+  <thead>
+    <tr>
+{% if add_checkboxes %}
+      <th></th>
+{% endif %}
+      <th>Member ID</th>
+      <th>First</th>
+      <th>Last</th>
+      <th>Email</th>
+    </tr>
+  </thead>
+  <tbody id="memberrows">
+	{% for member in members %}
+    <tr class="memberrow">
+  {% if add_checkboxes %}
+<td><input type="checkbox" onchange="click_checkbox();" 
+	class="auth_user_cb"/></td>
+  {% endif %}
+      <td>
+				<a href="{{ url_for('members.member_show',id=member.member)}}">
+				{{ member.member }}
+			</a>
+			</td>
+      <td>{{ member.firstname }}</td>
+      <td>{{ member.lastname }}</td>
+      <td>{{ member.email }}</td>
+	{% endfor %}
+    </tr>
+  </tbody>
+</table>

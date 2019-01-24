@@ -27,7 +27,7 @@ logger.setLevel(GLOBAL_LOGGER_LEVEL)
 # ----------------------------------------------------------------
 
 # TODO BKG FIX - Change "memb" to "members" once we've depricated the old handlers
-blueprint = Blueprint("members", __name__, template_folder='templates', static_folder="static",url_prefix="/members2")
+blueprint = Blueprint("members", __name__, template_folder='templates', static_folder="static",url_prefix="/member")
 
 # --------------------------------------
 # Member viewing and editing functions
@@ -45,7 +45,7 @@ def members():
 	members = {}
 	return render_template('members.html',members=members)
 
-@blueprint.route('/members', methods= ['POST'])
+@blueprint.route('/', methods= ['POST'])
 @login_required
 @roles_required(['Admin','Useredit'])
 def member_add():
@@ -203,7 +203,7 @@ def member_setaccess(id):
 		member = Member.query.filter(Member.member == mid).one()
 		if ((member.id == current_user.id) and not (current_user.privs('Admin'))):
 				flash("You can't change your own access")
-				return redirect(url_for('member_editaccess',id=mid))
+				return redirect(url_for('members.member_editaccess',id=mid))
 		if (('password1' in request.form and 'password2' in request.form) and
 				(request.form['password1'] != "") and 
 				current_user.privs('Admin')):
@@ -291,7 +291,7 @@ def member_setaccess(id):
 		db.session.commit()
 		flash("Member access updated")
 		authutil.kick_backend()
-		return redirect(url_for('member_editaccess',id=mid))
+		return redirect(url_for('members.member_editaccess',id=mid))
 
 @blueprint.route('/<string:id>/tags', methods = ['GET'])
 @login_required
