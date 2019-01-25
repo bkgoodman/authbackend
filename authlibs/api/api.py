@@ -254,11 +254,28 @@ def _getResourceUsers(resource):
     # left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
     val =  q.all()
 
-    print "RECORDS",len(val)
-    print "FIRST",val[0]
-    print "FIRST",dir(val[0])
+    # TEMP TODO - SQLalchemy returning set of tuples - turn into a dict for now
+    result =[]
+    for x in val:
+        result.append({
+            'tag_ident':x[0],
+            'plan':x[1],
+            'nickname':x[2],
+            'enabled':x[3],
+            'access_reason':x[4],
+            'allowed':x[5],
+            'past_due':x[6],
+            'grace_period':x[7],
+            'expires_soon':x[8],
+            'level':x[9],
+            'member':x[10],
+            'member_id':x[11],
+            'last_accessed':"" # We may never want to report this for many reasons
+            })
+    print "RECORDS",len(result)
+    print "FIRST",result[0]
 
-    return val
+    return result
 
 
 def getAccessControlList(resource):
