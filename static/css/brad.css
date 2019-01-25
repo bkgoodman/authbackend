@@ -11,6 +11,9 @@
 	padding: 3px;
 }
 
+.supercompact td, .supercompact  tr, .supercompact  th {
+	padding:0px;
+}
 
          
  .brad_fadeout {

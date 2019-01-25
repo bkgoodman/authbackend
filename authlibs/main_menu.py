@@ -33,7 +33,7 @@ def main_menu():
 			'title':'Waivers'
 		},
 		{
-			'url':url_for('show_logs'),
+			'url':url_for('logs.logs'),
 			'img':url_for("static",filename="logs.png"),
 			'alt':"View Logs",
 			'title':'View Logs'

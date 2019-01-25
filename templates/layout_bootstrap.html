@@ -68,10 +68,11 @@
           Pages
         </a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+{# TODO make this menu from "main_menu" #}
 	<a class="dropdown-item" href="{{ url_for('authorize.authorize') }}">Authorize</a>
 	<a class="dropdown-item" href="{{ url_for('members.members') }}">Members</a>
 	<a class="dropdown-item" href="{{ url_for('resources.resources') }}">Resources</a>
-	<a class="dropdown-item" href="{{ url_for('show_logs') }}">Logs</a>
+	<a class="dropdown-item" href="{{ url_for('logs.logs') }}">Logs</a>
 	<a class="dropdown-item" href="{{ url_for('slack_page') }}">Slack</a>
 	<a class="dropdown-item" href="{{ url_for('payments') }}">Payments</a>
           <a class="dropdown-item" href="#">Action</a>

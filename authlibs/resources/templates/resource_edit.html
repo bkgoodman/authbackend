@@ -5,7 +5,7 @@
   <form action={{ url_for('resources.resource_update',resource=rec.id) }} method="POST">
 	{% include 'form.html' %}
 	{% if readonly is not defined or not readonly %}
-	<input type=submit class="btn btn-primary" value="Make changes">
+	<input type=submit class="btn btn-primary" value="Save changes">
 	{% endif %}
   </form>
 	{% if readonly is not defined or not readonly %}
@@ -13,12 +13,12 @@
 	  <p />
   </div>
 
-  <!-- Button trigger modal -->
+  <!-- Button trigger for "Delete" modal -->
 <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
   Delete Resource
 </button>
 
-<!-- Modal -->
+<!-- Modal for Delete resource confirmation -->
 <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -32,7 +32,7 @@
 	      Are you really sure you want to delete {{ rec.name }}??
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
 	  <form action={{ url_for('resources.resource_delete',resource=rec.id) }} method="post">
 		<input class="btn btn-danger" type=submit value="Delete">
 	  </form>

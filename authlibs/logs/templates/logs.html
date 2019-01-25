@@ -1,0 +1,40 @@
+{% extends "layout_bootstrap.html" %}
+{% block search %}
+  <div class=body>
+	<div class="sectionhead">Logs</div>
+    <a href="{{ url_for('logs.logs') }}">View All</a>
+    <p></p>
+	<table  class="table table-compact supercompact">
+      <tr>
+        <th>When</th>
+        <th>Who</th>
+        <th>Tool</th>
+        <th>Resource</th>
+        <th>Event</th>
+        <th>Message</th>
+      </tr>
+      {% for l in logs %}
+	  <tr>
+		<td>{{ l.when }}</td>
+		<td>
+			{% if l.user %}
+			<a href="{{ url_for("members.member_show",id=l.member_id) }}">
+			{{ l.user }}
+			</a>
+			{% endif %}
+		</td>
+		<td>{{ l.tool}}</td>
+		<td>
+			{% if l.resource %}
+			<a href="{{ url_for("resources.resources",id=l.resource) }}">
+			{{ l.resource }}
+			</a>
+			{% endif %}
+		</td>
+		<td>{{ l.event }}</td>
+		<td>{{ l.message }}</td>
+	  </tr>
+      {% endfor %}
+	</table>
+  </div>
+{% endblock %}

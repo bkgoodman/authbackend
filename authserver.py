@@ -36,7 +36,6 @@ from contextlib import closing
 import pycurl, sys
 import ConfigParser
 import xml.etree.ElementTree as ET
-from authlibs.eventtypes import get_events
 from StringIO import StringIO
 from authlibs.init import authbackend_init, get_config, createDefaultUsers
 from authlibs import cli
@@ -67,6 +66,7 @@ from authlibs.main_menu import main_menu
 from authlibs.auth import auth
 from authlibs.members import members
 from authlibs.resources import resources as resource_pages
+from authlibs.logs import logs as log_pages
 
 waiversystem = {}
 waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
@@ -903,114 +903,6 @@ def create_routes():
         return redirect(url_for('waivers'))
 
     # ------------------------------------------------------------
-    # Logs  
-    #
-    # Things log like crazy. Therefore logs are designed to
-    # be cheap to write, and to be compartimentalizable so
-    # that they don't interfere with other stuff.
-    #
-    # So we put logs in a separate databse. Maybe someday this
-    # could be a completely different type of datastore.
-    #
-    # Because of this, we can't do relational queries between
-    # the log and main databases. 
-    #
-    # Because of all this, logs are expensive to read. This might
-    # not be too bad because we don't read them all that often.
-    # ------------------------------------------------------------
-
-    @app.route('/logs', methods=['GET'])
-    @login_required
-    def show_logs():
-        limit = 200
-        offset = 0
-        format='html'
-        evt= get_events()
-        #q = db.session.query(Logs.time_reported,Logs.event_type,Member.firstname,Member.lastname,Tool.name.label("toolname"),Logs.message).outerjoin(Tool).outerjoin(Member).order_by(Logs.time_reported.desc())
-
-        # Query main DB to Build relational tables
-        tools={}
-        members={}
-        resources={}
-        for t in Tool.query.all():
-            tools[t.id] = t.name
-        for r in Resource.query.all():
-            resources[r.id] = r.name
-        for m in Member.query.all():
-            members[m.id] = {
-                    'member': m.member,
-                    'first': m.firstname,
-                    'last': m.lastname
-                    }
-
-        q = db.session.query(Logs).order_by(Logs.time_reported.desc())
-
-        if ('offset' in request.values):
-            limit=int(request.values['offset'])
-
-        if ('limit' in request.values):
-          if request.values['limit']!="all":
-            limit=int(request.values['limit'])
-          else:
-            limit = 200
-
-        if limit>0: w=q.limit(limit)
-        if offset>0: w=q.offset(offset)
-
-        if ('member' in request.values):
-            q=q.filter(Logs.member_id==members[request.values['member']])
-        if ('memberid' in request.values):
-            q=q.filter(Logs.member_id==request.values['memberid'])
-        if ('resource' in request.values):
-            q=q.filter(Logs.resource_id==resources[request.values['resource']])
-        if ('resourceid' in request.values):
-            q=q.filter(Logs.resource_id==request.values['resourceid'])
-        if ('tool' in request.values):
-            q=q.filter(Logs.tool_id==tools[request.values['tool']])
-        if ('toolid' in request.values):
-            q=q.filter(Logs.tool_id==request.values['toolid'])
-        if ('before' in request.values):
-            q=q.filter(Logs.time_reported<=request.values['before'])
-        if ('after' in request.values):
-            q=q.filter(Logs.time_reported>=request.values['after'])
-        if ('format' in request.values):
-            format=request.values['format']
-        dbq = q.all()
-        logs=[]
-        for l in dbq:
-            r={}
-            r['time']=l.time_logged
-            if l.member_id in members:
-                r['user'] = members[l.member_id]['last']+", "+members[l.member_id]['first']
-            else:
-                r['user']="Member #"+str(l.member_id)
-            
-            if l.tool_id in tools:
-                r['tool'] = tools[l.tool_id]
-            else:
-                r['tool']="Tool #"+str(l.tool_id)
-            
-            if l.resource_id in resources:
-                r['resource'] = resources[l.resource_id]
-            else:
-                r['resource']="Resource #"+str(l.resource_id)
-
-            if (l.event_type in evt):
-                r['event']=evt[l.event_type]
-            else:
-                r['event']=l.event
-            if l.message:
-                r['message']=l.message
-            else:
-                r['message']=""
-            logs.append(r)
-
-        # if format=="csv":
-        #    return Response(stream_with_context(generate(),content_type='text/csv'))
-        return render_template('logs.html',logs=logs)
-
-
-    # ------------------------------------------------------------
     # Google Accounts and Welcome Letters
     # -----------------------------------------------------------
 
@@ -1267,6 +1159,7 @@ if __name__ == '__main__':
         auth.register_pages(app)
         members.register_pages(app)
         resource_pages.register_pages(app)
+        log_pages.register_pages(app)
         slackutils.create_routes(app)
         #print site_map(app)
     #app.login_manager.login_view="test"
