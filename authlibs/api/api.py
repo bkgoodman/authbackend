@@ -19,6 +19,7 @@ import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
+from sqlalchemy import case, DateTime
 
 
 # You must call this modules "register_pages" with main app's "create_rotues"
@@ -39,12 +40,9 @@ def api_only(f):
     def decorated(*args, **kwargs):
         auth = request.authorization
         if not auth:
-            print "RETURNING 401"
             return error_401()
         if not check_api_access(auth.username, auth.password):
-            print "CHECK API ACCESS FAILED"
             return authenticate() # Send a "Login required" Error
-        print "SUCCESS"
         g.apikey=auth.username
         return f(*args, **kwargs)
     return decorated
@@ -53,15 +51,12 @@ def api_only(f):
 def check_api_access(username,password):
     a= ApiKey.query.filter_by(username=username).one_or_none()
     if not a:
-        print "NO USER"
         return False
     if not a.password:
-        print "NO PASSWORD"
         return False
     if current_app.user_manager.verify_password( password,a.password):
         return True
     else:
-        print "HASH FAILED"
         return False
 
 # ------------------------------------------------------------
@@ -139,15 +134,18 @@ def api_v1_members():
 def api_v1_showmember(id):
 		"""(API) Return details about a member, currently JSON only"""
 		mid = safestr(id)
-		outformat = request.args.get('output','json')
-		sqlstr = """select m.member, m.plan, m.alt_email, m.firstname, m.lastname, m.phone, s.expires_date
-						from members m inner join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email where m.member='%s'""" % mid
-		m = query_db(sqlstr,"",True)
-		if outformat == 'json':
-				output = {'member': m['member'],'plan': m['plan'],'alt_email': m['plan'],
-									'firstname': m['firstname'],'lastname': m['lastname'],
-									'phone': m['phone'],'expires_date': m['expires_date']}
-				return json_dump(output), 200, {'Content-type': 'application/json'}
+		#outformat = request.args.get('output','json')
+                outformat = 'json'
+                m = Member.query.filter(Member.member==mid).one_or_none()
+                if not m:
+				return "Does not exist", 404, {'Content-type': 'application/json'}
+                output = {'member': m.member,
+                        'plan': m.plan,
+                        'alt_email': m.plan,
+                        'firstname': m.firstname,
+                        'lastname': m.lastname,
+                        'phone': m.phone}
+		return json_dump(output), 200, {'Content-type': 'application/json'}
 
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['GET'])
 @api_only
@@ -173,17 +171,6 @@ def api_v0_show_resource_acl(id):
 						outstr += "\n%s,%s,%s,%s,%s,%s" % (u['member'],'0',u['level'],"allowed" if u['allowed'] == "allowed" else "denied",u['tagid'],'2011-06-21T05:12:25')
 				return outstr, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
-@blueprint.route('/v1/logs/<string:id>', methods=['POST'])
-@api_only
-def api_v1_log_resource_create(id):
-		rid = safestr(id)
-		entry = {}
-		# Default all to blank, since needed for SQL
-		for opt in ['event','timestamp','memberid','message','ip']:
-				entry[opt] = ''
-		for k in request.form:
-				entry[k] = safestr(request.form[k])
-		return "work in progress"
 
 @blueprint.route('/v1/payments/update', methods=['GET'])
 @api_only
@@ -216,6 +203,106 @@ def error_401():
     'What the hell. .\n'
     'You have to login with proper credentials', 401,
     {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+###
+## ACL HANDLERS
+###
+
+def _getResourceUsers(resource):
+    """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
+    # Also provides some basic logic on various date fields to simplify later processing
+    # - this could be done with raw calcs on the dates, if future editors are less comfortable with the SQL syntaxes used
+	# Note: The final left join is to account for "max(expires_date)" equivalence without neededing a subquery
+	# - yes, it's kind of odd, but it works
+
+    sqlstr = """select t.member_id,t.tag_ident,m.plan,m.nickname,/*l.last_accessed,*/m.access_enabled as enabled, m.access_reason as reason,s.expires_date,a.resource_id,
+        (case when a.resource_id is not null then 'allowed' else 'denied' end) as allowed,
+        (case when s.expires_date < Datetime('now','-14 day') then 'true' else 'false' end) as past_due,
+        (case when s.expires_date < Datetime('now') AND s.expires_date > Datetime('now','-13 day') then 'true' else 'false' end) as grace_period,
+        (case when s.expires_date < Datetime('now','+2 day') then 'true' else 'false' end) as expires_soon,
+        (case when a.level is not null then a.level else '0' end) as level,
+        m.member, /* BKG */
+        NULL as last_accessed
+        from tags_by_member t join members m on t.member=m.member
+        left outer join accessbymember a on a.member_id=t.member_id and a.resource_id=
+              (SELECT id FROM resources WHERE name ="%s")
+        left outer join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email
+        left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
+        group by t.tag_ident;""" % (resource)
+    
+    """ REMOVED:
+        /*  left outer join (select member,MAX(event_date) as last_accessed from logs where resource_id='%s' group by member) l on t.member = l.member */
+    """
+    #users = db.session.execute(sqlstr)
+
+    q = db.session.query(MemberTag.tag_ident,Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
+    q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
+    q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('-14 day'), 'true')], else_ = 'false').label('past_due'))
+    q = q.add_column(case([((Subscription.expires_date < db.func.DateTime() & (Subscription.expires_date > db.func.DateTime('-13 day'))), 'true')], else_ = 'false').label('grace_period'))
+    q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('+2 day'), 'true')], else_ = 'false').label('expires_soon'))
+    q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
+    q = q.add_column(Member.member)
+    q = q.add_column(MemberTag.member_id)
+    q = q.join(Member,Member.id == MemberTag.member_id)
+    q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
+    q = q.group_by(MemberTag.tag_ident)
+
+    print "QUERY",q
+
+    # TODO BUG BKG We nuked the multi subscription line - becasue we nuked multiple subscriptions in the payment import
+    # Logic here was:
+    # left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
+    val =  q.all()
+
+    print "RECORDS",len(val)
+    print "FIRST",val[0]
+    print "FIRST",dir(val[0])
+
+    return val
+
+
+def getAccessControlList(resource):
+    """Given a Resource, return what tags/users can/cannot access a reource and why as a JSON structure"""
+    users = _getResourceUsers(resource)
+    jsonarr = []
+    resource_rec = Resource.query.filter(Resource.name==resource).first()
+    if resource_rec is None or not resource_rec.info_text:
+        resource_text = "See the Wiki for training information and resource manager contact info."
+        if resource_rec and resource_rec.info_url:
+            resrouce_text += " "+resource_rec.info_url
+    else:   
+        resource_text = resource_rec.info_text
+    c = {'board': "Contact board@makeitlabs.com with any questions.",
+         'orientation': 'Orientation is every Thursday at 7pm, or contact board@makeitlabs to schedule a convenient time',
+         'resource': "See the Wiki for training information and resource manager contact info."}
+    # TODO: Resource-specific contacts?
+    # Now that we know explicit allowed/denied per resource, provide an message
+    for u in users:
+        warning = ""
+        allowed = u['allowed']
+        if u['past_due'] == 'true':
+            warning = "Your membership expired (%s) and the grace period for access has ended. %s" % (u['expires_date'],c['board'])
+            allowed = 'false'
+        elif u['enabled'] == 0:
+            if u['reason'] is not None:
+                # This indicates an authorized admin has a specific reason for denying access to ALL resources
+                warning = "This account has been disabled for a specific reason: %s. %s" % (u['reason'],c['board'])
+            else:
+                warning = "This account is not enabled. It may be newly added and not have a waiver on file. %s" % c['board']
+            allowed = 'false'
+        elif u['allowed'] == 'denied':
+            # Special 'are you oriented' check
+            if resource == 'frontdoor':
+                warning = "You have a valid membership, but you must complete orientation for access. %s" % c['orientation']
+            else:
+                warning = "You do not have access to this resource. %s" % c['resource']
+        elif u['grace_period'] == 'true':
+            warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
+            as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
+        #print dict(u)
+        hashed_tag_id = authutil.hash_rfid(u['tag_ident'])
+        jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level']})
+    return json_dump(jsonarr)
 
 #####
 ##
