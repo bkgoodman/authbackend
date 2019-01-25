@@ -698,6 +698,10 @@ if __name__ == '__main__':
         member = Member(member="unconfirmed",email='unconfirmed@makeitlabs.com',
             active="true",email_confirmed_at=datetime.utcnow(),
             password=app.user_manager.hash_password("unconfirmed"))
+
+        member = ApiKey(name="testkey",username="testkey",
+            password=app.user_manager.hash_password("testkey"))
+
         db.session.add(member)
         db.session.commit()
 

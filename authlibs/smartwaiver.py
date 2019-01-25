@@ -31,6 +31,7 @@ import urllib
 import re
 import xml.etree.ElementTree as ET
 import ConfigParser
+from db_models import db, Waiver
 from StringIO import StringIO
 
 baseuri = "https://www.smartwaiver.com/api/v3/"
@@ -90,9 +91,25 @@ def waiverXML():
         print child.find('primary_email').text
         print child.find('participant_id').text
 
-if __name__ == "__main__":
-    # waiver_dict = {'api_key': '<<< ERRADICATE>>>'}
+def getLastWaiverId():
+    """Retrieve the most recently created (last) waiver from the database"""
+    #sqlstr = "select waiverid from waivers order by created_date desc limit 1"
+    #w = query_db(sqlstr,"",True)
+    w = Waiver.query.order_by(Waiver.created_date.desc()).limit(1).one_or_none()
+    if not w:
+      return None
+    return w.waiver_id
+
+def cli_waivers(cmd,**kwargs):
+		print "Updating waivers..."
+		waiversystem = {}
+		waiversystem['Apikey'] = kwargs['app'].globalConfig.Config.get('Smartwaiver','Apikey')
+    last_waiverid = getLastWaiverId()
+    waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid}
     waivers = getWaivers(waiver_dict)
-    #print waivers
-    #waiverXML()
+		print "Done."
+
+if __name__ == "__main__":
+		print "To do this, use:"
+		print "python ./authserver.py --command updatewaivers"
 

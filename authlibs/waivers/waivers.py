@@ -54,14 +54,6 @@ def waivers_update():
 ### Utilities
 ###
 
-def getLastWaiverId():
-    """Retrieve the most recently created (last) waiver from the database"""
-    #sqlstr = "select waiverid from waivers order by created_date desc limit 1"
-    #w = query_db(sqlstr,"",True)
-    w = Waiver.query.order_by(Waiver.created_date.desc()).limit(1).one_or_none()
-    if not w:
-      return None
-    return w.waiver_id
 
 def _addWaivers(waiver_list):
     """Add list-based Waiver data into the waiver table in the database"""
@@ -78,7 +70,7 @@ def _addWaivers(waiver_list):
 
 def addNewWaivers():
     """Check the DB to get the most recent waiver, add any new ones, return count added"""
-    last_waiverid = getLastWaiverId()
+    last_waiverid = waiver.getLastWaiverId()
     waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid}
     waivers = waiver.getWaivers(waiver_dict)
     return _addWaivers(waivers)

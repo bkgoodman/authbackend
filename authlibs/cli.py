@@ -8,6 +8,7 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from authlibs.db_models import db, ApiKey,  Role, UserRoles, Member, Resource, AccessByMember
 from authlibs.payments import cli_updatepayments
 from authlibs.membership import cli_syncmemberpayments
+from authlibs.smartwaiver import cli_waivers
 from flask_sqlalchemy import SQLAlchemy
 from init import GLOBAL_LOGGER_LEVEL
 from slackutils import cli_slack
@@ -157,6 +158,10 @@ commands = {
 	"slack":{
 		'usage':"slack -- Match slack users to members",
 		'cmd':cli_slack
+	},
+	"updatewaivers":{
+		'usage':"updatewaivers -- Update waiver data from smartwaivers",
+		'cmd':cli_waivers
 	}
 }
 
