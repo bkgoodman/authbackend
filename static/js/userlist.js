@@ -55,6 +55,20 @@ makePostCall("/authorize/membersearch/"+searchstr, {})
 							"<td>"+data[x]['firstname']+"</td>"+
 							"<td>"+data[x]['lastname']+"</td>"+
 							"<td>"+data[x]['email']+"</td>"+
+							"<td>";
+						el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['member']+"\">"+
+						 "<img style=\"height:16px\" src=\""+STATIC_URL+"logicon.png\" />"+
+						 "</a>";
+						el.innerHTML += "&nbsp;<a href=\""+MEMBER_URL+data[x]['member']+"\">"+
+						 "<img style=\"height:16px\" src=\""+STATIC_URL+"eye.png\" />"+
+						 "</a>";
+						el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['member']+"/access\">"+
+						 "&nbsp;<img style=\"height:16px\" src=\""+STATIC_URL+"lock.png\" />"+
+						 "</a>";
+						el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['member']+"/edit\">"+
+						 "&nbsp;<img style=\"height:16px\" src=\""+STATIC_URL+"edit.png\" />"+
+						 "</a>";
+						el.innerHTML += "</td>"+
 							"</tr>";
 						el.classList.add("memberrow");
 						lst.appendChild(el);

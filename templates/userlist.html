@@ -25,6 +25,8 @@
 <script type="text/javascript">var MEMBER_URL=null;</script>
 {% endif %}
 
+{# The helps the javascript code find the icons #}
+<script type="text/javascript">var STATIC_URL="{{ url_for("static",filename="") }}";</script>
 
 <script src="{{ url_for('static', filename='js/userlist.js') }}"></script>
 
@@ -48,9 +50,11 @@
       <th>First</th>
       <th>Last</th>
       <th>Email</th>
+      <th></th>
     </tr>
   </thead>
   <tbody id="memberrows">
+	{# This really isn't used - done in Javascript #}
 	{% for member in members %}
     <tr class="memberrow">
   {% if add_checkboxes %}
@@ -65,6 +69,9 @@
       <td>{{ member.firstname }}</td>
       <td>{{ member.lastname }}</td>
       <td>{{ member.email }}</td>
+      <td>{{ url_for("static","eye.png") }}
+      {{ url_for("static","lock.png") }}
+      {{ url_for("static","edit.png") }}</td>
 	{% endfor %}
     </tr>
   </tbody>
