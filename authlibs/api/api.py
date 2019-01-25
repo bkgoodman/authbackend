@@ -235,7 +235,7 @@ def _getResourceUsers(resource):
     """
     #users = db.session.execute(sqlstr)
 
-    q = db.session.query(MemberTag.tag_ident,Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
+    q = db.session.query(MemberTag,MemberTag.tag_ident,Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
     q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
     q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('-14 day'), 'true')], else_ = 'false').label('past_due'))
     q = q.add_column(case([((Subscription.expires_date < db.func.DateTime() & (Subscription.expires_date > db.func.DateTime('-13 day'))), 'true')], else_ = 'false').label('grace_period'))
@@ -244,6 +244,10 @@ def _getResourceUsers(resource):
     q = q.add_column(Member.member)
     q = q.add_column(MemberTag.member_id)
     q = q.join(Member,Member.id == MemberTag.member_id)
+
+    #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == db.session.query(Resource.id).filter(Resource.name == resource))))
+    ## TODO BUG FIX Line below works (but is wrong) - Line above breaks query
+    q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == 3)))
     q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
     q = q.group_by(MemberTag.tag_ident)
 
@@ -254,9 +258,13 @@ def _getResourceUsers(resource):
     # left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
     val =  q.all()
 
+    print "RECORDS",len(val)
+    print "FIRST",val[0]
+
     # TEMP TODO - SQLalchemy returning set of tuples - turn into a dict for now
     result =[]
-    for x in val:
+    for y in val:
+        x = y[1:]
         result.append({
             'tag_ident':x[0],
             'plan':x[1],
@@ -272,8 +280,8 @@ def _getResourceUsers(resource):
             'member_id':x[11],
             'last_accessed':"" # We may never want to report this for many reasons
             })
-    print "RECORDS",len(result)
-    print "FIRST",result[0]
+
+    # TODO Do we want to deal with adding people with implicit (Admin, RATT, HeadRM) permissions? This could be a LOT of extra queries
 
     return result
 
@@ -318,8 +326,8 @@ def getAccessControlList(resource):
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
         #print dict(u)
         hashed_tag_id = authutil.hash_rfid(u['tag_ident'])
-        jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level']})
-    return json_dump(jsonarr)
+        jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level'],'raw_tag_id':u['tag_ident']})
+    return json_dump(jsonarr,indent=2)
 
 #####
 ##
