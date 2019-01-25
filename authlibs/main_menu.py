@@ -1,5 +1,7 @@
 from flask import url_for
 
+''' If "img" is missing - will not appear in index page, only menu '''
+
 def main_menu():
 	return [
 		{
@@ -27,7 +29,7 @@ def main_menu():
 			'title':'Reports'
 		},
 		{
-			'url':url_for('waivers'),
+			'url':url_for('waivers.waivers'),
 			'img':url_for("static",filename="contract.png"),
 			'alt':"View Waiver Data",
 			'title':'Waivers'

@@ -68,6 +68,7 @@ def nameToFirstLast(namestr):
     last = " ".join(names[1:])
     return {'first': first, 'last': last}
 
+# TODO This doesn't return in UTC - It should
 def parse_datetime(dt):
   tz=pytz.timezone("America/New_York")
   try:

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#vim:tabstop=2:expandtab
 """
 This module handles Waiver signing information from 3rd party integrations, specifically SmartWaiver.
 
@@ -90,7 +91,7 @@ def waiverXML():
         print child.find('participant_id').text
 
 if __name__ == "__main__":
-    waiver_dict = {'api_key': '6acf8d5fd250853bff297078cfa7f9dc-292286'}
+    # waiver_dict = {'api_key': '<<< ERRADICATE>>>'}
     waivers = getWaivers(waiver_dict)
     #print waivers
     #waiverXML()

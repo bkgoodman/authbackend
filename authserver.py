@@ -41,7 +41,6 @@ from authlibs.init import authbackend_init, get_config, createDefaultUsers
 from authlibs import cli
 from authlibs import utilities as authutil
 from authlibs import payments as pay
-from authlibs import smartwaiver as waiver
 from authlibs import google_admin as google_admin
 from authlibs import membership as membership
 from json import dumps as json_dump
@@ -67,9 +66,7 @@ from authlibs.auth import auth
 from authlibs.members import members
 from authlibs.resources import resources as resource_pages
 from authlibs.logs import logs as log_pages
-
-waiversystem = {}
-waiversystem['Apikey'] = get_config().get('Smartwaiver','Apikey')
+from authlibs.waivers import waivers 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
@@ -428,31 +425,6 @@ def getDataDiscrepancies():
     sqlstr = "select member,expires_date,customerid,count(*) from payments group by member having count(*) > 1"
     stats['duplicate_payments'] = query_db(sqlstr)
     return stats
-
-def getLastWaiverId():
-    """Retrieve the most recently created (last) waiver from the database"""
-    sqlstr = "select waiverid from waivers order by created_date desc limit 1"
-    w = query_db(sqlstr,"",True)
-    return w['waiverid']
-
-def _addWaivers(waiver_list):
-    """Add list-based Waiver data into the waiver table in the database"""
-    new_waivers = []
-    for w in waiver_list:
-        new_waivers.append((w['waiver_id'],w['email'],w['firstname'],w['lastname'],w['created_date']))
-    if len(new_waivers) > 0:
-        cur = get_db().cursor()
-        cur.executemany('INSERT into waivers (waiverid,email,firstname,lastname,created_date) VALUES (?,?,?,?,?)', new_waivers)
-        get_db().commit()
-    return len(new_waivers)
-
-def addNewWaivers():
-    """Check the DB to get the most recent waiver, add any new ones, return count added"""
-    last_waiverid = getLastWaiverId()
-    waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid}
-    waivers = waiver.getWaivers(waiver_dict)
-    return _addWaivers(waivers)
-
 
 ########
 # Request filters
@@ -882,26 +854,6 @@ def create_routes():
         """(Controller) Display some pre-defined report options"""
         stats = getDataDiscrepancies()
         return render_template('reports.html',stats=stats)
-
-    # ------------------------------------------------------------
-    # Waiver controllers
-    # ------------------------------------------------------------
-
-    @app.route('/waivers', methods=['GET'])
-    @login_required
-    def waivers():
-        sqlstr = "select waiver_id,email,firstname,lastname,created_date from waivers"
-        waivers = query_db(sqlstr)
-        return render_template('waivers.html',waivers=waivers)
-
-    @app.route('/waivers/update', methods=['GET'])
-    @login_required
-    def waivers_update():
-        """(Controller) Update list of waivers in the database. Can take a while."""
-        updated = addNewWaivers()
-        flash("Waivers added: %s" % updated)
-        return redirect(url_for('waivers'))
-
     # ------------------------------------------------------------
     # Google Accounts and Welcome Letters
     # -----------------------------------------------------------
@@ -1154,12 +1106,15 @@ if __name__ == '__main__':
         if  args.command:
             cli.cli_command(extras,app=app,um=app.user_manager)
             sys.exit(0)
+        #g.main_menu=main_menu # Used by layout template
         authutil.kick_backend()
         create_routes()
         auth.register_pages(app)
         members.register_pages(app)
         resource_pages.register_pages(app)
         log_pages.register_pages(app)
+        waivers.register_pages(app)
+
         slackutils.create_routes(app)
         #print site_map(app)
     #app.login_manager.login_view="test"

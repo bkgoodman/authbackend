@@ -1,8 +1,10 @@
-{% extends "layout.html" %}
+{% extends "layout_bootstrap.html" %}
 {% block search %}
   <div class=body>
 	<div class="sectionhead">Waiver Data</div>
-    <a href="{{ url_for('waivers_update') }}">Update Waiver Data (takes 30+ seconds)</a>
+		{% if current_user.privs("Useredit") or current_user("Privs","Finance") %}
+    <a href="{{ url_for('waivers.waivers_update') }}">Update Waiver Data (May take a while)</a>
+		{% endif %}
     <p></p>
 	<table>
       <tr>
