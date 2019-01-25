@@ -12,7 +12,8 @@ defined_roles=['Admin','RATT','Finance','Useredit','HeadRM']
 db = SQLAlchemy()
 
 # This class mirrors the "member" class, but is used for 
-# Anonymous (i.e. logged-out) sessions
+# Anonymous (i.e. logged-out) sessions.
+# NOT stored in DB. Must mimic stuff in "Member" class
 class AnonymousMember(AnonymousUserMixin):
     member=None
     email=None

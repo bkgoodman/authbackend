@@ -15,7 +15,7 @@ def main_menu():
 			'title':'Payment System'
 		},
 		{
-			'url':url_for('resources'),
+			'url':url_for('resources.resources'),
 			'img':url_for("static",filename="building.png"),
 			'alt':"View, Create or Modify Resources",
 			'title':'Resources'

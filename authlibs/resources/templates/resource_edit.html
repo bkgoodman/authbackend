@@ -2,23 +2,43 @@
 {% block body %}
 <div>
 <div class="sectionhead">Edit Resource</div>
-  <form action={{ url_for('resources.resource_update',resource=resource.name) }} method="post">
-	<table>
-	  <tr><td>Name: {{ resource.name }}</td></tr>
-	  <tr><td>Description: <input type=text size=25 name="rdesc" value="{{ resource.description }}"></td></tr>
-	  <tr><td>Owner Email: <input type=text size=25 name="remail" value="{{ resource.owneremail }}"></td></tr>
-	  <tr><td>Public Slack Channel: <input type=text size=50 name="slack_chan" value="{{ resource.slack_chan }}"></td></tr>
-	  <tr><td>Admin Slack Channel: <input type=text size=50 name="slack_admin_chan" value="{{ resource.slack_admin_chan }}"></td></tr>
-	  <tr><td>Info URL: <input type=text size=80 name="info_url" value="{{ resource.info_url }}"></td></tr>
-	  <tr><td>Short Info Text: <input type=text size=80 name="info_text" value="{{ resource.info_text }}"></td></tr>
-	  <tr><td>Slack Info Text: <input type=text name="slack_info_text" value="{{ resource.slack_info_text }}"></td></tr>
-	</table>
-	<input type=submit value="Make changes">
+  <form action={{ url_for('resources.resource_update',resource=rec.id) }} method="POST">
+	{% include 'form.html' %}
+	{% if readonly is not defined or not readonly %}
+	<input type=submit class="btn btn-primary" value="Make changes">
+	{% endif %}
   </form>
-  <div class="sectionhead">Delete resource:
-  <form action={{ url_for('resources.resource_delete',resource=resource.name) }} method="post">
-	<p></p>
-	<input class="delete" type=submit value="Delete resource">
-  </form>
+	{% if readonly is not defined or not readonly %}
+  <div class="sectionhead">
+	  <p />
   </div>
+
+  <!-- Button trigger modal -->
+<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+  Delete Resource
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+	      Are you really sure you want to delete {{ rec.name }}??
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+	  <form action={{ url_for('resources.resource_delete',resource=rec.id) }} method="post">
+		<input class="btn btn-danger" type=submit value="Delete">
+	  </form>
+      </div>
+    </div>
+  </div>
+</div>
+  {% endif %} <!-- We have premissions to delete -->
 {% endblock %}

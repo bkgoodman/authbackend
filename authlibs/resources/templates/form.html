@@ -23,7 +23,7 @@
 {% endif %}
 
 
-{% if readonly  is defined %}
+{% if readonly is defined and readonly  %}
 {% set ro="readonly" %}
 {% endif %}
 
@@ -37,7 +37,7 @@
 			{% set ph = placeholder %}
 			{% endif %}
       <label for="input_{{ name }}">{{ label }}</label>
-      <input type="{{ type }}" {{ ro }} class="form-control" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ rec[name] }}">
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ rec[name] }}">
 {%- endmacro %}
 
 <div class="container">
@@ -48,12 +48,12 @@
 	</div>
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('desc',"Description",'Descripton of resource') }}
+			{{ input('description',"Description",'Descripton of resource') }}
     </div>
   </div>
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('email',"RM Email group/alias",'resource@makeitlabs.com',type="email") }}
+			{{ input('owneremail',"RM Email group/alias",'resource@makeitlabs.com',type="email") }}
     </div>
   </div>
   <div class="form-row">
@@ -61,7 +61,7 @@
 			{{ input('slack_chan',"Public Slack Channel",'#resource-users') }}
     </div>
     <div class="form-group col-md-6">
-			{{ input('slack_admin',"Admin Slack Channel",'#resource-admin') }}
+			{{ input('slack_admin_chan',"Admin Slack Channel",'#resource-admin') }}
     </div>
   </div>
   <div class="form-row">
@@ -76,7 +76,7 @@
   </div>
   <div class="form-row">
     <div class="form-group col-md-12">
-			{{ input('slack_text',"Information Text (Longer, for RATT or Email)",'Click this URL for training classes...') }}
+			{{ input('slack_info_text',"Information Text (Longer, for RATT or Email)",'Click this URL for training classes...') }}
     </div>
   </div>
 </div>

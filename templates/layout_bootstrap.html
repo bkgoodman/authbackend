@@ -50,6 +50,7 @@
 	<img height="30px" src="{{ url_for('static',filename='authit.png') }}"/>
 		</a>
   </span>
+{% if current_user.is_authenticated %}
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
@@ -88,6 +89,7 @@
 	{{ current_user.email }}</p>
     {% endif %}
   </div>
+{% endif %}
 </nav>
 <!-- NAVBAR --> 
 
@@ -130,7 +132,7 @@
 						<div class="container">
 							<div class="row">
 								<div class="col">
-									{% if current_user %}
+									{% if current_user and current_user.email and current_user.is_authenticated%}
 									<address>{{ current_user.email }}</address>
 								</div>
 								<div class="col">
