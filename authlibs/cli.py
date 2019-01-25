@@ -9,6 +9,7 @@ from authlibs.db_models import db, ApiKey,  Role, UserRoles, Member, Resource, A
 from authlibs.payments import cli_updatepayments
 from authlibs.membership import cli_syncmemberpayments
 from authlibs.smartwaiver import cli_waivers
+from authlibs.api import api
 from flask_sqlalchemy import SQLAlchemy
 from init import GLOBAL_LOGGER_LEVEL
 from slackutils import cli_slack
@@ -31,21 +32,6 @@ def addadmin(cmd,**kwargs):
   user.roles.append(admin_role)
   db.session.commit()
   app.logger.debug("ADD USER "+str(cmd[1]))
-
-def addapikey(cmd,**kwargs):
-  print "CMD IS",cmd
-  apikey = ApiKey(username=cmd[1],name=cmd[2])
-  if (len(cmd) >=4):
-    apikey.password=cmd[3]
-  else:
-    apikey.password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
-    print "API Key is",apikey.password
-  db.session.add(apikey)
-  db.session.commit()
-  logger.info("Added API key "+str(cmd[1]))
-
-def hashpw(cmd,**kwargs):
-  print kwargs['um'].hash_password(cmd[1])
 
 def deleteadmin(cmd,**kwargs):
   Member.query.filter(User.email==cmd[1]).delete()
@@ -105,15 +91,23 @@ commands = {
 	},
 	"addapikey":{
 		'usage':"addapikey {name} {username} [password]  -- Add API user w/ login token",
-		'cmd':addapikey
+		'cmd':api.cli_addapikey
+	},
+	"changeapikey":{
+		'usage':"change {name} {password}   -- Chance API key password",
+		'cmd':api.cli_changeapikey
+	},
+	"deleteapikey":{
+		'usage':"deleteapikey {name}  -- Delete API key password",
+		'cmd':api.cli_deleteapikey
+	},
+	"listapikeys":{
+		'usage':"listapikeys  -- Show API keys",
+		'cmd':api.cli_listapikeys
 	},
 	"listadmins":{
 		'usage':"listadmins -- show admin users",
 		'cmd':showadmins
-	},
-	"hashpw":{
-		'usage':"hashpw {password} -- Return a hashed password",
-		'cmd':hashpw
 	},
 	"passwd":{
 		'usage':"passwd {memberid} [password]-- Change password",

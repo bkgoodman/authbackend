@@ -6,13 +6,14 @@ from flask import Flask, request, session, g, redirect, url_for, \
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs
+from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey
 from functools import wraps
 import json
 #from .. import requireauth as requireauth
 from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
+from json import dumps as json_dump
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -23,6 +24,14 @@ logger.setLevel(GLOBAL_LOGGER_LEVEL)
 # You must call this modules "register_pages" with main app's "create_rotues"
 blueprint = Blueprint("api", __name__, template_folder='templates', static_folder="static",url_prefix="/api")
 
+
+def authenticate():
+    """Sends a 401 response that enables basic auth"""
+    return Response(
+    'Could not verify your access level for that URL.\n'
+    'You have to login with proper credentials', 401,
+    {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
 # This is to allow non "member" accounts in via API
 # NOTE we are decorating the one we are importing from flask-user
 def api_only(f):
@@ -30,19 +39,30 @@ def api_only(f):
     def decorated(*args, **kwargs):
         auth = request.authorization
         if not auth:
+            print "RETURNING 401"
             return error_401()
         if not check_api_access(auth.username, auth.password):
+            print "CHECK API ACCESS FAILED"
             return authenticate() # Send a "Login required" Error
+        print "SUCCESS"
         g.apikey=auth.username
         return f(*args, **kwargs)
     return decorated
 
 
 def check_api_access(username,password):
-    if password == "" or password is None or not ApiKey.query.filter_by(username=username,password=password).first():
+    a= ApiKey.query.filter_by(username=username).one_or_none()
+    if not a:
+        print "NO USER"
         return False
-    else:
+    if not a.password:
+        print "NO PASSWORD"
+        return False
+    if current_app.user_manager.verify_password( password,a.password):
         return True
+    else:
+        print "HASH FAILED"
+        return False
 
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
@@ -189,6 +209,49 @@ def api_test():
 				return "Yay, right host"
 		else:
 				return "Boo, wrong host"
+
+def error_401():
+    """Sends a 401 response that enables basic auth"""
+    return Response(
+    'What the hell. .\n'
+    'You have to login with proper credentials', 401,
+    {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+#####
+##
+##  CLI handlers for API access
+##
+#####
+
+def cli_addapikey(cmd,**kwargs):
+  print "CMD IS",cmd
+  apikey = ApiKey(username=cmd[1],name=cmd[2])
+  if (len(cmd) >=4):
+    apikey.password=cmd[3]
+  else:
+    apikey.password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
+    print "API Key is",apikey.password
+  apikey.password = current_app.user_manager.hash_password( apikey.password)
+  db.session.add(apikey)
+  db.session.commit()
+  logger.info("Added API key "+str(cmd[1]))
+
+def cli_deleteapikey(cmd,**kwargs):
+  apikey = ApiKey.query.filter(ApiKey.name == cmd[1]).one()
+  db.session.delete(apikey)
+  db.session.commit()
+  logger.info("API key deleted"+str(cmd[1]))
+
+def cli_changeapikey(cmd,**kwargs):
+  apikey = ApiKey.query.filter(ApiKey.name == cmd[1]).one()
+  apikey.password = current_app.user_manager.hash_password( cmd[2])
+  db.session.commit()
+  logger.info("Change API key password"+str(cmd[1]))
+
+def cli_listapikeys(cmd,**kwargs):
+  apikey = ApiKey.query.all()
+  for x in apikey:
+      print "Name:",x.name,"Username:",x.username
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
