@@ -32,8 +32,9 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from datetime import timedelta
 from authlibs import utilities as authutil
-from authlibs.db_models import db, ApiKey, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver
+from authlibs.db_models import db, ApiKey, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver, Subscription
 import json
 
 
@@ -698,11 +699,21 @@ if __name__ == '__main__':
         member = Member(member="unconfirmed",email='unconfirmed@makeitlabs.com',
             active="true",email_confirmed_at=datetime.utcnow(),
             password=app.user_manager.hash_password("unconfirmed"))
-
-        member = ApiKey(name="testkey",username="testkey",
-            password=app.user_manager.hash_password("testkey"))
-
         db.session.add(member)
+
+        apikey = ApiKey(name="testkey",username="testkey",
+            password=app.user_manager.hash_password("testkey"))
+        db.session.add(apikey)
+
+        ## Fake Payment Data
+        sub = Subscription(paysystem="stripe", subid="test_5000", customerid="cus_test", name="Testy Testerson",
+                email="test@example.com", plan="pro",expires_date=datetime.now()-timedelta(days=8),member_id=5000,active=1,membership="stripe:test:5000")
+        db.session.add(sub)
+
+        sub = Subscription(paysystem="stripe", subid="test_5002", customerid="cus_test2", name="William Tester",
+                email="tester@foo.com", plan="pro",expires_date=datetime.now()-timedelta(days=30),member_id=5002,active=1,membership="stripe:test:5002")
+        db.session.add(sub)
+
         db.session.commit()
 
     if not args.overwrite:

@@ -237,15 +237,18 @@ def _getResourceUsers(resource):
 
     q = db.session.query(MemberTag,MemberTag.tag_ident,Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
     q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
-    q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('-14 day'), 'true')], else_ = 'false').label('past_due'))
-    q = q.add_column(case([((Subscription.expires_date < db.func.DateTime() & (Subscription.expires_date > db.func.DateTime('-13 day'))), 'true')], else_ = 'false').label('grace_period'))
-    q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('+2 day'), 'true')], else_ = 'false').label('expires_soon'))
+    # Disable user it no subscription at all???
+    #q = q.add_column(case([(Subscription.active==None,'true'),(Subscription.expires_date < db.func.DateTime('-14 day'), 'true')], else_ = 'false').label('past_due'))
+    # TODO FIX THIS
+    #q = q.add_column(Subscription.expires_date < db.func.DateTime("now","-14 days")) good logic - but YEILDS wrong type results
+    q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now','-14 days')), 'true')], else_ = 'false').label('past_due'))
+    q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now') & (Subscription.expires_date > db.func.DateTime('now','-13 day'))), 'true')], else_ = 'false').label('grace_period'))
+    q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('now','+2 days'), 'true')], else_ = 'false').label('expires_soon'))
     q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
     q = q.add_column(Member.member)
     q = q.add_column(MemberTag.member_id)
     q = q.outerjoin(Member,Member.id == MemberTag.member_id)
 
-    #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == 5000)))
     rid = db.session.query(Resource.id).filter(Resource.name == resource)
     q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == rid)))
     q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
@@ -259,12 +262,12 @@ def _getResourceUsers(resource):
     val =  q.all()
 
     print "RECORDS",len(val)
-    print "FIRST",val[0]
 
     # TEMP TODO - SQLalchemy returning set of tuples - turn into a dict for now
     result =[]
     for y in val:
         x = y[1:]
+        print "REC",x
         result.append({
             'tag_ident':x[0],
             'plan':x[1],
@@ -306,7 +309,10 @@ def getAccessControlList(resource):
         warning = ""
         allowed = u['allowed']
         if u['past_due'] == 'true':
-            warning = "Your membership expired (%s) and the grace period for access has ended. %s" % (u['expires_date'],c['board'])
+            if 'expires_date' in u:
+                warning = "Your membership expired (%s) and the grace period for access has ended. %s" % (u['expires_date'],c['board'])
+            else:
+                warning = "You do not have a current subscription. Check your payment plan. %s" % (c['board'])
             allowed = 'false'
         elif u['enabled'] == 0:
             if u['reason'] is not None:
