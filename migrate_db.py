@@ -668,7 +668,7 @@ if __name__ == '__main__':
         db.session.add(member)
         member.roles.append(Role.query.filter(Role.name=='Admin').one())
 
-        member = Member(member="financce", email='finance@makeitlabs.com',
+        member = Member(member="finance", email='finance@makeitlabs.com',
             password=app.user_manager.hash_password("finance"),
             active="true",email_confirmed_at=datetime.utcnow())
         db.session.add(member)

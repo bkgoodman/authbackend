@@ -27,6 +27,7 @@
 
 {# Define variables to help javascript code find path locations #}
 <script type="text/javascript">var STATIC_URL="{{ url_for("static",filename="") }}";</script>
+<script type="text/javascript">var MEMBER_SEARCH_URL="{{ url_for("authorize.membersearch",search="") }}";</script>
 
 <script src="{{ url_for('static', filename='js/userlist.js') }}"></script>
 
@@ -34,6 +35,7 @@
   <input type="text" class="form-control" name="search" oninput="changedDropdownText();" id="searchfield1" placeholder="" aria-label="Example text with button addon" aria-describedby="button-addon1">
 	<div class="input-group-append" id="button-addon4">
 		<button class="btn btn-outline-secondary" onClick="DoSearchButton();" type="button">Search</button>
+		<button class="btn btn-outline-secondary" onClick="DoAllButton();" type="button">All</button>
 	</div>
 </div>
 

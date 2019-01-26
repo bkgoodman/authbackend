@@ -15,19 +15,26 @@ function DoSearchButton() {
 	changedDropdownText();
 }
 
+function DoAllButton() {
+	queryMembers("*");
+}
+
 // and here a call example
 function changedDropdownText() {
-searchstr=document.getElementById("searchfield1").value;
-if (searchstr.length >= 3) {
-	document.getElementById("entermatchtext").setAttribute("style","display:none");
-	document.getElementById("membertable").setAttribute("style","display:table");
-} else {
-	document.getElementById("entermatchtext").setAttribute("style","display:block");
-	document.getElementById("membertable").setAttribute("style","display:none");
-	return;
+	searchstr=document.getElementById("searchfield1").value;
+	if (searchstr.length >= 3) {
+		document.getElementById("entermatchtext").setAttribute("style","display:none");
+		document.getElementById("membertable").setAttribute("style","display:table");
+	} else {
+		document.getElementById("entermatchtext").setAttribute("style","display:block");
+		document.getElementById("membertable").setAttribute("style","display:none");
+		return;
+	}
+	queryMembers(searchstr);
 }
-if (searchstr != "") 
-makePostCall("/authorize/membersearch/"+searchstr, {})
+
+function queryMembers(searchstr) {
+makePostCall(MEMBER_SEARCH_URL+searchstr, {})
     .success(function(data){
 
 					lst=document.getElementById("memberrows");
