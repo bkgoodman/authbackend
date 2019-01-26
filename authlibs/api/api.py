@@ -245,17 +245,11 @@ def _getResourceUsers(resource):
     q = q.add_column(MemberTag.member_id)
     q = q.outerjoin(Member,Member.id == MemberTag.member_id)
 
-    #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == db.session.query(Resource.id).filter(Resource.name == resource))))
-    ## TODO BUG FIX Line below works (but is wrong) - Line above breaks query
-    #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == 3)))
-
-
-    #TRail
-    q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == 5000)))
-    #q = q.outerjoin(Resource, (AccessByMember.resource_id == Resource.id))
+    #q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == 5000)))
+    rid = db.session.query(Resource.id).filter(Resource.name == resource)
+    q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == rid)))
     q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
     q = q.group_by(MemberTag.tag_ident)
-    #q = q.filter(Resource.id == 5000)
 
     print "QUERY",q
 
