@@ -136,8 +136,18 @@ def getResourcePrivs(resource=None,member=None,resourcename=None,memberid=None):
     return (level,levelText)
 
 # TODO
-def log(member_id=None,resource_id=None,eventtype=0):
-    db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id))
+# (Default)  "commit=1" to log and commit immediatley. THis will use a separate DB context as to
+# not interfere with anything else.
+# Use  "commit=0" will NOT commit. User MUST commit the default db.session to commit.
+def log(eventtype=0,message=None,member_id=None,resource_id=None,text=None,commit=1):
+    logsess = db.session
+    if commit:
+        logsess = db.create_scoped_session(
+        options=dict(bind=db.get_engine(app, 'logs'),
+                     binds={}))
+    logsess.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtype,message=message))
+    if commit:
+        logsess.commit()
 
 # RULE - only call this from web APIs - not internal functions
 # Reason: If we have calls or scripts that act on many records,

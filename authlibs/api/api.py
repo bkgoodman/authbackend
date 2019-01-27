@@ -14,6 +14,7 @@ from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
 from json import dumps as json_dump
+from json import loads as json_loads
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -237,10 +238,7 @@ def _getResourceUsers(resource):
 
     q = db.session.query(MemberTag,MemberTag.tag_ident,Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
     q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
-    # Disable user it no subscription at all???
-    #q = q.add_column(case([(Subscription.active==None,'true'),(Subscription.expires_date < db.func.DateTime('-14 day'), 'true')], else_ = 'false').label('past_due'))
-    # TODO FIX THIS
-    #q = q.add_column(Subscription.expires_date < db.func.DateTime("now","-14 days")) good logic - but YEILDS wrong type results
+    # TODO Disable user it no subscription at all??? Only with other "plantype" logic to figure out "free" memberships
     q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now','-14 days')), 'true')], else_ = 'false').label('past_due'))
     q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now') & (Subscription.expires_date > db.func.DateTime('now','-13 day'))), 'true')], else_ = 'false').label('grace_period'))
     q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('now','+2 days'), 'true')], else_ = 'false').label('expires_soon'))
@@ -254,20 +252,18 @@ def _getResourceUsers(resource):
     q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
     q = q.group_by(MemberTag.tag_ident)
 
-    print "QUERY",q
-
     # TODO BUG BKG We nuked the multi subscription line - becasue we nuked multiple subscriptions in the payment import
     # Logic here was:
     # left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
     val =  q.all()
 
-    print "RECORDS",len(val)
+    #print "RECORDS",len(val)
 
     # TEMP TODO - SQLalchemy returning set of tuples - turn into a dict for now
     result =[]
     for y in val:
         x = y[1:]
-        print "REC",x
+        #print "REC",x
         result.append({
             'tag_ident':x[0],
             'plan':x[1],

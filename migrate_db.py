@@ -706,13 +706,38 @@ if __name__ == '__main__':
         db.session.add(apikey)
 
         ## Fake Payment Data
+        # Will expire soon
         sub = Subscription(paysystem="stripe", subid="test_5000", customerid="cus_test", name="Testy Testerson",
                 email="test@example.com", plan="pro",expires_date=datetime.now()-timedelta(days=8),member_id=5000,active=1,membership="stripe:test:5000")
         db.session.add(sub)
 
+        # Expired
         sub = Subscription(paysystem="stripe", subid="test_5002", customerid="cus_test2", name="William Tester",
                 email="tester@foo.com", plan="pro",expires_date=datetime.now()-timedelta(days=30),member_id=5002,active=1,membership="stripe:test:5002")
         db.session.add(sub)
+
+        # Current (No expiration)
+        sub = Subscription(paysystem="stripe", subid="test_5003", customerid="cus_test3", name="William Tester",
+                email="tester@foo.com", plan="pro",member_id=5003,active=1,membership="stripe:test:5003")
+        db.session.add(sub)
+
+        # 5003 - Example McTester has no sub data at all
+
+        # Expires Soon
+        sub = Subscription(paysystem="stripe", subid="test_5004", customerid="cus_test4", name="O Mcooldold",
+                email="oldy.mcold@foo.com", plan="pro",expires_date=datetime.now()+timedelta(days=6),member_id=5004,active=1,membership="stripe:test:5004")
+        db.session.add(sub)
+
+        if args.nomigrate:
+            # Since we don't have any other data in here - create a "frontdoor" entry
+            res=Resource(id=1,name="frontfoor",description="Building Access",owneremail="board@makeitlabs.com")
+            db.session.add(res)
+            res=Resource(name="laser",description="Rabbit 80-watt",owneremail="laser@makeitlabs.com")
+            db.session.add(res)
+            res=Resource(name="fullspectrum",description="Full Spectrum 80-watt laser",owneremail="laser@makeitlabs.com")
+            db.session.add(res)
+            res=Resource(name="autolift",description="Auto lift",owneremail="lift@makeitlabs.com")
+            db.session.add(res)
 
         db.session.commit()
 

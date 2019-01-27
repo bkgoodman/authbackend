@@ -5,6 +5,11 @@ class RATTBE_LOGEVENT_UNKNOWN:
     id= 0
     desc= 'Unknown Event'
 
+class RATTBE_LOGEVENT_COMMENT:
+    id=1
+    desc="Comment"
+
+
 class RATTBE_LOGEVENT_CONFIG_OTHER:
     id=1000
     desc='Other Event'
@@ -24,7 +29,6 @@ class RATTBE_LOGEVENT_CONFIG_PAY_MEMBER_IMPORT_ERR:
 class RATTBE_LOGEVENT_CONFIG_PAY_MEMBER_REASSIGN:
     id=1005
     desc='Payment Reassignment'
-
 
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
@@ -49,6 +53,7 @@ class RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN:
 class RATTBE_LOGEVENT_SYSTEM_POWER_OTHER:
     id=2005
     desc='Other Power Event'
+
 
 
 class RATTBE_LOGEVENT_TOOL_OTHER:
@@ -131,6 +136,8 @@ class RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED:
 class RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE:
     id=4004
     desc='Resource privlage change'
+
+
 
 
 def get_events():

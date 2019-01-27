@@ -488,6 +488,14 @@ def create_routes():
             p.append({'member':x[3],'resource':x[1],'priv':AccessByMember.ACCESS_LEVEL[int(x[2])]})
 
         return render_template('admin_page.html',privs=p,roles=roles)
+
+
+
+    ##
+    ## TOOLS
+    ##
+
+
     @app.route('/tools/<string:id>', methods=['GET','POST'])
     @app.route('/tools', methods=['GET','POST'])
     @login_required

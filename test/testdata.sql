@@ -22,6 +22,8 @@ INSERT INTO tools VALUES(7,'testtool','simhostid',1);
 INSERT INTO members VALUES(5000,'Testy.Testerson','Testy.Testerson@makeitlabs.com','test@example.com','Testy','Testy.Testerson','Testerson',NULL,'hobbyist',NULL,NULL,1,'Testy','Testy Testerson','2017-08-03 06:35:09.000000',NULL,NULL,"$2b$12$PWuYZjVPAg/KvsKQypqw/OXzhdbW7R.r5VcAD9CPI.DMRXAAJNcKy");
 INSERT INTO members VALUES(5001,'First.User','fuser@makeitlabs.com','fu@example.com','First','fuser','User',NULL,'pro',NULL,NULL,'true','First','First User','2017-08-03 06:35:09.000000',NULL,NULL,"$2b$12$PWuYZjVPAg/KvsKQypqw/OXzhdbW7R.r5VcAD9CPI.DMRXAAJNcKy");
 INSERT INTO members VALUES(5002,'bill.tester','billtester@makeitlabs.com','tester@foo.com','Bill','bill.tester','Tester',NULL,'pro',NULL,NULL,'true','Bill','Bill Tester','2017-08-03 06:35:09.000000',NULL,NULL,"$2b$12$PWuYZjVPAg/KvsKQypqw/OXzhdbW7R.r5VcAD9CPI.DMRXAAJNcKy");
+INSERT INTO members VALUES(5003,'Example.McTester','emt@makeitlabs.com','emt@example.com','Example','e.mctester','McTester',NULL,'pro',NULL,NULL,'true','Exy','Example McTester','2017-08-03 06:35:09.000000',NULL,NULL,"$2b$12$PWuYZjVPAg/KvsKQypqw/OXzhdbW7R.r5VcAD9CPI.DMRXAAJNcKy");
+INSERT INTO members VALUES(5004,'Oldy.McOldOld','oldy.mcoldold@makeitlabs.com','omoo@example.com','Oldy','o.mcoo','McOldOld',NULL,'pro',NULL,NULL,'true','Oldy','Oldy McOldOld','2017-08-03 06:35:09.000000',NULL,NULL,"$2b$12$PWuYZjVPAg/KvsKQypqw/OXzhdbW7R.r5VcAD9CPI.DMRXAAJNcKy");
 
 
 /* Add Fake Resrouces */
@@ -30,6 +32,8 @@ INSERT INTO resources VALUES(5000,'TestResource','TestData','anyone@example.com'
 INSERT INTO tags_by_member VALUES(5000,'1111111111','rfid','keyfob2',NULL,'Testy.Testerson',5000);
 INSERT INTO tags_by_member VALUES(5001,'2222222222','rfid','keyfob2',NULL,'First.User',5001);
 INSERT INTO tags_by_member VALUES(5002,'3333333333','rfid','keyfob2',NULL,'bill.tester',5002);
+INSERT INTO tags_by_member VALUES(5003,'4444444444','rfid','keyfob2',NULL,'Example.McTester',5003);
+INSERT INTO tags_by_member VALUES(5004,'4545454545','rfid','keyfob2',NULL,'Oldy.McOldOld',5004);
 INSERT INTO waivers VALUES(5000,'56915b7086917','Testy','Testerson','test@example.com',5000,'2016-01-09 19:11:44.000000');
 
 /* Some of these reference "real" database records - they might get purged if we didn't migrate

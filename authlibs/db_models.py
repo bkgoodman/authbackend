@@ -230,6 +230,7 @@ class UsageLog(db.Model):
     activeSecs = db.Column(db.Integer())
     enabledSecs = db.Column(db.Integer())
 
+# TODO I'm pretty sure this class isn't used at all (???)
 class OAuth(OAuthConsumerMixin, db.Model):
     __tablename__ = 'oauth'
     __bind_key__ = 'main'
