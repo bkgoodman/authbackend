@@ -3,14 +3,15 @@
   <div class=body>
 	<div><a href="{{ url_for('members.members') }}">(Back to Members list)</a></div>
 
-	<form action="{{ url_for('members.member_edit',id=member.member) }}" method="post">
+	<form action="{{ url_for('members.member_edit',id=member.id) }}" method="post">
 		
 		<div class="form-group row">
 				<label class="col-sm-2 col-form-label" for="memberid_field">Member ID</label>
-				<div class="col-sm-4">
-					{{ member.member }}
+				<div class="col-sm-6">
+					<input class="form-control" name="member" id="member_field" type="text" value="{{ member.member }}">
+				<small class="form-text text-muted col-sm-12">Changing will <i>not</i> create a new Google account</small>
 				</div>
-				</div>
+					<label class="col-sm-2 col-form-label">@makeitlabs.com</label>
 		</div>
 		<div class="form-group row">
 				<label class="col-sm-2 col-form-label" for="firstname_field">First name</label>

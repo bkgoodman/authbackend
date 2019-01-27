@@ -1,7 +1,6 @@
-{% extends "layout.html" %}
+{% extends "layout_bootstrap.html" %}
 {% block search %}
   <div class=body>
-	<div class="sectionhead">Logs</div>
 
     <h3>Global Roles</h3>
 	<table class="bkg">
@@ -13,7 +12,7 @@
       </tr>
       {% for r in roles %}
 	  <tr>
-		<td><a href="{{ url_for('member_editaccess',id=r.member.member) }}">{{ r.member.member}}</a></td>
+		<td><a href="{{ url_for('members.member_editaccess',id=r.member.member) }}">{{ r.member.member}}</a></td>
 		<td>{{ r.member.first }}</td>
 		<td>{{ r.member.last }}</td>
 		<td>{{ r.role }}</td>
@@ -30,7 +29,7 @@
 	      </tr>
       {% for p in privs %}
 	  <tr>
-		  <td><a href="{{ url_for('member_editaccess',id=p.member) }}">{{ p.member}}</a></td>
+		  <td><a href="{{ url_for('members.member_editaccess',id=p.member) }}">{{ p.member}}</a></td>
 		<td>{{ p.resource }}</td>
 		<td>{{ p.priv }}</td>
 	  </tr>

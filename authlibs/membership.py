@@ -233,6 +233,31 @@ def addMissingMembers_new(subs):
     return len(users)    
 
 
+# ------------------------------------------------------------
+# Google Accounts and Welcome Letters
+# This appears to be UNUSED???
+# -----------------------------------------------------------
+
+def _createNewGoogleAccounts():
+    """Check for any user created in the last 3 days who does not have a Makeitlabs.com account"""
+    sqlstr = "select m.member,m.firstname,m.lastname,p.email from members m inner join payments p on m.member=p.member where p.created_date >= Datetime('now','-3 day') and p.expires_date >= Datetime('now')"
+    newusers = query_db(sqlstr)
+    for n in newusers:
+        # Using emailstr search to get around wierd hierarchical name mismatch
+        emailstr = "%s.%s@makeitlabs.com" % (n['firstname'],n['lastname'])
+        users = google_admin.searchEmail(emailstr)
+        if users == []:
+            # TODO: Change this to logging
+            print "Member %s may need an account (%s.%s)" % (n['member'],n['firstname'],n['lastname'])
+            ts = time.time()
+            password = "%s-%d" % (n['lastname'],ts - (len(n['email']) * 314))
+            print "Create with password %s and email to %s" % (password,n['email'])
+            user = google_admin.createUser(n['firstname'],n['lastname'],n['email'],password)
+            google_admin.sendWelcomeEmail(user,password,n['email'])
+            print("Welcome email sent")
+        else:
+            print "Member appears to have an account: %s" % users
+
 
 # Run with: python ./authserver.py --command syncmemberpayments
 def cli_syncmemberpayments(cmd,**kwargs):

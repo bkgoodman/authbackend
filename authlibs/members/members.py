@@ -97,10 +97,13 @@ def member_edit(id):
 				flash ("Undone.")
 		elif request.method=="POST" and 'SaveChanges' in  request.form:
 				flash ("Changes Saved (Please Review!)")
-				m=Member.query.filter(Member.member==mid).first()
+				m=Member.query.filter(Member.id==mid).one()
 				f=request.form
+				m.member= f['member']
 				m.firstname= f['firstname']
 				m.lastname= f['lastname']
+				m.plan= f['plan']
+				m.payment= f['payment']
 				if f['phone'] == "None" or f['phone'].strip() == "":
 						m.phone=None
 				else:
@@ -111,7 +114,7 @@ def member_edit(id):
 				
 		#(member,subscription)=Member.query.outerjoin(Subscription).filter(Member.member==mid).first()
 		member=db.session.query(Member,Subscription)
-		member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid)
+		member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.id==mid)
 		r = member.one_or_none()
                 if not r:
                     flash("Member not found")
@@ -343,6 +346,42 @@ def member_tagdelete(id,tag_ident):
 			authutil.kick_backend()
 			flash("If that tag was associated with the current user, it was removed")
 		return redirect(url_for('member_tags',id=mid))
+#----------
+#
+# Brad's test stuff
+#
+#------------
+
+@blueprint.route('/test', methods=['GET'])
+def bkgtest():
+    names=['frontdoor','woodshop','laser']
+    result={}
+    for n in names:
+        #result[n]=getResourcePrivs(Resource.query.filter(Resource.name==n).one())
+        result[n]=getResourcePrivs(resourcename=n)
+    return json_dump(result,indent=2), 200, {'Content-type': 'application/json'}
+
+@blueprint.route('/admin', methods=['GET'])
+@login_required
+@roles_required('Admin')
+def admin_page():
+    roles=Role.query.all()
+    admins =Member.query.join(UserRoles,UserRoles.member_id == Member.id).join(Role,Role.id == UserRoles.role_id)
+    admins = admins.add_column(Role.name).group_by(Member.member).all()
+    roles=[]
+    for x in admins:
+        roles.append({'member':x[0],'role':x[1]})
+
+    privs=AccessByMember.query.filter(AccessByMember.level>0).join(Member,Member.id==AccessByMember.member_id)
+    privs = privs.join(Resource,Resource.id == AccessByMember.resource_id)
+    privs = privs.add_columns(Resource.name,AccessByMember.level,Member.member)
+    privs = privs.all()
+    p=[]
+    for x in privs:
+        print "MEMBER",x[3]
+        p.append({'member':x[3],'resource':x[1],'priv':AccessByMember.ACCESS_LEVEL[int(x[2])]})
+
+    return render_template('admin_page.html',privs=p,roles=roles)
 
 def _createMember(m):
     """Add a member entry to the database"""

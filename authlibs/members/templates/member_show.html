@@ -2,7 +2,7 @@
 {% block search %}
   <div class="container"> <!-- BASE contrainer -->
 	<div><a href="{{ url_for('members.members') }}">(Back to Members list)</a></div>
-	<div class="sectionhead">Member Details (<a href="{{ url_for('members.member_edit',id=member.member) }}">Edit</a>):</div>
+	<div class="sectionhead">Member Details (<a href="{{ url_for('members.member_edit',id=member.id) }}">Edit</a>):</div>
 
 
 <div class="compact form-row row">
@@ -42,7 +42,7 @@
 	</div>
 	<div class="col-sm-6">
 		<span {{ 'class=alert-warning' if (member.active != 'true')  }}>
-		{{ member.active }} (<a href="{{ url_for('payments_member',id=member.member) }}">Expiration: {{ member.expires_date }})</a>
+		{{ member.active }} (<a href="{{ url_for('payments.payments_member',id=member.member) }}">Expiration: {{ member.expires_date }})</a>
 		</span>
 	</div>
 </div>
@@ -127,7 +127,7 @@
 		 
 		
 			Payment Membership ID
-			<a href="{{ url_for("payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
+			<a href="{{ url_for("payments.payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
 		 
 		
 <div class="compact form-row row">
@@ -171,7 +171,7 @@
 	   
 
 
-	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=member.member) }}">Edit</a>):</div>
+	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=member.id) }}">Edit</a>):</div>
 	<ul class="entries">
 	{% if not access %}
 	  <i> No current access defined for this user</i>

@@ -76,9 +76,13 @@
 	<a class="dropdown-item" href="{{ url_for('members.members') }}">Members</a>
 	<a class="dropdown-item" href="{{ url_for('resources.resources') }}">Resources</a>
 	<a class="dropdown-item" href="{{ url_for('logs.logs') }}">Logs</a>
+	<a class="dropdown-item" href="{{ url_for('tools.toolcfg') }}">Tools</a>
 	<a class="dropdown-item" href="{{ url_for('waivers.waivers') }}">Logs</a>
 	<a class="dropdown-item" href="{{ url_for('slack_page') }}">Slack</a>
-	<a class="dropdown-item" href="{{ url_for('payments') }}">Payments</a>
+	<a class="dropdown-item" href="{{ url_for('payments.payments') }}">Payments</a>
+	<a class="dropdown-item" href="{{ url_for('reports.reports') }}">Reports</a>
+	<a class="dropdown-item" href="{{ url_for('reports.blacklist') }}">Blacklists</a>
+	<a class="dropdown-item" href="{{ url_for('members.admin_page') }}">Admins</a>
           <a class="dropdown-item" href="#">Action</a>
           <a class="dropdown-item" href="#">Another action</a>
           <div class="dropdown-divider"></div>

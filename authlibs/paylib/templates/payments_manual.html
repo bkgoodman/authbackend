@@ -4,7 +4,7 @@
   <div class=welcometext>
 	Update manual payment receipt for users.
 	<p>
-	  To switch a user between payment systems, <a href="{{ url_for('members')}}">edit the member information first</a>
+	  To switch a user between payment systems, <a href="{{ url_for('members.members')}}">edit the member information first</a>
   </div>
   {% if members|length > 0 %}
     <div class="memberbox">
@@ -23,11 +23,11 @@
 		  <td>{{ m.plan }}</td>
 		  <td>{{ m.expires_date }}</td>
 		  <td>
-			<a href="{{ url_for('payments_manual_extend',member=m.member) }}">Add month</a>
+			<a href="{{ url_for('payments.payments_manual_extend',member=m.member) }}">Add month</a>
 			<br>
-			<a href="{{ url_for('payments_manual_expire',member=m.member) }}">Expire now</a>
+			<a href="{{ url_for('payments.payments_manual_expire',member=m.member) }}">Expire now</a>
 			<br>
-			<a href="{{ url_for('payments_manual_delete',member=m.member) }}">Delete</a>
+			<a href="{{ url_for('payments.payments_manual_delete',member=m.member) }}">Delete</a>
 		  </td>
 	  </tr>
 	{% endfor %}

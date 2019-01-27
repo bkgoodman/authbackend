@@ -5,15 +5,15 @@
 	<table>
     <tr>
         <td><div class="menubox">
-        <a href="{{ url_for('test_payments') }}"><img class="menuimg" src="static/data-analytics.png" alt="Test Payment System Connection"></a>
+        <a href="{{ url_for('payments.test_payments') }}"><img class="menuimg" src="static/data-analytics.png" alt="Test Payment System Connection"></a>
         <br>
         Test Connection<br>(10-15 seconds)</div>
         </td>
-        <td><div class="menubox"><a href="{{ url_for('update_payments') }}"><img class="menuimg" src="static/refresh2.png" alt="Update paysystem information"></a>
+        <td><div class="menubox"><a href="{{ url_for('payments.update_payments') }}"><img class="menuimg" src="static/refresh2.png" alt="Update paysystem information"></a>
         <br>
         Update Payment Data<br>(10-30 Seconds)</div>
         </td>
-        <td><div class="menubox"><a href="{{ url_for('payments_fees') }}"><img class="menuimg" src="static/currency-symbol.png" alt="Schedule payment"></a>
+        <td><div class="menubox"><a href="{{ url_for('payments.payments_fees') }}"><img class="menuimg" src="static/currency-symbol.png" alt="Schedule payment"></a>
         <br>
         Add Fee<br>(Manual entry)</div>
         </td>
@@ -39,7 +39,7 @@
 	View previously charged fees, create one-time fee or schedule recurring fees.
 	<div class="sectionhead">Troublsheooting</div>
 {% if current_user.privs('Finance') %}
-  <a href="{{ url_for('payments_missing') }}">Zombie Subscriptions</a>
+  <a href="{{ url_for('payments.payments_missing') }}">Zombie Subscriptions</a>
 {% endif %}
 	
   </div>

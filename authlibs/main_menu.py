@@ -11,7 +11,7 @@ def main_menu():
 			'title':'Members and Access'
 		},
 		{
-			'url':url_for('payments'),
+			'url':url_for('payments.payments'),
 			'img':url_for("static",filename="finance.png"),
 			'alt':"View or Test Payment System integration",
 			'title':'Payment System'
@@ -23,7 +23,7 @@ def main_menu():
 			'title':'Resources'
 		},
 		{
-			'url':url_for('reports'),
+			'url':url_for('reports.reports'),
 			'img':url_for("static",filename="data.png"),
 			'alt':"View reports",
 			'title':'Reports'
@@ -41,13 +41,13 @@ def main_menu():
 			'title':'View Logs'
 		},
 		{
-			'url':url_for('admin_page'),
+			'url':url_for('members.admin_page'),
 			'img':url_for("static",filename="rattcfg.png"),
 			'alt':"Admin Page",
 			'title':'Configure Front-Ends'
 		},
 		{
-			'url':url_for('toolcfg'),
+			'url':url_for('tools.toolcfg'),
 			'img':url_for("static",filename="toolcfg.png"),
 			'alt':"Configure Tools",
 			'title':'Configure Tools'
