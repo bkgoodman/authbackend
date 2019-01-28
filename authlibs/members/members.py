@@ -103,7 +103,7 @@ def member_edit(id):
 				m.firstname= f['firstname']
 				m.lastname= f['lastname']
 				m.plan= f['plan']
-				m.payment= f['payment']
+				#m.payment= f['payment']
 				if f['phone'] == "None" or f['phone'].strip() == "":
 						m.phone=None
 				else:
@@ -203,7 +203,7 @@ def member_setaccess(id):
 		access = {}
 		# Find all the items. If they were changed, and we are allowed
 		# to change them - make it so in DB
-		member = Member.query.filter(Member.member == mid).one()
+		member = Member.query.filter(Member.id == mid).one()
 		if ((member.id == current_user.id) and not (current_user.privs('Admin'))):
 				flash("You can't change your own access")
 				return redirect(url_for('members.member_editaccess',id=mid))
@@ -287,7 +287,7 @@ def member_setaccess(id):
 
 								if acc and newcheck == False and acc.level < myPerms:
 										#delete
-										db.session.add(Logs(member_id=mm.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id))
+										db.session.add(Logs(member_id=mid,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id))
 										db.session.delete(acc)
 
 
