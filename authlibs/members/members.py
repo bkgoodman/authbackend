@@ -167,7 +167,7 @@ def getAccessLevel(user,resource):
 def member_editaccess(id):
 		"""Controller method to display gather current access details for a member and display the editing interface"""
 		mid = safestr(id)
-		member = db.session.query(Member).filter(Member.member == mid).one()
+		member = db.session.query(Member).filter(Member.id == mid).one()
 		tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
 
 		q = db.session.query(Resource).outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == member.id)))

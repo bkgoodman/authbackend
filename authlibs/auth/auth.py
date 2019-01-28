@@ -73,12 +73,12 @@ def authorize():
 def membersearch(search):
   sstr = authutil._safestr(search)
   sstr = "%"+sstr+"%"
-  res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email)
+  res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.id)
   res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr)))
   res = res.all()
   result=[]
   for x in res:
-    result.append({'member':x[0],'firstname':x[1],'lastname':x[2],'email':x[3]})
+    result.append({'member':x[0],'firstname':x[1],'lastname':x[2],'email':x[3], 'id':x[4]})
   return json.dumps(result)
 
 def register_pages(app):
