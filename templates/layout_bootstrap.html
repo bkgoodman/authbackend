@@ -136,25 +136,24 @@
 
     <!-- FOOTER -->
 			<hr />
+					{% if current_user and current_user.email and current_user.is_authenticated%}
 					<footer class="page-footer">
 						<div class="container">
 							<div class="row">
 								<div class="col">
-									{% if current_user and current_user.email and current_user.is_authenticated%}
 									<address>{{ current_user.email }}</address>
 								</div>
 								<div class="col">
 									<div style="float:right" >
-									{% if current_user.privs('Admin') %}<span class="badge badge-primary">Admin</span> {% endif %}
-									{% if current_user.privs('Finance') %}<span class="badge badge-primary">Finance</span> {% endif %}
-									{% if current_user.privs('Useredit') %}<span class="badge badge-primary">Useredit</span> {% endif %}
-									{% if current_user.privs('RATT') %}<span class="badge badge-primary">RATT</span> {% endif %}
-									{% endif %}
+									{% for r in  current_user.effective_roles() %}
+									<span class="badge badge-primary">{{ r }}</span> 
+									{% endfor %}
 									</div>
 								</div>
 							</div>
 						</div>
 					</footer>
+					{% endif %}
 
     <!-- Bootstrap core JavaScript
     ================================================== -->

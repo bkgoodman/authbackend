@@ -19,6 +19,8 @@ class AnonymousMember(AnonymousUserMixin):
     email=None
     def privs(self,x):
         return False
+    def effective_roles(self):
+        return []
 # Members and their data
 class Member(db.Model,UserMixin):
     __tablename__ = 'members'
@@ -50,6 +52,13 @@ class Member(db.Model,UserMixin):
 
     def get(self,id):
         return Member.query.filter(Member.member ==id).one()
+
+    def effective_roles(self):
+      roles=[]
+      for r in defined_roles:
+        if self.has_roles('Admin') or self.has_roles(r):
+          roles.append(r)
+      return roles
 
     def get_id(self):
         """Return the email address to satisfy Flask-Login's requirements."""
