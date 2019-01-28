@@ -286,36 +286,6 @@ def add_member_tag(mid,ntag,tag_type,tag_name):
     else:
         return False
 
-def getDataDiscrepancies():
-    """Extract some commonly used statistics about data not matching"""
-    # Note" SQLLIte does not support full outer joins, so we have some duplication of effort...
-    stats = {}
-    sqlstr = """select m.member,m.active,m.plan,p.expires_date,p.updated_date from members m
-            left outer join payments p on p.member=m.member where p.member is null order by m.member"""
-    stats['members_nopayments'] = query_db(sqlstr)
-    sqlstr = """select p.member,p.email,a.member from payments p left outer join accessbymember a
-            on p.member=a.member where a.member is null and p.expires_date > Datetime('now') order by p.member"""
-    stats['paid_noaccess'] = query_db(sqlstr)
-    sqlstr = """select p.member,m.member from payments p left outer join members m on p.member=m.member
-        where m.member is null"""
-    stats['payments_nomembers'] = query_db(sqlstr)
-    sqlstr = """select a.member from accessbymember a left outer join members m on a.member=m.member
-            where m.member is null and a.member is not null group by a.member"""
-    stats['access_nomembers'] = query_db(sqlstr)
-    sqlstr = """select distinct(resource) as resource from accessbymember where resource not in (select name from resources)"""
-    stats['access_noresource'] = query_db(sqlstr)
-    sqlstr = "select DISTINCT(member) from tags_by_member where member not in (select member from members) order by member"
-    stats['tags_nomembers'] = query_db(sqlstr)
-    sqlstr = """select DISTINCT(a.member), p.expires_date from accessbymember a join payments p on a.member=p.member where
-            p.expires_date < Datetime('now')"""
-    stats['access_expired'] = query_db(sqlstr)
-    sqlstr = """select member,expires_date from payments where expires_date > Datetime('now','-60 days')
-                and expires_date < Datetime('now')"""
-    stats['recently_expired'] = query_db(sqlstr)
-    sqlstr = "select member,expires_date,customerid,count(*) from payments group by member having count(*) > 1"
-    stats['duplicate_payments'] = query_db(sqlstr)
-    return stats
-
 ########
 # Request filters
 ########
@@ -486,8 +456,8 @@ if __name__ == '__main__':
           app.jinja_env.globals['TESTDB'] = "YES"
         except:
             pass
-        if app.globalConfig.DeployType.lower() != "production":
-          app.jinja_env.globals['DEPLOYTYPE'] = app.globalConfig.DeployType
+        if app.config['globalConfig'].DeployType.lower() != "production":
+          app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
         if  args.command:
             cli.cli_command(extras,app=app,um=app.user_manager)
             sys.exit(0)
@@ -510,4 +480,4 @@ if __name__ == '__main__':
         #print site_map(app)
     #app.login_manager.login_view="test"
     #print app.login_manager.login_view
-    app.run(host=app.globalConfig.ServerHost, port=app.globalConfig.ServerPort, debug=app.globalConfig.Debug)
+    app.run(host=app.config['globalConfig'].ServerHost, port=app.config['globalConfig'].ServerPort, debug=app.config['globalConfig'].Debug)

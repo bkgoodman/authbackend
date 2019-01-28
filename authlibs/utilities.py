@@ -7,6 +7,7 @@ import sqlite3
 import re
 import pytz
 from datetime import datetime,date
+from flask import g,current_app
 from flask_user import current_user
 from db_models import db, AccessByMember, Member, Resource, Logs
 import paho.mqtt.publish as mqtt_pub
@@ -143,7 +144,7 @@ def log(eventtype=0,message=None,member_id=None,resource_id=None,text=None,commi
     logsess = db.session
     if commit:
         logsess = db.create_scoped_session(
-        options=dict(bind=db.get_engine(app, 'logs'),
+        options=dict(bind=db.get_engine(g, 'logs'),
                      binds={}))
     logsess.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtype,message=message))
     if commit:
@@ -154,7 +155,8 @@ def log(eventtype=0,message=None,member_id=None,resource_id=None,text=None,commi
 # we probably shouldn't generate a million messages
 def kick_backend():
     try:
-      topic= app.globalConfig.mqtt_base_topic+"/control/broadcast/acl/update"
-      mqtt_pub.single(topic, "update", hostname=app.globalConfig.mqtt_host,port=app.globalConfig.mqtt_port,**app.globalConfig.mqtt_opts)
+      gc= current_app.config['globalConfig']
+      topic= gc.mqtt_base_topic+"/control/broadcast/acl/update"
+      mqtt_pub.single(topic, "update", hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
     except BaseException as e:
         logger.debug("MQTT acl/update failed to publish: "+str(e))

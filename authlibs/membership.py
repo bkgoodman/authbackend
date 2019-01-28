@@ -27,15 +27,15 @@ def syncWithSubscriptions(isTest=False):
   logger.debug("Get Missing Members")
   missing = getMissingMembers()
 
-	''' Try to match subscriptions to existing member records - TODO - "new/update" flag '''
+  ''' Try to match subscriptions to existing member records - TODO - "new/update" flag '''
   logger.debug("match missing members")
-	newMembers = matchMissingMembers(missing)
+  newMembers = matchMissingMembers(missing)
 
-	''' Create new member records for actual new members '''
+  ''' Create new member records for actual new members '''
   logger.debug("ADDING MISSING MEMBERS")
   added=addMissingMembers(newMembers)
 
-	''' Create Google (someday Slack?) accounts for new members '''
+  ''' Create Google (someday Slack?) accounts for new members '''
   logger.debug("Create new Accounts")
   createMissingMemberAccounts(added,isTest,False)
   db.session.commit()

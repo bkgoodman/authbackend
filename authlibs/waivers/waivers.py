@@ -79,4 +79,4 @@ def addNewWaivers():
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
-	waiversystem['Apikey'] = app.globalConfig.Config.get('Smartwaiver','Apikey')
+	waiversystem['Apikey'] = app.config['globalConfig'].Config.get('Smartwaiver','Apikey')

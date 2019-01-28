@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, url_for, session, flash
+from flask import Blueprint, redirect, url_for, session, flash, g
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
 from flask_login import current_user, login_user, logout_user
@@ -24,8 +24,8 @@ def authinit(app):
     userauth = Blueprint('userauth', __name__)
 
     google_blueprint = make_google_blueprint(
-        client_id=app.globalConfig.Config.get("OAuth","GOOGLE_CLIENT_ID"),
-        client_secret=app.globalConfig.Config.get("OAuth","GOOGLE_CLIENT_SECRET"),
+        client_id=app.config['globalConfig'].Config.get("OAuth","GOOGLE_CLIENT_ID"),
+        client_secret=app.config['globalConfig'].Config.get("OAuth","GOOGLE_CLIENT_SECRET"),
         scope=["https://www.googleapis.com/auth/plus.me",
         "https://www.googleapis.com/auth/userinfo.email"
         ],

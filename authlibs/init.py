@@ -147,7 +147,7 @@ class ConfigClass(object):
 def authbackend_init(name):
   app = Flask(name)
   app.config.from_object(__name__+'.ConfigClass')
-  app.globalConfig = GlobalConfig()
+  app.config['globalConfig'] = GlobalConfig()
 
   google_user_auth.authinit(app)
 
