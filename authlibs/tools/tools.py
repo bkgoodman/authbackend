@@ -27,10 +27,11 @@ blueprint = Blueprint("tools", __name__, template_folder='templates', static_fol
 @blueprint.route('/', methods=['GET'])
 @login_required
 def tools():
-	 """(Controller) Display Tools and controls"""
-	 tools = _get_tools()
-	 access = {}
-	 return render_template('tools.html',tools=tools,editable=True)
+	"""(Controller) Display Tools and controls"""
+	tools = _get_tools()
+	access = {}
+	resources=Resource.query.all()
+	return render_template('tools.html',tools=tools,editable=True,tool={},resources=resources)
 
 @blueprint.route('/', methods=['POST'])
 @login_required
