@@ -16,6 +16,7 @@ from authlibs import eventtypes
 from json import dumps as json_dump
 from json import loads as json_loads
 from authlibs import payments as pay
+from .. import membership
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -129,7 +130,7 @@ def test_payments():
       flash("Payment system is reachable.")
    else:
       flash("Error: One or more Payment systems is Unreachable, review logs.")
-   return redirect(url_for('payments'))
+   return redirect(url_for('payments.payments'))
 
 @blueprint.route('/membership/<string:membership>', methods = ['GET'])
 @login_required

@@ -728,6 +728,8 @@ if __name__ == '__main__':
                 email="oldy.mcold@foo.com", plan="pro",expires_date=datetime.now()+timedelta(days=6),member_id=5004,active=1,membership="stripe:test:5004")
         db.session.add(sub)
 
+				node = Node(name="node1",
+
         if args.nomigrate:
             # Since we don't have any other data in here - create a "frontdoor" entry
             res=Resource(id=1,name="frontfoor",description="Building Access",owneremail="board@makeitlabs.com")
