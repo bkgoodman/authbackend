@@ -274,7 +274,7 @@ def member_setaccess(id):
 										db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id))
 										acc = AccessByMember(member_id=member.id,resource_id=resource.id)
 										db.session.add(acc)
-								elif acc and newcheck == False and p<=myPerms:
+								elif acc and newcheck == False and p>=myPerms:
 										flash("You aren't authorized to disable %s privs on %s" % (alstr,r))
 
 								if (p>=myPerms):
