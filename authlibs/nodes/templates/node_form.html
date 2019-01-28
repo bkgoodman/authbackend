@@ -37,30 +37,32 @@
 			{% set ph = placeholder %}
 			{% endif %}
       <label for="input_{{ name }}">{{ label }}</label>
-      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ tool[name] }}">
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ node[name] }}">
 {%- endmacro %}
 
 <div class="container">
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('name',"Tool Name",'Single word name') }}
+			{{ input('name',"Node Name",'Single word identifier') }}
     </div>
 	</div>
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('frontend',"Front-end",'Front-End Identifier') }}
+			{{ input('mac',"MAC Address",'00:00:00:00:00:00') }}
     </div>
   </div>
   <div class="form-row">
     <div class="form-group col-md-6">
+			{#
       <label for="input_resource_id">Resource Type</label>
 			<select class="form-control" name="input_resource_id">
 				{% for r in resources %}
 					<option name="{{ r.name }}" value="{{ r.id }}"
-					{% if tool.resource_id == r.id %}selected{% endif %}
+					{% if node.resource_id == r.id %}selected{% endif %}
 					>{{ r.name }}</option>
 				{% endfor %}
 			</select>
+			#}
     </div>
   </div>
 </div>

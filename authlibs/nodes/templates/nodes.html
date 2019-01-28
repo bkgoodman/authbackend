@@ -1,39 +1,37 @@
 {% extends "layout_bootstrap.html" %}
 <h2>Resources</h2>
 {% block body %}
-<div class="toolslist">
-	<h2>Tools:  {{ tools |length }} available</h2>
+<div class="nodeslist">
+	<h2>Nodes:  {{ nodes |length }} available</h2>
 	<table class="table table-sm">
         <tr>
             <th>Name</th>
-            <th>Front-End</th>
-            <th>Resource Type</th>
+            <th>MAC</th>
         </tr>
-	{% for tools in tools %}
+	{% for nodes in nodes %}
 	  <tr>
-		<td><a href="{{ url_for('tools.tools_show',tool=tools.id) }}">{{ tools.name }}</a></td>
-		<td>{{ tools.frontend }}</td>
-		<td>{{ tools.resource_name }}</td>
+		<td><a href="{{ url_for('nodes.nodes_show',node=nodes.id) }}">{{ nodes.name }}</a></td>
+		<td>{{ nodes.mac }}</td>
 	  </tr>
 	{% endfor %}
 	</table>
 	</div>
 
 
-<!-- Add New Resource -->
+<!-- Add New Node -->
 
 
 	{% if current_user.privs("RATT") %}
-  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#tools-add-collapse" aria-expanded="false" aria-controls="tools-add-collapse">
-    Add New Resource
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#nodes-add-collapse" aria-expanded="false" aria-controls="nodes-add-collapse">
+    Add New Node
   </button>
-  <div class="collapse" id="tools-add-collapse">
+  <div class="collapse" id="nodes-add-collapse">
 	<hr />
-  <h3> Add New Tool </h3>
-<form action="{{ url_for('tools.tools_create') }}" method="post">
-	{% include 'tool_form.html' %}
-<input type="submit" value="Create tools" />
+  <h3> Add New Node </h3>
+<form action="{{ url_for('nodes.nodes_create') }}" method="post">
+	{% include 'node_form.html' %}
+<input type="submit" value="Create nodes" />
 </form>
 </div>
-{% endif %} <!-- Add New Resoruce -->
+{% endif %} <!-- Add New Node -->
 {% endblock %}

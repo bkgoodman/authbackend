@@ -6,7 +6,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Tool, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs
+from ..db_models import Member, db, Resource, Node, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, Node, NodeConfig
 from functools import wraps
 import json
 #from .. import requireauth as requireauth
@@ -27,7 +27,7 @@ blueprint = Blueprint("nodes", __name__, template_folder='templates', static_fol
 @blueprint.route('/', methods=['GET'])
 @login_required
 def nodes():
-	"""(Controller) Display Tools and controls"""
+	"""(Controller) Display Nodes and controls"""
 	nodes = _get_nodes()
 	access = {}
 	resources=Resource.query.all()
@@ -38,10 +38,9 @@ def nodes():
 @roles_required(['Admin','RATT'])
 def nodes_create():
 	"""(Controller) Create a node from an HTML form POST"""
-	r = Tool()
+	r = Node()
         r.name = (request.form['input_name'])
-        r.frontend = (request.form['input_frontend'])
-        r.resource_id = (request.form['input_resource_id'])
+        r.mac = (request.form['input_mac'])
 	db.session.add(r)
         db.session.commit()
 	flash("Created.")
@@ -51,15 +50,16 @@ def nodes_create():
 @login_required
 def nodes_show(node):
 	"""(Controller) Display information about a given node"""
-	r = Tool.query.filter(Tool.id==node).one_or_none()
+	r = Node.query.filter(Node.id==node).one_or_none()
 	if not r:
-		flash("Tool not found")
+		flash("Node not found")
 		return redirect(url_for('nodes.nodes'))
 	readonly=False
 	if (not current_user.privs('RATT')):
 		readonly=True
 	resources=Resource.query.all()
-	return render_template('node_edit.html',node=r,resources=resources,readonly=readonly)
+	kv = NodeConfig.query.filter(NodeConfig.node_id==node).all()
+	return render_template('node_edit.html',node=r,resources=resources,readonly=readonly,kv=kv)
 
 @blueprint.route('/<string:node>', methods=['POST'])
 @login_required
@@ -67,25 +67,24 @@ def nodes_show(node):
 def nodes_update(node):
 		"""(Controller) Update an existing node from HTML form POST"""
 		tid = (node)
-		r = Tool.query.filter(Tool.id==tid).one_or_none()
+		r = Node.query.filter(Node.id==tid).one_or_none()
 		if not r:
-                    flash("Error: Tool not found")
+                    flash("Error: Node not found")
                     return redirect(url_for('nodes.nodes'))
 		r.name = (request.form['input_name'])
-		r.frontend = (request.form['input_frontend'])
-		r.resource_id = (request.form['input_resource_id'])
+		r.mac = (request.form['input_mac'])
 		db.session.commit()
-		flash("Tool updated")
+		flash("Node updated")
 		return redirect(url_for('nodes.nodes'))
 
 @blueprint.route('/<string:node>/delete', methods=['POST'])
 @roles_required(['Admin','RATT'])
 def node_delete(node):
 		"""(Controller) Delete a node. Shocking."""
-                r = Tool.query.filter(Tool.id == node).one()
+                r = Node.query.filter(Node.id == node).one()
                 db.session.delete(r)
                 db.session.commit()
-		flash("Tool deleted.")
+		flash("Node deleted.")
 		return redirect(url_for('nodes.nodes'))
 
 @blueprint.route('/<string:node>/list', methods=['GET'])
@@ -94,7 +93,7 @@ def node_showusers(node):
 		tid = (node)
 		authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member)
 		authusers = authusers.outerjoin(Member,AccessByMember.member_id == Member.id)
-		authusers = authusers.filter(AccessByMember.node_id == db.session.query(Tool.id).filter(Tool.name == rid))
+		authusers = authusers.filter(AccessByMember.node_id == db.session.query(Node.id).filter(Node.name == rid))
 		authusers = authusers.all()
 		return render_template('node_users.html',node=rid,users=authusers)
 
@@ -127,8 +126,8 @@ def logging(node):
 
 
 def _get_nodes():
-	q = db.session.query(Tool.name,Tool.frontend,Tool.id)
-	q = q.add_column(Resource.name.label("resource_name")).join(Resource,Resource.id==Tool.resource_id)
+	q = db.session.query(Node.name,Node.mac,Node.id)
+	# q = q.add_column(Resource.name.label("resource_name")).join(Resource,Resource.id==Node.resource_id)
 	return q.all()
 
 def register_pages(app):
