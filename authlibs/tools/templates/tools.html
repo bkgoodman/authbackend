@@ -1,57 +1,39 @@
-{% extends "layout.html" %}
-<h2>Tools</h2>
+{% extends "layout_bootstrap.html" %}
+<h2>Resources</h2>
 {% block body %}
-{% if not edit  %}
-<div class="resourcelist">
-	<h2>Tools:  {{ tools|length }} available</h2>
-	<table border=1>
+<div class="toolslist">
+	<h2>Tools:  {{ tools |length }} available</h2>
+	<table class="table table-sm">
         <tr>
-            <th>Tool Name</th>
-            <th>Front End</th>
-            <th>Tool Type</th>
+            <th>Name</th>
+            <th>Front-End</th>
+            <th>Resource Type</th>
         </tr>
-	{% for tool in tools %}
+	{% for tools in tools %}
 	  <tr>
-		<td><a href="{{ url_for('toolcfg') }}/{{ tool.id }}">{{ tool.name }}</a></td>
-		<td>{{ tool.frontend }}</td>
-		<td><a href="{{ url_for('resources',resource=tool.resource_id) }}">{{ tool.resname }}</a></td>
+		<td><a href="{{ url_for('tools.tools_show',tool=tools.id) }}">{{ tools.name }}</a></td>
+		<td>{{ tools.frontend }}</td>
+		<td>{{ tools.resource_name }}</td>
 	  </tr>
 	{% endfor %}
 	</table>
 	</div>
-{% endif  %}
-{% if edit and  not add %}
-<div class="sectionhead">Edit Tool</div>
-{% else %}
-<div class="sectionhead">Add Tool</div>
-{% endif %}
-<xxxform action="{{ url_for('toolcfg') }}" method="post" />
-<form  method="post">
-<table>
-    <tr>
-        <td>Tool Name (Short no spaces):</td>
-	<td><input type="text" name="name" value="{{ tool.name }}"/></td>
-    </tr>
-    <tr>
-        <td>NodeId (Derived from MAC address):</td>
-	<td><input type="text" name="frontend" value="{{ tool.frontend }}"/></td>
-    </tr>
-    <tr>
-        <td>Tool Type:</td>
-	<td>
-	<select name="tooltypeid">
-	{% for resource in resources %}
-	<option value="{{ resource.id }}">{{ resource.name }}</option>
-	{% endfor %}
-	</select>
-	</td>
-    </tr>
-</table>
-{% if not edit and  not add %}
-<input type="submit" value="Add" name="Add"/>
-{% endif %}
-{% if edit and  not add %}
-<input type="submit" value="Save" name="Save"/>
-{% endif %}
+
+
+<!-- Add New Resource -->
+
+
+	{% if current_user.privs("RATT") %}
+  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#tools-add-collapse" aria-expanded="false" aria-controls="tools-add-collapse">
+    Add New Resource
+  </button>
+  <div class="collapse" id="tools-add-collapse">
+	<hr />
+  <h3> Add New Tool </h3>
+<form action="{{ url_for('tools.tools_create') }}" method="post">
+	{% include 'form.html' %}
+<input type="submit" value="Create tools" />
 </form>
+</div>
+{% endif %} <!-- Add New Resoruce -->
 {% endblock %}
