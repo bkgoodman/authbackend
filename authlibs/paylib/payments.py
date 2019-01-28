@@ -95,7 +95,7 @@ def payments_manual_extend(member):
     execute_db(sqlstr)
     get_db().commit()
     flash("Member %s was updated in the payments table" % safe_id)
-    return redirect(url_for('manual_payments'))
+    return redirect(url_for('payments.manual_payments'))
 
 @blueprint.route('/manual/expire/<member>', methods = ['GET'])
 @login_required
@@ -107,7 +107,7 @@ def payments_manual_expire(member):
     get_db().commit()
     # TODO: EXPIRE MEMBER FROM ACCESS CONTROLS
     flash("Member %s was forcibly expired" % safe_id)
-    return redirect(url_for('manual_payments'))
+    return redirect(url_for('payments.manual_payments'))
 
 @blueprint.route('/manual/delete/<member>', methods = ['GET'])
 @login_required
@@ -119,7 +119,7 @@ def payments_manual_delete(member):
     get_db().commit()
      # TODO: EXPIRE MEMBER FROM ACCESS CONTROLS
     flash("Member %s was deleted from the payments table" % safe_id)
-    return redirect(url_for('manual_payments'))
+    return redirect(url_for('payments.manual_payments'))
 
 @blueprint.route('/test', methods = ['GET'])
 @login_required
@@ -148,7 +148,7 @@ def update_payments():
     pay.updatePaymentData()
     membership.syncWithSubscriptions()
     flash("Payment and Member data adjusted")
-    return redirect(url_for('payments'))
+    return redirect(url_for('payments.payments'))
 
 @blueprint.route('/<string:id>', methods=['GET'])
 @login_required
@@ -208,7 +208,7 @@ def payments_fees_charge():
             print(fee[f])
         if fee[f] == '':
             flash("Error: One or more mandatory fields not filled out")
-            return redirect(url_for('payments_fees'))
+            return redirect(url_for('payments.payments_fees'))
     # Validate member
     sqlstr = "Select customerid from payments where member = '%s'" % fee['memberid']
     members = query_db(sqlstr,"",True)
@@ -228,7 +228,7 @@ def payments_fees_charge():
         #
     else:
         flash("Error: Memberid does not exist. Make sure you have the right one..")
-    return redirect(url_for('payments_fees'))
+    return redirect(url_for('payments.payments_fees'))
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
