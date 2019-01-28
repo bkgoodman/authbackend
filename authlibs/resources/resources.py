@@ -77,7 +77,7 @@ def resource_show(resource):
 @roles_required(['Admin','RATT'])
 def resource_update(resource):
 		"""(Controller) Update an existing resource from HTML form POST"""
-		rname = safestr(resource)
+		rname = (resource)
 		r = Resource.query.filter(Resource.id==resource).one_or_none()
 		if not r:
                     flash("Error: Resource not found")
@@ -107,7 +107,7 @@ def resource_delete(resource):
 @blueprint.route('/<string:resource>/list', methods=['GET'])
 def resource_showusers(resource):
 		"""(Controller) Display users who are authorized to use this resource"""
-		rid = safestr(resource)
+		rid = (resource)
 		authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member)
 		authusers = authusers.outerjoin(Member,AccessByMember.member_id == Member.id)
 		authusers = authusers.filter(AccessByMember.resource_id == db.session.query(Resource.id).filter(Resource.name == rid))
