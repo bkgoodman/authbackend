@@ -19,6 +19,10 @@ from authlibs.init import GLOBAL_LOGGER_LEVEL
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
 
+
+## TODO make sure member's w/o Useredit can't see other users' data or search for them
+## TODO make sure users can't see cleartext RFID fobs
+
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
 # Version 1:
@@ -149,7 +153,7 @@ def member_show(id):
 	 if res:
 		 (member,subscription) = res
 		 access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
-		 access = access.filter(Member.member == mid)
+		 access = access.filter(Member.id == member.id)
 		 access = access.filter(AccessByMember.active == 1)
 		 access = access.all()
 		 return render_template('member_show.html',member=member,access=access,subscription=subscription)
@@ -271,7 +275,7 @@ def member_setaccess(id):
 										continue
 								elif acc is None and newcheck == True:
 										# Was off - but we turned it on - Create new one
-										db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id))
+										db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,doneby=current_user.id))
 										acc = AccessByMember(member_id=member.id,resource_id=resource.id)
 										db.session.add(acc)
 								elif acc and newcheck == False and p<=myPerms:
@@ -282,12 +286,12 @@ def member_setaccess(id):
 								elif (acc.level >= myPerms):
 										flash("You aren't authorized to demote %s privs on %s" % (alstr,r))
 								elif acc.level != p:
-										db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=alstr))
+										db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=alstr,doneby=current_user.id))
 										acc.level=p
 
 								if acc and newcheck == False and acc.level < myPerms:
 										#delete
-										db.session.add(Logs(member_id=mm.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id))
+										db.session.add(Logs(member_id=mm.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id),doneby=current_user.id)
 										db.session.delete(acc)
 
 

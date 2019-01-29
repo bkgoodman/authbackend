@@ -53,7 +53,7 @@ class Member(db.Model,UserMixin):
 
     def get_id(self):
         """Return the email address to satisfy Flask-Login's requirements."""
-        return self.email
+        return self.member+"@makeitlabs.com"
 
 
 class ApiKey(db.Model):
@@ -212,6 +212,7 @@ class Logs(db.Model):
     tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
     message = db.Column(db.String(100))
+    doneby = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
     time_reported = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),index=True)
     event_type = db.Column(db.Integer(),index=True)

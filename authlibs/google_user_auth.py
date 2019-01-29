@@ -70,7 +70,9 @@ def authinit(app):
             if not email.endswith("@makeitlabs.com"):
                 flash("Invalid Domain")
                 return redirect(url_for('login'))
-            query = Member.query.filter_by(member=member)
+            #query = Member.query.filter_by(Member.member.ilike(member))
+            #if not query:
+            query = Member.query.filter(Member.email==email)
 
             try:
                 user = query.one()
@@ -79,7 +81,7 @@ def authinit(app):
                 login_user(user, remember=True)
                 return redirect(url_for('index'))
             except NoResultFound:
-                flash("Invalid User")
+                flash("Email adddress "+str(email)+" not found in member database")
                 return redirect(url_for('index'))
 
 

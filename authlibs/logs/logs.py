@@ -90,9 +90,9 @@ def logs():
 		if offset>0: w=q.offset(offset)
 
 		if ('member' in request.values):
-				q=q.filter(Logs.member_id==members[request.values['member']])
+				q=q.filter((Logs.member_id==members[request.values['member']]) | (Logs.doneby==members[request.values['member']]))
 		if ('memberid' in request.values):
-				q=q.filter(Logs.member_id==request.values['memberid'])
+				q=q.filter((Logs.member_id==request.values['memberid']) | (Logs.doneby==request.values['memberid']))
 		if ('resource' in request.values):
 				q=q.filter(Logs.resource_id==resources[request.values['resource']])
 		if ('resourceid' in request.values):
@@ -143,6 +143,12 @@ def logs():
 						r['message']=l.message
 				else:
 						r['message']=""
+
+				if l.doneby in members:
+						r['doneby'] = members[l.member_id]['last']+", "+members[l.member_id]['first']
+						r['admin_id']=members[l.member_id]['member']
+				else:
+						r['doneby']="Member #"+str(l.member_id)
 				logs.append(r)
 
 		# if format=="csv":
