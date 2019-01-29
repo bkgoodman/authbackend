@@ -1,22 +1,29 @@
 
 makePostCall = function (url, data) { // here the data and url are not hardcoded anymore
    var json_data = JSON.stringify(data);
+	console.log("QERY "+url);
     return $.ajax({
         type: "GET",
         url: url,
-        data: json_data,
+        data: data,
         dataType: "json",
         contentType: "application/json;charset=utf-8"
     });
 	
 }
 
+current_user_offset=0;
+lastQuery="";
+
 function DoSearchButton() {
 	changedDropdownText();
+	current_user_offset=0;
 }
 
 function DoAllButton() {
 	queryMembers("*");
+	document.getElementById("searchfield1").value="";
+	current_user_offset=0;
 }
 
 // and here a call example
@@ -33,8 +40,24 @@ function changedDropdownText() {
 	queryMembers(searchstr);
 }
 
+
+function MoarUsers() {
+	current_user_offset += 50;
+	queryMembers(lastQuery);
+}
+
 function queryMembers(searchstr) {
-makePostCall(MEMBER_SEARCH_URL+searchstr, {})
+lastQuery=searchstr;
+if (current_user_offset > 0) {
+	q=MEMBER_SEARCH_URL+searchstr; 
+	opt='offset='+String(current_user_offset);
+}
+else {
+	q=MEMBER_SEARCH_URL+searchstr;
+	opt=""
+}
+
+makePostCall(q, opt)
     .success(function(data){
 
 					lst=document.getElementById("memberrows");
@@ -79,6 +102,12 @@ makePostCall(MEMBER_SEARCH_URL+searchstr, {})
 							"</tr>";
 						el.classList.add("memberrow");
 						lst.appendChild(el);
+					}
+					b = document.getElementById("moarUsers");
+	    				if (data.length >= 50) {
+						b.className = b.className.replace(/\binvisible\b/g, " visible ");
+					} else {
+						b.className = b.className.replace(/\bvisible\b/g, " invisible ");
 					}
     			//lstb.appennd(document.CreateNode("a",<a class="dropdown-item" href="#">Action</a>"
 	
