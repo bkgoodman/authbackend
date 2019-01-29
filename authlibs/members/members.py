@@ -47,6 +47,8 @@ blueprint = Blueprint("members", __name__, template_folder='templates', static_f
 @login_required
 def members():
 	members = {}
+        if not current_user.privs('Useredit'):
+            return redirect(url_for('members.member_show',id=current_user.member))
 	return render_template('members.html',members=members)
 
 @blueprint.route('/', methods= ['POST'])
@@ -54,6 +56,7 @@ def members():
 @roles_required(['Admin','Useredit'])
 def member_add():
 		"""Controller method for POST requests to add a user"""
+                        
 		member = {}
 		mandatory_fields = ['firstname','lastname','memberid','plan','payment']
 		optional_fields = ['alt_email','phone','nickname']
@@ -82,6 +85,10 @@ def member_add():
 def member_edit(id):
 		mid = authutil._safestr(id)
 		member = {}
+
+                if request.method=="POST" and (not current_user.privs('Useredit')):
+                     flash("You cannot edit users")
+                     return redirect(url_for('members.members'))
 
 		if request.method=="POST" and 'Unlink' in  request.form:
 				s = Subscription.query.filter(Subscription.membership==request.form['membership']).one()
@@ -149,6 +156,9 @@ def member_show(id):
 	 member=db.session.query(Member,Subscription)
 	 member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid)
 	 res = member.one_or_none()
+         if (not current_user.privs('Useredit')) and res[0].member != current_user.member:
+             flash("You cannot view that user")
+             return redirect(url_for('members.members'))
  
 	 if res:
 		 (member,subscription) = res
@@ -302,6 +312,7 @@ def member_setaccess(id):
 
 @blueprint.route('/<string:id>/tags', methods = ['GET'])
 @login_required
+@roles_required(['Admin','Useredit'])
 def member_tags(id):
 		"""Controller method to gather and display tags associated with a memberid"""
 		mid = safestr(id)
@@ -318,6 +329,7 @@ def update_backends():
 
 @blueprint.route('/<string:id>/tags', methods = ['POST'])
 @login_required
+@roles_required(['Admin','Useredit'])
 def member_tagadd(id):
 		"""(Controller) method for POST to add tag for a user, making sure they are not duplicates"""
 		mid = safestr(id)

@@ -75,9 +75,7 @@ def membersearch(search):
   sstr = "%"+sstr+"%"
   res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.id)
   res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr))).limit(50)
-  print "VALS",request.values
   if 'offset' in request.values:
-      print "OFFSET",request.values['offset']
       res = res.offset(request.values['offset'])
   res = res.all()
   result=[]
