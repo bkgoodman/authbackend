@@ -32,18 +32,21 @@
 {% endif %}
 
 
-{% macro input(name, label, placeholder='', type='text') -%}
+{% macro input(name, label, placeholder='', small='',type='text') -%}
 			{% if readonly is not defined %}
 			{% set ph = placeholder %}
 			{% endif %}
       <label for="input_{{ name }}">{{ label }}</label>
       <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ rec[name] }}">
+			{% if small != '' %}
+			<small>{{ small }}</small>
+			{% endif %}
 {%- endmacro %}
 
 <div class="container">
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('name',"Resource Name",'Single word name') }}
+			{{ input('name',"Resource Name",'resource-users',small='Typically ends in \"-users\"') }}
     </div>
 	</div>
   <div class="form-row">
@@ -58,25 +61,25 @@
   </div>
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('slack_chan',"Public Slack Channel",'#resource-users') }}
+			{{ input('slack_chan',"Public Slack Channel",'#resource-users',small="Public notices, like tool outages") }}
     </div>
     <div class="form-group col-md-6">
-			{{ input('slack_admin_chan',"Admin Slack Channel",'#resource-admin') }}
+			{{ input('slack_admin_chan',"Admin Slack Channel",'#resource-admin',small="Notices to admins, like tool activity") }}
     </div>
   </div>
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('info_url',"Resource URL",'https://wiki.makeitlabs.com/resource') }}
+			{{ input('info_url',"Resource URL",'https://wiki.makeitlabs.com/resource',small="Where uses can go for more info") }}
     </div>
   </div>
   <div class="form-row">
     <div class="form-group col-md-12">
-			{{ input('info_text',"Information Text (Short, for RATT)",'This tool requires a class..') }}
+			{{ input('info_text',"Information Text (Short, for RATT)",'This tool requires a class..',small="Displayed on RATT for unauthorized users") }}
     </div>
   </div>
   <div class="form-row">
     <div class="form-group col-md-12">
-			{{ input('slack_info_text',"Information Text (Longer, for RATT or Email)",'Click this URL for training classes...') }}
+			{{ input('slack_info_text',"Information Text (Longer, for RATT or Email)",'Click this URL for training classes...',small="Emailed to unauthorized users who want access") }}
     </div>
   </div>
 </div>

@@ -32,22 +32,25 @@
 {% endif %}
 
 
-{% macro input(name, label, placeholder='', type='text') -%}
+{% macro input(name, label, placeholder='', small='', type='text') -%}
 			{% if readonly is not defined %}
 			{% set ph = placeholder %}
 			{% endif %}
       <label for="input_{{ name }}">{{ label }}</label>
       <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ tool[name] }}">
+			{% if small != '' %}
+			<small>{{ small }}</small>
+			{% endif %}
 {%- endmacro %}
 
 <div class="container">
   <div class="form-row">
-    <div class="form-group col-md-6">
-			{{ input('name',"Tool Name",'Single word name') }}
+    <div class="form-group col-md-8">
+			{{ input('name',"Tool Name",small="Typically: \"tooltype-specifc\", like \"door-front\" or \"laser-rabbit\"") }}
     </div>
 	</div>
   <div class="form-row">
-    <div class="form-group col-md-6">
+    <div class="form-group col-md-8">
       <label for="input_resource_id">Resource Group</label>
 			<select class="form-control" name="input_resource_id">
 				{% for r in resources %}
@@ -59,7 +62,7 @@
     </div>
   </div>
   <div class="form-row">
-    <div class="form-group col-md-6">
+    <div class="form-group col-md-8">
       <label for="input_resource_id">Node</label>
 			<select class="form-control" name="input_node_id">
 				{% for n in nodes %}
