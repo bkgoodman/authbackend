@@ -6,7 +6,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey
+from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey, Node, NodeConfig, KVopt, Tool
 from functools import wraps
 import json
 #from .. import requireauth as requireauth
@@ -77,6 +77,52 @@ def api_v1_reloadacl():
 @api_only
 def whoami():
 		return json_dump("You have a valid API key %s" % g.apikey, 200, {'Content-type': 'text/plain'})
+
+@blueprint.route('/v1/node/<string:node>/config', methods=['GET'])
+@api_only
+def api_v1_nodeconfig(node):
+		result = {'status':'success'}
+		n = Node.query.filter(Node.name == node).one_or_none()
+		if not n:
+			result['status']='error'
+			result['message']='Node not found'
+			return json_dump(result, 200, {'Content-type': 'text/plain'})
+
+		result['mac']=n.mac
+		result['name']=n.name
+
+		kv = KVopt.query.add_column(NodeConfig.value).outerjoin(NodeConfig,((NodeConfig.node_id == n.id) & (NodeConfig.key_id == KVopt.id))).all()
+		result['params']={}
+		for (k,v) in kv:
+			result['params'][k.keyname]=v if v else None
+
+		result['tools']=[]
+		tools= Tool.query.add_columns(Resource.name).add_column(Resource.id)
+		tools = tools.filter(Tool.node_id==n.id).join(Resource,Resource.id==Tool.resource_id)
+		tools = tools.all()
+		for x in tools:
+			(t,resname,rid) =x
+			tl={}
+			tl['name']=t.name
+			tl['resource_id']=rid
+			tl['resource']=resname
+			tl['id']=t.id
+			result['tools'].append(tl)
+
+		#print json_dump(result,indent=2)
+		return json_dump(result, 200, {'Content-type': 'text/plain'})
+
+@blueprint.route('/v1/mac/<string:mac>/config', methods=['GET'])
+@api_only
+def api_v1_macconfig(mac):
+		n = Node.query.filter(Node.mac == mac).one_or_none()
+		result = {'status':'success'}
+		if not n:
+			result['status']='error'
+			result['message']='Node not found'
+			return json_dump(result, 200, {'Content-type': 'text/plain'})
+		return api_v1_nodeconfig(n.name)
+	
 
 @blueprint.route('/v3/test', methods=['GET'])
 @login_required
