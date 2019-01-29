@@ -2,6 +2,7 @@
 {% block body %}
 
 <script type="text/javascript" src="{{ url_for("nodes.static",filename="nodeedit.js") }}"></script>
+<script type="text/javascript"> IMG_BASE="{{ url_for("static",filename="") }}";</script>
 <div>
 <div class="sectionhead"><h3>Edit Node</h3></div>
   <form action={{ url_for('nodes.nodes_update',node=node.id) }} method="POST">
@@ -26,9 +27,9 @@
 				</div>
 			</div>
 		{% endfor %}
-		<img src="{{ url_for("static",filename="add_ico.png") }}" onclick="ClickAdd();" width="32px" />
 	</div>
 	<!-- end KV Pairs -->
+	<img src="{{ url_for("static",filename="add_ico.png") }}" onclick="ClickAdd();" width="32px" />
 		<br />
 		<div class="container">
 		{% if readonly is not defined or not readonly %}

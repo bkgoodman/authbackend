@@ -73,6 +73,7 @@ def nodes_update(node):
                     return redirect(url_for('nodes.nodes'))
 		r.name = (request.form['input_name'])
 		r.mac = (request.form['input_mac'])
+		print request.form
 		db.session.commit()
 		flash("Node updated")
 		return redirect(url_for('nodes.nodes'))
