@@ -48,17 +48,24 @@
 	</div>
   <div class="form-row">
     <div class="form-group col-md-6">
-			{{ input('frontend',"Front-end",'Front-End Identifier') }}
-    </div>
-  </div>
-  <div class="form-row">
-    <div class="form-group col-md-6">
       <label for="input_resource_id">Resource Type</label>
 			<select class="form-control" name="input_resource_id">
 				{% for r in resources %}
 					<option name="{{ r.name }}" value="{{ r.id }}"
 					{% if tool.resource_id == r.id %}selected{% endif %}
 					>{{ r.name }}</option>
+				{% endfor %}
+			</select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="input_resource_id">Node</label>
+			<select class="form-control" name="input_node_id">
+				{% for n in nodes %}
+					<option name="{{ n.name }}" value="{{ n.id }}"
+					{% if tool.node_id == n.id %}selected{% endif %}
+					>{{ n.name }}</option>
 				{% endfor %}
 			</select>
     </div>

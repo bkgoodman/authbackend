@@ -34,7 +34,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from datetime import timedelta
 from authlibs import utilities as authutil
-from authlibs.db_models import db, ApiKey, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver, Subscription, Node, NodeConfig
+from authlibs.db_models import db, ApiKey, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver, Subscription, Node, NodeConfig, Tool
 import json
 
 
@@ -728,13 +728,15 @@ if __name__ == '__main__':
                 email="oldy.mcold@foo.com", plan="pro",expires_date=datetime.now()+timedelta(days=6),member_id=5004,active=1,membership="stripe:test:5004")
         db.session.add(sub)
 
-        node = Node(id=5000,name="node1",mac="00:11:22:33:44:55")
+        node = Node(id=5000,name="node1",mac="001122334455")
         db.session.add(node)
-        node = Node(id=5001,name="node2",mac="11:11:11:11:11:11")
+        node = Node(id=5001,name="node2",mac="111111111111")
         db.session.add(node)
 
         db.session.add(NodeConfig(id=5000,node_id=5000,key="key1",value="val1"))
         db.session.add(NodeConfig(id=5001,node_id=5000,key="key2",value="val2"))
+
+        db.session.add(Tool(id=5000,name="TestTool",node_id=5000,resource_id=5000))
 
 
         if args.nomigrate:

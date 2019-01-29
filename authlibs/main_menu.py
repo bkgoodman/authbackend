@@ -41,7 +41,7 @@ def main_menu():
 			'title':'View Logs'
 		},
 		{
-			'url':url_for('members.admin_page'),
+			'url':url_for('nodes.nodes'),
 			'img':url_for("static",filename="rattcfg.png"),
 			'alt':"Admin Page",
 			'title':'Configure Front-Ends'

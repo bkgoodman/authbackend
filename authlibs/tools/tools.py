@@ -1,4 +1,4 @@
-# vim:shiftwidth=2:expandtab
+#vim:shiftwidth=2:expandtab
 import pprint
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
@@ -6,7 +6,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Tool, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs
+from ..db_models import Member, db, Resource, Tool, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, Node
 from functools import wraps
 import json
 #from .. import requireauth as requireauth
@@ -31,7 +31,9 @@ def tools():
 	tools = _get_tools()
 	access = {}
 	resources=Resource.query.all()
-	return render_template('tools.html',tools=tools,editable=True,tool={},resources=resources)
+	nodes=Node.query.all()
+	nodes.append(Node(id="None",name="UNASSINGED")) # TODO BUG This "None" match will break a non-sqlite3 database
+	return render_template('tools.html',tools=tools,editable=True,tool={},resources=resources,nodes=nodes)
 
 @blueprint.route('/', methods=['POST'])
 @login_required
@@ -40,7 +42,10 @@ def tools_create():
 	"""(Controller) Create a tool from an HTML form POST"""
 	r = Tool()
         r.name = (request.form['input_name'])
-        r.frontend = (request.form['input_frontend'])
+        if (request.form['input_node_id'] == "None"):
+          r.node_id = None
+        else:
+          r.node_id = (request.form['input_node_id'])
         r.resource_id = (request.form['input_resource_id'])
 	db.session.add(r)
         db.session.commit()
@@ -59,7 +64,9 @@ def tools_show(tool):
 	if (not current_user.privs('RATT')):
 		readonly=True
 	resources=Resource.query.all()
-	return render_template('tool_edit.html',tool=r,resources=resources,readonly=readonly)
+	nodes=Node.query.all()
+	nodes.append(Node(id="None",name="UNASSINGED")) # TODO BUG This "None" match will break a non-sqlite3 database
+	return render_template('tool_edit.html',tool=r,resources=resources,readonly=readonly,nodes=nodes)
 
 @blueprint.route('/<string:tool>', methods=['POST'])
 @login_required
@@ -72,7 +79,10 @@ def tools_update(tool):
                     flash("Error: Tool not found")
                     return redirect(url_for('tools.tools'))
 		r.name = (request.form['input_name'])
-		r.frontend = (request.form['input_frontend'])
+		if (request.form['input_node_id'] == "None"):
+			r.node_id = None
+		else:
+			r.node_id = (request.form['input_node_id'])
 		r.resource_id = (request.form['input_resource_id'])
 		db.session.commit()
 		flash("Tool updated")
@@ -127,8 +137,10 @@ def logging(tool):
 
 
 def _get_tools():
-	q = db.session.query(Tool.name,Tool.frontend,Tool.id)
+	q = db.session.query(Tool.name,Tool.id)
 	q = q.add_column(Resource.name.label("resource_name")).join(Resource,Resource.id==Tool.resource_id)
+	q = q.add_column(Node.name.label("node")).outerjoin(Node,Node.id == Tool.node_id)
+	print "QUERY",q
 	return q.all()
 
 def register_pages(app):

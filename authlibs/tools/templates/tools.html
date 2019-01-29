@@ -6,14 +6,14 @@
 	<table class="table table-sm">
         <tr>
             <th>Name</th>
-            <th>Front-End</th>
+            <th>Node</th>
             <th>Resource Type</th>
         </tr>
-	{% for tools in tools %}
+	{% for tool in tools %}
 	  <tr>
-		<td><a href="{{ url_for('tools.tools_show',tool=tools.id) }}">{{ tools.name }}</a></td>
-		<td>{{ tools.frontend }}</td>
-		<td>{{ tools.resource_name }}</td>
+		<td><a href="{{ url_for('tools.tools_show',tool=tool.id) }}">{{ tool.name }}</a></td>
+		<td>{{ tool.node }}</td>
+		<td>{{ tool.resource_name }}</td>
 	  </tr>
 	{% endfor %}
 	</table>
