@@ -33,7 +33,12 @@
 		{% endfor %}
 	</div>
 	<!-- end KV Pairs -->
-	<img src="{{ url_for("static",filename="add_ico.png") }}" onclick="ClickAdd();" width="32px" />
+	<div class="container form-row">
+				<div class="form-group col-sm-1">
+		<img src="{{ url_for("static",filename="add_ico.png") }}" onclick="ClickAdd();" width="32px" />
+		</div>
+	</div>
+	
 		<br />
 		<div class="container">
 		{% if readonly is not defined or not readonly %}

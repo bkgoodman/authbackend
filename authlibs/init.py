@@ -97,8 +97,15 @@ class GlobalConfig(object):
       mqtt_opts['keepalive']=Config.getint("MQTT","keepalive")
   if Config.has_option("MQTT","SSL") and Config.getboolean("MQTT","SSL"):
       mqtt_opts['tls']={}
-      for (k,v) in Config.items("MQTT_SSL"):
-          mqtt_opts['tls'][k]=v
+      mqtt_opts['tls']['ca_certs'] = Config.get('MQTT_SSL', 'ca_certs')
+      mqtt_opts['tls']['certfile'] = Config.get('MQTT_SSL', 'certfile')
+      mqtt_opts['tls']['keyfile'] = Config.get('MQTT_SSL', 'keyfile')
+
+      if Config.has_option('MQTT_SSL', 'tls_version'):
+          mqtt_opts['tls']['tls_version'] = Config.get('MQTT_SSL', 'tls_version')
+
+      if Config.has_option('MQTT_SSL', 'ciphers'):
+          mqtt_opts['tls']['ciphers'] = Config.get('MQTT_SSL', 'ciphers')
 
   if Config.has_option("MQTT","username"):
       mqtt_opts['auth']={'username':app.globalConfig.Config.get("MQTT","username"),'password':app.globalConfig.Config.get("MQTT","password")}
