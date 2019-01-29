@@ -12,7 +12,8 @@
         <th>Firstname</th>
         <th>Lastname</th>
         <th>Email</th>
-		<th>Created</th>
+				<th>Created</th>
+				<th>Member</th>
       </tr>
       {% for w in waivers %}
 	  <tr>
@@ -21,6 +22,7 @@
 		<td>{{ w.firstname }}</td>
 		<td>{{ w.lastname }}</td>
 		<td>{{ w.created_date }}</td>
+		<td><a href="{{ url_for("members.members",id=w.member_id) }}">{{ w.member }}</a></td>
 	  </tr>
       {% endfor %}
 	</table>

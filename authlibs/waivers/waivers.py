@@ -39,7 +39,9 @@ blueprint = Blueprint("waivers", __name__, template_folder='templates', static_f
 @blueprint.route('/', methods=['GET'])
 @login_required
 def waivers():
-		waivers = Waiver.query.all()
+		waivers = Waiver.query
+		#waivers = waivers.add_column(Member.member).outerjoin(Member,Member.id == Waiver.member_id)
+		waivers = waivers.all()
 		return render_template('waivers.html',waivers=waivers)
 
 @blueprint.route('/update', methods=['GET'])

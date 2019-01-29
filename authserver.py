@@ -70,6 +70,7 @@ from authlibs.paylib import payments as paylib
 from authlibs.api import api 
 from authlibs.reports import reports 
 from authlibs.tools import tools 
+from authlibs.nodes import nodes 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
@@ -474,6 +475,7 @@ if __name__ == '__main__':
         api.register_pages(app)
         paylib.register_pages(app)
         reports.register_pages(app)
+        nodes.register_pages(app)
         tools.register_pages(app)
 
         slackutils.create_routes(app)

@@ -135,7 +135,7 @@ class RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED:
 
 class RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE:
     id=4004
-    desc='Resource privlage change'
+    desc='Resource privilege change'
 
 
 

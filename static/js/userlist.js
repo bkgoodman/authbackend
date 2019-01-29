@@ -69,10 +69,10 @@ makePostCall(MEMBER_SEARCH_URL+searchstr, {})
 						el.innerHTML += "&nbsp;<a href=\""+MEMBER_URL+data[x]['member']+"\">"+
 						 "<img style=\"height:16px\" src=\""+STATIC_URL+"eye.png\" />"+
 						 "</a>";
-						el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['member']+"/access\">"+
+						el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['id']+"/access\">"+
 						 "&nbsp;<img style=\"height:16px\" src=\""+STATIC_URL+"lock.png\" />"+
 						 "</a>";
-						el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['member']+"/edit\">"+
+						el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['id']+"/edit\">"+
 						 "&nbsp;<img style=\"height:16px\" src=\""+STATIC_URL+"edit.png\" />"+
 						 "</a>";
 						el.innerHTML += "</td>"+

@@ -1,0 +1,73 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+
+<script type="text/javascript" src="{{ url_for("nodes.static",filename="nodeedit.js") }}"></script>
+<div>
+<div class="sectionhead"><h3>Edit Node</h3></div>
+  <form action={{ url_for('nodes.nodes_update',node=node.id) }} method="POST">
+	{% include 'node_form.html' %}
+
+	<! -- KV Pairs -->
+	<div id="div_kv_base" class="container">
+		<h4>Key/Value Pairs</h4>
+		{% for p in kv %}
+			<div class="form-row kvdiv" be_kv_id="{{ p.id }}" id="kv_row_{{ p.id }}">
+				<div class="form-group col-md-4">
+					<label>Key:</label>
+					<input type="text" {{ ro }} class="form-control kv_input_key" name="key_input_{{ p.id }}" id="key_input_{{ p.id }}"  value="{{ p.key }}">
+				</div>
+				<div class="form-group col-md-4">
+					<label>Value:</label>
+					<input type="text" {{ ro }} class="form-control kv_input_value" name="value_input_{{ p.id }}" id="value_input_{{ p.id }}"  value="{{ p.value }}">
+				</div>
+				<div class="form-group col-md-1">
+					<label>&nbsp;</label>
+					<img src="{{ url_for("static",filename="delete_ico_grey.png") }}" onclick="ClickDelete({{ p.id }});" width="32px" />
+				</div>
+			</div>
+		{% endfor %}
+		<img src="{{ url_for("static",filename="add_ico.png") }}" onclick="ClickAdd();" width="32px" />
+	</div>
+	<!-- end KV Pairs -->
+		<br />
+		<div class="container">
+		{% if readonly is not defined or not readonly %}
+		<input type=submit class="btn btn-primary" value="Save changes">
+		{% endif %}
+	</dif>
+
+  </form>
+	{% if readonly is not defined or not readonly %}
+  <div class="sectionhead">
+	  <p />
+  </div>
+
+  <!-- Button trigger for "Delete" modal -->
+<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+  Delete Tool
+</button>
+
+<!-- Modal for Delete resource confirmation -->
+<div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+	      Are you really sure you want to delete {{ node.name }}??
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+	  <form action={{ url_for('nodes.node_delete',node=node.id) }} method="post">
+		<input class="btn btn-danger" type=submit value="Delete">
+	  </form>
+      </div>
+    </div>
+  </div>
+</div>
+  {% endif %} <!-- We have premissions to delete -->
+{% endblock %}

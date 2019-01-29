@@ -107,7 +107,7 @@ def member_edit(id):
 				m.firstname= f['firstname']
 				m.lastname= f['lastname']
 				m.plan= f['plan']
-				m.payment= f['payment']
+				#m.payment= f['payment']
 				if f['phone'] == "None" or f['phone'].strip() == "":
 						m.phone=None
 				else:
@@ -171,7 +171,7 @@ def getAccessLevel(user,resource):
 def member_editaccess(id):
 		"""Controller method to display gather current access details for a member and display the editing interface"""
 		mid = safestr(id)
-		member = db.session.query(Member).filter(Member.member == mid).one()
+		member = db.session.query(Member).filter(Member.id == mid).one()
 		tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
 
 		q = db.session.query(Resource).outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == member.id)))
@@ -207,7 +207,7 @@ def member_setaccess(id):
 		access = {}
 		# Find all the items. If they were changed, and we are allowed
 		# to change them - make it so in DB
-		member = Member.query.filter(Member.member == mid).one()
+		member = Member.query.filter(Member.id == mid).one()
 		if ((member.id == current_user.id) and not (current_user.privs('Admin'))):
 				flash("You can't change your own access")
 				return redirect(url_for('members.member_editaccess',id=mid))
@@ -278,7 +278,7 @@ def member_setaccess(id):
 										db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,doneby=current_user.id))
 										acc = AccessByMember(member_id=member.id,resource_id=resource.id)
 										db.session.add(acc)
-								elif acc and newcheck == False and p<=myPerms:
+								elif acc and newcheck == False and p>=myPerms:
 										flash("You aren't authorized to disable %s privs on %s" % (alstr,r))
 
 								if (p>=myPerms):
@@ -291,7 +291,7 @@ def member_setaccess(id):
 
 								if acc and newcheck == False and acc.level < myPerms:
 										#delete
-										db.session.add(Logs(member_id=mm.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id),doneby=current_user.id)
+										db.session.add(Logs(member_id=mid,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id),doneby=current_user.id)
 										db.session.delete(acc)
 
 

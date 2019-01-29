@@ -25,7 +25,7 @@
     <link href="{{ url_for('static', filename='css/ie10-viewport-bug-workaround.css') }}" rel="stylesheet">
 
     <!-- Custom styles for this template -->
-    <link href="starter-template.css" rel="stylesheet">
+    <link href="static/starter-template.css" rel="stylesheet">
 
     <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
     <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
@@ -76,13 +76,15 @@
 	<a class="dropdown-item" href="{{ url_for('members.members') }}">Members</a>
 	<a class="dropdown-item" href="{{ url_for('resources.resources') }}">Resources</a>
 	<a class="dropdown-item" href="{{ url_for('logs.logs') }}">Logs</a>
-	<a class="dropdown-item" href="{{ url_for('tools.toolcfg') }}">Tools</a>
+	<a class="dropdown-item" href="{{ url_for('tools.tools') }}">Tools</a>
 	<a class="dropdown-item" href="{{ url_for('waivers.waivers') }}">Logs</a>
 	<a class="dropdown-item" href="{{ url_for('slack_page') }}">Slack</a>
 	<a class="dropdown-item" href="{{ url_for('payments.payments') }}">Payments</a>
 	<a class="dropdown-item" href="{{ url_for('reports.reports') }}">Reports</a>
 	<a class="dropdown-item" href="{{ url_for('reports.blacklist') }}">Blacklists</a>
 	<a class="dropdown-item" href="{{ url_for('members.admin_page') }}">Admins</a>
+	<a class="dropdown-item" href="{{ url_for('waivers.waivers') }}">Waivers</a>
+	<a class="dropdown-item" href="{{ url_for('nodes.nodes') }}">Nodes</a>
           <a class="dropdown-item" href="#">Action</a>
           <a class="dropdown-item" href="#">Another action</a>
           <div class="dropdown-divider"></div>
@@ -136,25 +138,24 @@
 
     <!-- FOOTER -->
 			<hr />
+					{% if current_user and current_user.email and current_user.is_authenticated%}
 					<footer class="page-footer">
 						<div class="container">
 							<div class="row">
 								<div class="col">
-									{% if current_user and current_user.email and current_user.is_authenticated%}
 									<address>{{ current_user.email }}</address>
 								</div>
 								<div class="col">
 									<div style="float:right" >
-									{% if current_user.privs('Admin') %}<span class="badge badge-primary">Admin</span> {% endif %}
-									{% if current_user.privs('Finance') %}<span class="badge badge-primary">Finance</span> {% endif %}
-									{% if current_user.privs('Useredit') %}<span class="badge badge-primary">Useredit</span> {% endif %}
-									{% if current_user.privs('RATT') %}<span class="badge badge-primary">RATT</span> {% endif %}
-									{% endif %}
+									{% for r in  current_user.effective_roles() %}
+									<span class="badge badge-primary">{{ r }}</span> 
+									{% endfor %}
 									</div>
 								</div>
 							</div>
 						</div>
 					</footer>
+					{% endif %}
 
     <!-- Bootstrap core JavaScript
     ================================================== -->

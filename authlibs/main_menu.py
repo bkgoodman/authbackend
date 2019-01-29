@@ -47,7 +47,7 @@ def main_menu():
 			'title':'Configure Front-Ends'
 		},
 		{
-			'url':url_for('tools.toolcfg'),
+			'url':url_for('tools.tools'),
 			'img':url_for("static",filename="toolcfg.png"),
 			'alt':"Configure Tools",
 			'title':'Configure Tools'

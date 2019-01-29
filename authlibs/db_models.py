@@ -19,6 +19,8 @@ class AnonymousMember(AnonymousUserMixin):
     email=None
     def privs(self,x):
         return False
+    def effective_roles(self):
+        return []
 # Members and their data
 class Member(db.Model,UserMixin):
     __tablename__ = 'members'
@@ -51,6 +53,13 @@ class Member(db.Model,UserMixin):
     def get(self,id):
         return Member.query.filter(Member.member ==id).one()
 
+    def effective_roles(self):
+      roles=[]
+      for r in defined_roles:
+        if self.has_roles('Admin') or self.has_roles(r):
+          roles.append(r)
+      return roles
+
     def get_id(self):
         """Return the email address to satisfy Flask-Login's requirements."""
         return self.member+"@makeitlabs.com"
@@ -71,7 +80,7 @@ class Tool(db.Model):
     __bind_key__ = 'main'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
-    frontend = db.Column(db.String(50))
+    node_id = db.Column(db.Integer(), db.ForeignKey('nodes.id', ondelete='CASCADE'))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 
 class AccessByMember(db.Model):
@@ -198,6 +207,25 @@ class Blacklist(db.Model):
     reason = db.Column(db.String(50))
     updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
 
+# Physical RATT - One "node" may support multiple "tools" someday
+class Node(db.Model):
+    # TODO: Handle change from tagsbymember
+    __tablename__ = 'nodes'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(20))
+    mac = db.Column(db.String(20))
+
+# A node can have multiple KV entries for config
+class NodeConfig(db.Model):
+    # TODO: Handle change from tagsbymember
+    __tablename__ = 'nodeconfig'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    key = db.Column(db.String(50))
+    value = db.Column(db.String(50))
+    node_id = db.Column(db.Integer(), db.ForeignKey('nodes.id', ondelete='CASCADE'))
+
 ##
 ## LOGS
 ##
@@ -209,6 +237,7 @@ class Logs(db.Model):
     __bind_key__ = 'logs'
     id = db.Column(db.Integer, primary_key=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    node_id = db.Column(db.Integer(), db.ForeignKey('nodes.id', ondelete='CASCADE'))
     tool_id = db.Column(db.Integer(), db.ForeignKey('tools.id', ondelete='CASCADE'))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
     message = db.Column(db.String(100))

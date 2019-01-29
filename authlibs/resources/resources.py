@@ -1,12 +1,13 @@
 # vim:shiftwidth=2:expandtab
 import pprint
 import sqlite3, re, time
+from sqlalchemy import func
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response,Blueprint
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs
+from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, Tool
 from functools import wraps
 import json
 #from .. import requireauth as requireauth
@@ -64,13 +65,14 @@ def resource_create():
 def resource_show(resource):
 		"""(Controller) Display information about a given resource"""
 		r = Resource.query.filter(Resource.name==resource).one_or_none()
+		tools = Tool.query.filter(Tool.resource_id==r.id).all()
 		if not r:
                     flash("Resource not found")
                     return redirect(url_for('resources.resources'))
                 readonly=False
                 if (not current_user.privs('RATT')):
                     readonly=True
-		return render_template('resource_edit.html',rec=r,readonly=readonly)
+		return render_template('resource_edit.html',rec=r,readonly=readonly,tools=tools)
 
 @blueprint.route('/<string:resource>', methods=['POST'])
 @login_required
@@ -143,8 +145,8 @@ def logging(resource):
 
 
 def _get_resources():
-	q = db.session.query(Resource.name,Resource.owneremail, Resource.description).all()
-	return q
+	q = db.session.query(Resource.name,Resource.owneremail, Resource.description)
+	return q.all()
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
