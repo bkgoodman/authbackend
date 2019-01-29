@@ -222,10 +222,19 @@ class NodeConfig(db.Model):
     __tablename__ = 'nodeconfig'
     __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
-    key = db.Column(db.String(50))
     value = db.Column(db.String(50))
     node_id = db.Column(db.Integer(), db.ForeignKey('nodes.id', ondelete='CASCADE'))
+    key_id = db.Column(db.Integer(), db.ForeignKey('kvopts.id', ondelete='CASCADE'))
 
+class KVopt(db.Model):
+    # TODO: Handle change from tagsbymember
+    __tablename__ = 'kvopts'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    keyname = db.Column(db.String(50))
+    default = db.Column(db.String(50))
+    options = db.Column(db.String())
+    displayOrder = db.Column(db.Integer, default=100)
 ##
 ## LOGS
 ##

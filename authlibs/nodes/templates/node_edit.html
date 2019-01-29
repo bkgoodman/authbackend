@@ -11,33 +11,37 @@
 	<! -- KV Pairs -->
 	<div id="div_kv_base" class="container">
 		{# If you edit this - change it in the javascript, too!! #}
-		<h4>Key/Value Pairs</h4>
-		{% for p in kv %}
+		<h4>Parameters</h4>
+		{% for p in params %}
 			<div class="form-row kvdiv" be_kv_id="{{ p.id }}" id="kv_row_{{ p.id }}">
-				<div class="form-group col-md-4">
-					<label>Key:</label>
-					<input type="text" {{ ro }} class="form-control kv_input_key" name="key_input_{{ p.id }}" id="key_input_{{ p.id }}"  value="{{ p.key }}">
-				</div>
-				<div class="form-group col-md-4">
-					<label>Value:</label>
-					<input type="text" {{ ro }} class="form-control kv_input_value" name="value_input_{{ p.id }}" id="value_input_{{ p.id }}"  value="{{ p.value }}">
-				</div>
-				<div class="form-group col-md-1">
-					<label>&nbsp;</label>
-					<input type="hidden" name="retain_input_{{ p.id }}" id="retain_input_{{ p.id }}"  value="1" />
-					<button type="button" class="btn form-control btn-light" style="border-color:transparent;background-color:transparent;">
-					<img src="{{ url_for("static",filename="delete_ico_grey.png") }}" onclick="ClickDelete({{ p.id }});"  /> 
-					</button>
+				<div class="form-group col-md-6">
+					<label>{{ p.name }}</label>
+					<input type="hidden" name="key_orig_{{ p.id }}" id="key_orig_{{ p.id }}"  value="{{ p.value }}" />
+					<input type="hidden" name="ncid_{{ p.id }}" id="ncid_{{ p.id }}"  value="{{ p.ncid }}" />
+					{% if p.options %}
+						<select {% if p.value == "" %} disabled=true {% endif %} name="key_input_{{ p.id }}" id="key_input_{{ p.id }}" class="custom-select" >
+						{% for x in p.options %} 
+							<option value="{{ x }}"
+							{% if x == p.value %} selected {% endif %}>
+							{{ x }}
+							</option>
+						{% endfor %}
+						</select>
+					{% else %}
+					<input type="text" {{ ro }} {% if p.value == "" %} readonly {% endif %} class="form-control kv_input_key" name="key_input_{{ p.id }}" id="key_input_{{ p.id }}"  value="{{ p.value }}">
+					{% endif %}
+					<div class="form-check form-check-inline">
+						<input class="form-check-input" type="checkbox" id="usedefault_{{ p.id }}" value="on" onClick="click_global_cb({{ p.id }});"
+					{% if p.value == "" %} checked {% endif %}
+						>
+						<label class="form-check-label" for="inlineCheckbox1">Use Global Default</label>
+					</div>
 				</div>
 			</div>
 		{% endfor %}
 	</div>
 	<!-- end KV Pairs -->
-	<div class="container form-row">
-				<div class="form-group col-sm-1">
-		<img src="{{ url_for("static",filename="add_ico.png") }}" onclick="ClickAdd();" width="32px" />
-		</div>
-	</div>
+
 	
 		<br />
 		<div class="container">

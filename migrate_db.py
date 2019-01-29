@@ -34,7 +34,8 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from datetime import timedelta
 from authlibs import utilities as authutil
-from authlibs.db_models import db, ApiKey, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver, Subscription, Node, NodeConfig, Tool
+from authlibs.db_models import db, ApiKey, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, \
+			Blacklist, Waiver, Subscription, Node, NodeConfig, Tool, KVopt
 import json
 
 
@@ -733,10 +734,19 @@ if __name__ == '__main__':
         node = Node(id=5001,name="node2",mac="111111111111")
         db.session.add(node)
 
-        db.session.add(NodeConfig(id=5000,node_id=5000,key="key1",value="val1"))
-        db.session.add(NodeConfig(id=5001,node_id=5000,key="key2",value="val2"))
-
         db.session.add(Tool(id=5000,name="TestTool",node_id=5000,resource_id=5000))
+
+        db.session.add(KVopt(id=5000,keyname="Option1"))
+        db.session.add(KVopt(id=5001,keyname="Option2"))
+        db.session.add(KVopt(id=5002,keyname="Option3",default="okay"))
+        db.session.add(KVopt(id=5003,keyname="Option4",options="red;green;blue;chartruse"))
+        db.session.add(KVopt(id=5004,keyname="Option5",default="blue",options="red;green;blue;chartruse"))
+
+        db.session.add(NodeConfig(id=5000,node_id=5000,key_id=5000,value="val1"))
+        db.session.add(NodeConfig(id=5001,node_id=5000,key_id=5001,value="val2"))
+        db.session.add(NodeConfig(id=5002,node_id=5000,key_id=5003,value="val3"))
+        db.session.add(NodeConfig(id=5003,node_id=5001,key_id=5000,value="val1"))
+        db.session.add(NodeConfig(id=5004,node_id=5001,key_id=5001,value="val2"))
 
 
         if args.nomigrate:

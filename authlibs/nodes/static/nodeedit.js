@@ -1,4 +1,21 @@
 nextKey=0;
+function click_global_cb(x) {
+	cb = document.getElementById("usedefault_"+x);
+	ip = document.getElementById("key_input_"+x);
+	if (cb.checked) {
+		ip.readOnly=true;
+		ip.setAttribute('oldvalue', ip.value);
+		ip.value="";
+		ip.disabled="disabled";
+	} else {
+		if (ip.getAttribute("oldvalue"))
+			ip.value = ip.getAttribute("oldvalue");
+		ip.readOnly=false;
+		ip.disabled=false;
+	}
+}
+	
+
 function findRows(findRow) {
 	rval=null;
 	x = document.getElementById("div_kv_base");
@@ -62,4 +79,8 @@ function ClickAdd() {
 	v = TEMPLATE.replace("IMG_BASE",IMG_BASE).replaceAll("XXX",nextKey);
 	x.innerHTML += v;
 	nextKey = nextKey+1;
+}
+
+function doAddMenu(id,keyname,dflt,options) {
+	console.log (id,keyname,dflt,options);
 }

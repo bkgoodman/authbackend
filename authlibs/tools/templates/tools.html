@@ -7,7 +7,7 @@
         <tr>
             <th>Name</th>
             <th>Node</th>
-            <th>Resource Type</th>
+            <th>Resource Group</th>
         </tr>
 	{% for tool in tools %}
 	  <tr>
@@ -20,12 +20,12 @@
 	</div>
 
 
-<!-- Add New Resource -->
+<!-- Add New Tool -->
 
 
 	{% if current_user.privs("RATT") %}
   <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#tools-add-collapse" aria-expanded="false" aria-controls="tools-add-collapse">
-    Add New Resource
+    Add New Tool
   </button>
   <div class="collapse" id="tools-add-collapse">
 	<hr />

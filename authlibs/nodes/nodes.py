@@ -6,7 +6,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Node, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, Node, NodeConfig
+from ..db_models import Member, db, Resource, Node, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, Node, NodeConfig, KVopt
 from functools import wraps
 import json
 #from .. import requireauth as requireauth
@@ -58,8 +58,21 @@ def nodes_show(node):
 	if (not current_user.privs('RATT')):
 		readonly=True
 	resources=Resource.query.all()
-	kv = NodeConfig.query.filter(NodeConfig.node_id==node).all()
-	return render_template('node_edit.html',node=r,resources=resources,readonly=readonly,kv=kv)
+	params=[]
+	kv = KVopt.query.add_column(NodeConfig.value).add_column(NodeConfig.id).outerjoin(NodeConfig,((KVopt.id == NodeConfig.key_id) & (NodeConfig.node_id == node)))
+	kv = kv.order_by(KVopt.displayOrder)
+	kv = kv.all()
+	for (kv,v,ncid) in kv:
+		params.append({
+				'name':kv.keyname,
+				'default':kv.default if kv.default else '',
+				'options':kv.options.split(";") if kv.options else None,
+				'value':v if v else '',
+				'id':kv.id,
+				'ncid':ncid if ncid else '',
+			})
+
+	return render_template('node_edit.html',node=r,resources=resources,readonly=readonly,params=params)
 
 @blueprint.route('/<string:node>', methods=['POST'])
 @login_required
@@ -74,31 +87,28 @@ def nodes_update(node):
 		r.name = (request.form['input_name'])
 		r.mac = (request.form['input_mac'])
 		for x in request.form:
-			if x.startswith("new_input_"):
-				# Create new kv
-				# IDs for "new" fields are NOT DB ids. They are just unqiue to the form
-				kvid=int(x.split("_")[-1])
-				kv = NodeConfig(node_id=tid)
-				kv.key = request.form["key_input_"+str(kvid)]
-				kv.value = request.form["value_input_"+str(kvid)]
-				db.session.add(kv)
-			elif x.startswith("retain_input_"):
-				# Replace existing kv
-				kvid=int(x.split("_")[-1])
-				kv = NodeConfig.query.filter(NodeConfig.id==kvid).one_or_none()
-				if not kv:
-					# Catch case where item was DELETED while we were editing - re-add
-					kv = NodeConfig(node_id=tid)
-					db.session.add(kv)
-				kv.key = request.form["key_input_"+str(kvid)]
-				kv.value = request.form["value_input_"+str(kvid)]
-			elif x.startswith("delete_kv_"):
-				# Delete KV
-				kvid=int(x.split("_")[-1])
-				kv = NodeConfig.query.filter(NodeConfig.id==kvid).one_or_none()
-				if kv:
-					db.session.delete(kv)
-				pass
+			if x.startswith("key_orig_"):
+				kid=x.split("_")[-1]
+				orig=request.form["key_orig_"+kid]
+				if "key_input_"+kid in request.form:
+					val=request.form["key_input_"+kid]
+				else:
+					val=""
+				ncid=request.form["ncid_"+kid]
+				if (val != orig):
+					# Change was made
+					if val == "":
+						d = NodeConfig.query.filter(NodeConfig.id==ncid).one_or_none()
+						if d:
+							db.session.delete(d)
+					elif ncid:
+						n = NodeConfig.query.filter(NodeConfig.id==ncid).one_or_none()
+						if n:
+							n.value=val
+						else:
+							db.session.add(NodeConfig(node_id=node,value=val,key_id=kid))
+					else:
+						db.session.add(NodeConfig(node_id=node,value=val,key_id=kid))
 		db.session.commit()
 		flash("Node updated")
 		return redirect(url_for('nodes.nodes'))
