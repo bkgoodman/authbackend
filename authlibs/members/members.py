@@ -110,17 +110,21 @@ def member_edit(id):
 				flash ("Changes Saved (Please Review!)")
 				m=Member.query.filter(Member.id==mid).one()
 				f=request.form
-				m.member= f['member']
-				m.firstname= f['firstname']
-				m.lastname= f['lastname']
-				m.plan= f['plan']
-				#m.payment= f['payment']
-				if f['phone'] == "None" or f['phone'].strip() == "":
+				m.member= f['input_member']
+				m.firstname= f['input_firstname']
+				m.lastname= f['input_lastname']
+				#TODO REMOVE MISSING FIELD CHEKCS HERE
+				m.plan=""
+				m.payment=""
+				if 'input_plan' in f: m.plan= f['input_plan']
+				if 'input_payment' in f: m.payment= f['input_payment']
+				if f['input_phone'] == "None" or f['input_phone'].strip() == "":
 						m.phone=None
 				else:
-					m.phone= f['phone']
-				m.slack= f['slack']
-				m.alt_email= f['alt_email']
+					m.phone= f['input_phone']
+				m.slack= f['input_slack']
+				m.alt_email= f['input_alt_email']
+				m.email= f['input_email']
 				db.session.commit()
 				
 		#(member,subscription)=Member.query.outerjoin(Subscription).filter(Member.member==mid).first()
@@ -132,6 +136,8 @@ def member_edit(id):
                     return redirect(url_for("members.members"))
 
 		(member,subscription) = r
+
+		# TODO this access display doesn't work at all
 		access=db.session.query(Resource).add_column(AccessByMember.level).outerjoin(AccessByMember).outerjoin(Member)
 		access = access.filter(Member.member == mid)
 		access = access.filter(AccessByMember.active == 1)

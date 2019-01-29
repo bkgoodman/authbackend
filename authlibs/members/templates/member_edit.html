@@ -5,82 +5,10 @@
 
 	<form action="{{ url_for('members.member_edit',id=member.id) }}" method="post">
 		
-		<div class="form-group row">
-				<label class="col-sm-2 col-form-label" for="memberid_field">Member ID</label>
-				<div class="col-sm-6">
-					<input class="form-control" name="member" id="member_field" type="text" value="{{ member.member }}">
-				<small class="form-text text-muted col-sm-12">Changing will <i>not</i> create a new Google account</small>
-				</div>
-					<label class="col-sm-2 col-form-label">@makeitlabs.com</label>
-		</div>
-		<div class="form-group row">
-				<label class="col-sm-2 col-form-label" for="firstname_field">First name</label>
-				<div class="col-sm-4">
-					<input class="form-control" name="firstname" id="firstname_field" type="text" value="{{ member.firstname }}">
-				</div>
-				<label class="col-sm-2 col-form-label" for="lastname_field">Last name</label>
-				<div class="col-sm-4">
-					<input class="form-control" name="lastname" id="lastname_field" type="text" value="{{ member.lastname }}">
-				</div>
-		</div>
-		<div class="form-group row">
-			 <label class="col-sm-2 col-form-label" for="plan">Plan:</label>
-				<div class="col-sm-4">
-					<div class="btn-group btn-group-toggle" data-toggle="buttons">
-						<label class="btn btn-secondary
-							{% if (member.plan == "hobbyist") %} active {% endif %}
-							">
-							<input type="radio" name="plan" value="hobbyist" id="option1" autocomplete="off"
-							{% if (member.plan == "hobbyist") %} checked="" {% endif %}
-							>Hobbyist</input>
-						</label>
-						<label class="btn btn-secondary
-							{% if (member.plan == "pro") %} active {% endif %}
-							">
-							<input type="radio" name="plan" value="pro" id="option1" autocomplete="off"
-							{% if (member.plan == "pro") %} checked="" {% endif %}
-							>Pro</input>
-					</div>
-					<small class="form-text text-muted">ProDuo must be done via stripe</small>
-				</div>
-				<label class="col-md-2 col-form-label" for="payment">Payment system:</label>
-				<div class="col-md-4">
-					<div class="btn-group btn-group-toggle" data-toggle="buttons">
-						<label class="btn btn-secondary
-							{% if (member.payment == "manual") %} active {% endif %}
-							">
-							<input type="radio" name="payment" value="manual" id="option1" autocomplete="off"
-							{% if (member.payment == "manual") %} checked="" {% endif %}
-							>Manual</input>
-						</label>
-						<label class="btn btn-secondary
-							{% if (member.payment == "stripe") %} active {% endif %}
-							">
-							<input type="radio" name="payment" value="stripe" id="option1" autocomplete="off"
-							{% if (member.payment == "stripe") %} checked="" {% endif %}
-							>Stripe</input>
-					</div>
-				</div>
-		</div>
-		<div class="form-group row">
-				<label class="col-sm-2 col-form-label" for="alt_email">Primary Email</label>
-				<div class="col-sm-4">
-					<input class="form-control" name="alt_email"/ value="{{ member.alt_email }}">
-					<small class="form-text text-muted"><b>Non</b> @makeitlabs.com email</small>
-				</div>
-				<label class="col-sm-2 col-form-label" for="phone">Phone</label>
-				<div class="col-sm-4">
-					<input class="form-control" name="phone" value="{{ member.phone }}"/>
-				</div>
-		</div>
-		<div class="form-group row">
-				<label class="col-sm-2 col-form-label" for="slack">Slack ID</label>
-				<div class="col-sm-4">
-					<input class="form-control" name="slack"/ value="{{ member.slack }}">
-				</div>
-		</div>
+	{% include 'member_form.html' %}
 
 	  <input type="submit" name="SaveChanges" value="Save" />
+	</form>
 
 
 
