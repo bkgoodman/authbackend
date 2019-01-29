@@ -30,6 +30,7 @@ function ClickDelete(x) {
 	rt=findRows(x);
 	console.log("RETURN DELETE",x,rt);
 }
+/* If you edit this - change it in the HTML, too! */
 TEMPLATE=`
 			<div class="form-row kvdiv" be_kv_id="XXX" id="kv_row_XXX">
 				<div class="form-group col-md-4">
@@ -42,8 +43,10 @@ TEMPLATE=`
 				</div>
 				<div class="form-group col-md-1">
 					<label>&nbsp;</label>
-					<input type="hidden" class="form-control kv_input_value" name="new_input_XXX" id="new_input_XXX"  value="1">
-					<img src="IMG_BASEdelete_ico_grey.png" onclick="ClickDelete(XXX);" width="32px" />
+					<button type="button" class="btn form-control btn-light" style="border-color:transparent;background-color:transparent;">
+					<input type="hidden" name="new_input_XXX" id="new_input_XXX"  value="1" />
+					<img src="IMG_BASEdelete_ico_grey.png") }}" onclick="ClickDelete(XXX);"  /> 
+					</button>
 				</div>
 			</div>
 	`;

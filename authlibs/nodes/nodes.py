@@ -73,7 +73,32 @@ def nodes_update(node):
                     return redirect(url_for('nodes.nodes'))
 		r.name = (request.form['input_name'])
 		r.mac = (request.form['input_mac'])
-		print request.form
+		for x in request.form:
+			if x.startswith("new_input_"):
+				# Create new kv
+				# IDs for "new" fields are NOT DB ids. They are just unqiue to the form
+				kvid=int(x.split("_")[-1])
+				kv = NodeConfig(node_id=tid)
+				kv.key = request.form["key_input_"+str(kvid)]
+				kv.value = request.form["value_input_"+str(kvid)]
+				db.session.add(kv)
+			elif x.startswith("retain_input_"):
+				# Replace existing kv
+				kvid=int(x.split("_")[-1])
+				kv = NodeConfig.query.filter(NodeConfig.id==kvid).one_or_none()
+				if not kv:
+					# Catch case where item was DELETED while we were editing - re-add
+					kv = NodeConfig(node_id=tid)
+					db.session.add(kv)
+				kv.key = request.form["key_input_"+str(kvid)]
+				kv.value = request.form["value_input_"+str(kvid)]
+			elif x.startswith("delete_kv_"):
+				# Delete KV
+				kvid=int(x.split("_")[-1])
+				kv = NodeConfig.query.filter(NodeConfig.id==kvid).one_or_none()
+				if kv:
+					db.session.delete(kv)
+				pass
 		db.session.commit()
 		flash("Node updated")
 		return redirect(url_for('nodes.nodes'))

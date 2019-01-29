@@ -10,6 +10,7 @@
 
 	<! -- KV Pairs -->
 	<div id="div_kv_base" class="container">
+		{# If you edit this - change it in the javascript, too!! #}
 		<h4>Key/Value Pairs</h4>
 		{% for p in kv %}
 			<div class="form-row kvdiv" be_kv_id="{{ p.id }}" id="kv_row_{{ p.id }}">
@@ -23,7 +24,10 @@
 				</div>
 				<div class="form-group col-md-1">
 					<label>&nbsp;</label>
-					<img src="{{ url_for("static",filename="delete_ico_grey.png") }}" onclick="ClickDelete({{ p.id }});" width="32px" />
+					<input type="hidden" name="retain_input_{{ p.id }}" id="retain_input_{{ p.id }}"  value="1" />
+					<button type="button" class="btn form-control btn-light" style="border-color:transparent;background-color:transparent;">
+					<img src="{{ url_for("static",filename="delete_ico_grey.png") }}" onclick="ClickDelete({{ p.id }});"  /> 
+					</button>
 				</div>
 			</div>
 		{% endfor %}
