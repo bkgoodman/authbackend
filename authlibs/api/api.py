@@ -98,7 +98,9 @@ def api_v1_nodeconfig(node):
 			val=""
 			if v is not None: val = v
 			if k.kind.lower() == "boolean":
-				if v.lower() in ('on','yes','true','1'):
+				if not v:
+					val = False
+				elif v.lower() in ('on','yes','true','1'):
 					val=True
 				else:
 					val=False

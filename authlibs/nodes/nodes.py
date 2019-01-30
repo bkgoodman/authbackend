@@ -80,15 +80,24 @@ def nodes_show(node):
 		initialvalue=v
 		if not initialvalue:
 			initialvalue = kv.default if kv.default else ''
+
+		default = kv.default if kv.default else ''
+		if kv.kind == "boolean":
+			if default:
+				default="true"
+			else:
+				default="false"
+				
 		params.append({
 				'name':kv.keyname,
 				'groupname':gpname,
 				'itemname':itemname,
-				'default':kv.default if kv.default else '',
+				'default':default,
 				'description':kv.description if kv.description else '',
 				'options':kv.options.split(";") if kv.options else None,
 				'value':v if v else '',
 				'initialvalue':initialvalue,
+				'kind':kv.kind,
 				'id':kv.id,
 				'indent':indent,
 				'ncid':ncid if ncid else '',

@@ -30,7 +30,13 @@
 					<label>{{ p.itemname }}</label>
 					<input type="hidden" name="key_orig_{{ p.id }}" id="key_orig_{{ p.id }}"  value="{{ p.value }}" />
 					<input type="hidden" name="ncid_{{ p.id }}" id="ncid_{{ p.id }}"  value="{{ p.ncid }}" />
-					{% if p.options %}
+					{% if p.kind == "boolean" %}
+						<select {% if p.value == "" %} disabled=true {% endif %} name="key_input_{{ p.id }}" id="key_input_{{ p.id }}" class="custom-select" >
+							<option value="true" {% if p.initialvalue %} selected {% endif %}> True
+							<option value="false" {% if not p.initialvalue %} selected {% endif %}> False
+							</option>
+						</select>
+					{% elif p.options %}
 						<select {% if p.value == "" %} disabled=true {% endif %} name="key_input_{{ p.id }}" id="key_input_{{ p.id }}" class="custom-select" >
 						{% for x in p.options %} 
 							<option value="{{ x }}"
