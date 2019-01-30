@@ -94,7 +94,22 @@ def api_v1_nodeconfig(node):
 		kv = KVopt.query.add_column(NodeConfig.value).outerjoin(NodeConfig,((NodeConfig.node_id == n.id) & (NodeConfig.key_id == KVopt.id))).all()
 		result['params']={}
 		for (k,v) in kv:
-			result['params'][k.keyname]=v if v else None
+			sp = k.keyname.split(".")
+			val=""
+			if v is not None: val = v
+			if k.kind.lower() == "integer":
+				try:
+					val=int(v)
+				except:
+					val=0
+			
+			i = result['params']
+			for kk in sp[:-1]:
+				if kk not in i:
+					i[kk]={}
+				i=i[kk]
+				
+			i[sp[-1]]=val
 
 		result['tools']=[]
 		tools= Tool.query.add_columns(Resource.name).add_column(Resource.id)
@@ -236,9 +251,7 @@ def api_v1_payments_update():
 @api_only
 def api_test():
 		host_addr = str.split(request.environ['HTTP_HOST'],':')
-		print host_addr
 		str1 = pprint.pformat(request.environ,depth=5)
-		print(str1)
 		if request.environ['REMOTE_ADDR'] == host_addr[0]:
 				return "Yay, right host"
 		else:

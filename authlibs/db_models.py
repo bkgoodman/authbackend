@@ -1,5 +1,5 @@
 # Database models
-# vim:expandtab:tabstop=4
+#im:expandtab:tabstop=4
 # Single file containing all required DB models, for now
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, UserMixin
@@ -233,8 +233,12 @@ class KVopt(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     keyname = db.Column(db.String(50))
     default = db.Column(db.String(50))
+    kind = db.Column(db.String(50),default="string")
     options = db.Column(db.String())
+    description = db.Column(db.String(100))
     displayOrder = db.Column(db.Integer, default=100)
+
+    valid_kinds=['string','integer']
 ##
 ## LOGS
 ##

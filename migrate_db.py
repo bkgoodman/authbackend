@@ -736,17 +736,20 @@ if __name__ == '__main__':
 
         db.session.add(Tool(id=5000,name="TestTool",node_id=5000,resource_id=5000))
 
-        db.session.add(KVopt(id=5000,keyname="Option1"))
-        db.session.add(KVopt(id=5001,keyname="Option2"))
-        db.session.add(KVopt(id=5002,keyname="Option3",default="okay"))
-        db.session.add(KVopt(id=5003,keyname="Option4",options="red;green;blue;chartruse"))
-        db.session.add(KVopt(id=5004,keyname="Option5",default="blue",options="red;green;blue;chartruse"))
+        db.session.add(KVopt(id=5000,keyname="test1.Option1",description="Anything"))
+        db.session.add(KVopt(id=5001,keyname="test1.Option2",kind="integer",description="Integer only"))
+        db.session.add(KVopt(id=5002,keyname="test1.Option3.first"))
+        db.session.add(KVopt(id=5005,keyname="test1.Option3.second"))
+        db.session.add(KVopt(id=5006,keyname="test1.Option3.third"))
+        db.session.add(KVopt(id=5003,keyname="test2.Option4",options="red;green;blue;chartruse",description="Your favorite color"))
+        db.session.add(KVopt(id=5004,keyname="test2.season",default="summer",options="spring;summer;winter;fall",description="A nice season"))
 
         db.session.add(NodeConfig(id=5000,node_id=5000,key_id=5000,value="val1"))
         db.session.add(NodeConfig(id=5001,node_id=5000,key_id=5001,value="val2"))
-        db.session.add(NodeConfig(id=5002,node_id=5000,key_id=5003,value="val3"))
+        db.session.add(NodeConfig(id=5002,node_id=5000,key_id=5003,value="green"))
         db.session.add(NodeConfig(id=5003,node_id=5001,key_id=5000,value="val1"))
         db.session.add(NodeConfig(id=5004,node_id=5001,key_id=5001,value="val2"))
+        db.session.add(NodeConfig(id=5005,node_id=5001,key_id=5004,value="winter"))
 
 
         if args.nomigrate:

@@ -60,15 +60,32 @@ def nodes_show(node):
 	resources=Resource.query.all()
 	params=[]
 	kv = KVopt.query.add_column(NodeConfig.value).add_column(NodeConfig.id).outerjoin(NodeConfig,((KVopt.id == NodeConfig.key_id) & (NodeConfig.node_id == node)))
+	kv = kv.order_by(KVopt.keyname)
 	kv = kv.order_by(KVopt.displayOrder)
 	kv = kv.all()
 	for (kv,v,ncid) in kv:
+		xp=kv.keyname.split('.')
+		if len(xp) ==1:
+			gpname=""
+			itemname=xp[0]
+		else:
+			gpname=".".join(xp[0:-1])
+			itemname=xp[-1]
+
+		if (len(xp)==2):
+			indent=''
+		else:
+			indent='style=margin-left:{0}px;border-left-color:aliceblue;border-left-width:10px;border-left-style:solid;padding-left:5px'.format((len(xp)-2)*30)
 		params.append({
 				'name':kv.keyname,
+				'groupname':gpname,
+				'itemname':itemname,
 				'default':kv.default if kv.default else '',
+				'description':kv.description if kv.description else '',
 				'options':kv.options.split(";") if kv.options else None,
 				'value':v if v else '',
 				'id':kv.id,
+				'indent':indent,
 				'ncid':ncid if ncid else '',
 			})
 
