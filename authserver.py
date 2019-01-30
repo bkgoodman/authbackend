@@ -72,6 +72,7 @@ from authlibs.reports import reports
 from authlibs.tools import tools 
 from authlibs.nodes import nodes 
 from authlibs.kvopts import kvopts 
+from authlibs.apikeys import apikeys 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
@@ -479,6 +480,7 @@ if __name__ == '__main__':
         nodes.register_pages(app)
         tools.register_pages(app)
         kvopts.register_pages(app)
+        apikeys.register_pages(app)
         slackutils.create_routes(app)
         g.main_menu = main_menu
         app.config['main_menu'] = main_menu

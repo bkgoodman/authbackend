@@ -79,6 +79,11 @@ def main_menu():
 		},
 		{
 			'privs':'RATT',
+			'url':url_for('apikeys.apikeys'),
+			'title':"API Keys",
+		},
+		{
+			'privs':'RATT',
 			'url':url_for('kvopts.kvopts'),
 			'title':"Node Parameters",
 		}
