@@ -31,7 +31,7 @@ blueprint = Blueprint("apikeys", __name__, template_folder='templates', static_f
 def apikeys():
 	"""(Controller) Display ApiKeys and controls"""
 	apikeys = _get_apikeys()
-	return render_template('apikeys.html',apikeys=apikeys,editable=True,apikey={})
+	return render_template('apikeys.html',apikeys=apikeys,editable=True,apikey={},create=True)
 
 @blueprint.route('/', methods=['POST'])
 @login_required
