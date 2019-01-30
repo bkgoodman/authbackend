@@ -238,7 +238,7 @@ class KVopt(db.Model):
     description = db.Column(db.String(100))
     displayOrder = db.Column(db.Integer, default=100)
 
-    valid_kinds=['string','integer']
+    valid_kinds=['string','integer','boolean']
 ##
 ## LOGS
 ##

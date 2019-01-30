@@ -7,12 +7,14 @@
             <th>Key Name</th>
             <th>Default</th>
 						<th>Options</th>
+						<th>Type</th>
         </tr>
 	{% for kv in kvopts %}
 	  <tr>
 		<td><a href="{{ url_for('kvopts.kvopt_show',kvopt=kv.keyname) }}">{{ kv.keyname }}</a></td>
 		<td>{{ kv.default }}</td>
 		<td>{{ kv.options }}</td>
+		<td>{{ kv.kind }}</td>
 	  </tr>
 	{% endfor %}
 	</table>

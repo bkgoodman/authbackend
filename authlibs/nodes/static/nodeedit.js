@@ -1,11 +1,11 @@
 nextKey=0;
-function click_global_cb(x) {
+function click_global_cb(x,dft) {
 	cb = document.getElementById("usedefault_"+x);
 	ip = document.getElementById("key_input_"+x);
 	if (cb.checked) {
 		ip.readOnly=true;
 		ip.setAttribute('oldvalue', ip.value);
-		ip.value="";
+		ip.value=dft;
 		ip.disabled="disabled";
 	} else {
 		if (ip.getAttribute("oldvalue"))

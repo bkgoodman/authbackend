@@ -34,7 +34,7 @@
 						<select {% if p.value == "" %} disabled=true {% endif %} name="key_input_{{ p.id }}" id="key_input_{{ p.id }}" class="custom-select" >
 						{% for x in p.options %} 
 							<option value="{{ x }}"
-							{% if x == p.value %} selected {% endif %}>
+							{% if x == p.initialvalue %} selected {% endif %}>
 							{{ x }}
 							</option>
 						{% endfor %}
@@ -46,7 +46,7 @@
 						<small>{{ p.description }}</small>
 					</div>
 					<div class="form-check form-check-inline">
-						<input class="form-check-input" type="checkbox" id="usedefault_{{ p.id }}" value="on" onClick="click_global_cb({{ p.id }});"
+						<input class="form-check-input" type="checkbox" id="usedefault_{{ p.id }}" value="on" onClick="click_global_cb({{ p.id }},'{{ p.default }}');"
 					{% if p.value == "" %} checked {% endif %}
 						>
 						<label class="form-check-label" for="inlineCheckbox1">Use Global Default</label>

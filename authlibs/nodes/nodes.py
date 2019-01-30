@@ -76,6 +76,10 @@ def nodes_show(node):
 			indent=''
 		else:
 			indent='style=margin-left:{0}px;border-left-color:aliceblue;border-left-width:10px;border-left-style:solid;padding-left:5px'.format((len(xp)-2)*30)
+
+		initialvalue=v
+		if not initialvalue:
+			initialvalue = kv.default if kv.default else ''
 		params.append({
 				'name':kv.keyname,
 				'groupname':gpname,
@@ -84,6 +88,7 @@ def nodes_show(node):
 				'description':kv.description if kv.description else '',
 				'options':kv.options.split(";") if kv.options else None,
 				'value':v if v else '',
+				'initialvalue':initialvalue,
 				'id':kv.id,
 				'indent':indent,
 				'ncid':ncid if ncid else '',
