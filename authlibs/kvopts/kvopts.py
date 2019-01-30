@@ -1,4 +1,4 @@
-# vim:shiftwidth=2:expandtab
+#vim:shiftwidth=2:expandtab
 import pprint
 import sqlite3, re, time
 from sqlalchemy import func
@@ -36,10 +36,15 @@ blueprint = Blueprint("kvopts", __name__, template_folder='templates', static_fo
 @blueprint.route('/', methods=['GET'])
 @login_required
 def kvopts():
-	 """(Controller) Display KVopts and controls"""
-	 kvopts = _get_kvopts()
-	 access = {}
-	 return render_template('kvopts.html',kvopts=kvopts,editable=True,kinds=KVopt.valid_kinds)
+	"""(Controller) Display KVopts and controls"""
+	kvopts = _get_kvopts()
+	access = {}
+	for x in kvopts:
+		if x.description is None: x.description=""
+		if x.options is None: x.options=""
+		if x.default is None: x.default=""
+
+	return render_template('kvopts.html',kvopts=kvopts,editable=True,kinds=KVopt.valid_kinds,rec={'kind':'string'})
 
 @blueprint.route('/', methods=['POST'])
 @login_required
@@ -53,6 +58,7 @@ def kvopt_create():
 	r.kind = (request.form['input_kind'])
 	r.description = (request.form['input_description'])
 	r.displayOrder = (request.form['input_displayOrder'])
+	if r.kind == "boolean": r.options=""
 	db.session.add(r)
 	db.session.commit()
 	flash("Created.")
@@ -85,6 +91,7 @@ def kvopt_update(kvopt):
 		r.default = (request.form['input_default'])
 		r.options = (request.form['input_options'])
 		r.kind = (request.form['input_kind'])
+		if r.kind == "boolean": r.options=""
 		r.description = (request.form['input_description'])
 		r.displayOrder = (request.form['input_displayOrder'])
 		db.session.commit()
