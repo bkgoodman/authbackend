@@ -41,7 +41,7 @@
 
 <script type="text/javascript">
 function clc(){
-	if (($('input[name=options]:checked').val()) == "manual") {
+	if (($('input[name=pwgen]:checked').val()) == "manual") {
     $('#pwCollapse').removeClass("collapse");
 			} else  {
     $('#pwCollapse').addClass("collapse");
@@ -58,25 +58,28 @@ function clc(){
 			{{ input('username',"Username",small="Login Credentials") }}
     </div>
     <div class="form-group col-md-8">
-    <label for="chpassbtn">Change Password:</label>
-	<div class="btn-group btn-group-toggle" id="pass-btn-grp" data-toggle="buttons">
-	{% if not create %}
-	<label class="btn btn-secondary active">
-	    <input type="radio" name="options" onChange="clc();" value="nochange" id="option1"  autocomplete="off" checked> No Change
-	  </label>
-	 {% endif %}
-	  <label class="btn btn-secondary">
-	    <input type="radio" name="options" onChange="clc();" value="manual" id="option2" autocomplete="off"> Manual
-	  </label>
-	  <label class="btn btn-secondary {% if create %} active {% endif %}">
-	    <input type="radio" name="options" onChange="clc();" value="auto" id="option3" autocomplete="off"> Auto-Generate
-	  </label>
+			<label for="chpassbtn">Change Password:</label>
+			<div class="btn-group btn-group-toggle" id="pass-btn-grp" data-toggle="buttons">
+				{% if not create %}
+					<label class="btn btn-secondary active">
+						<input type="radio" name="pwgen" onChange="clc();" value="nochange" id="option1"  autocomplete="off" checked> No Change
+					</label>
+				 {% endif %}
+			<label class="btn btn-secondary {% if create %} active {% endif %}">
+				<input type="radio" name="pwgen" onChange="clc();" value="auto" id="option3" autocomplete="off"> Auto-Generate
+			</label>
+			<label class="btn btn-secondary">
+				<input type="radio" name="pwgen" onChange="clc();" value="manual" id="option2" autocomplete="off"> Manual
+			</label>
+    </div>
 	</div>
-    </div>
-    <div id="pwCollapse" class="collapse form-group col-md-8">
-	{{ input('newpw1',"New Password",type="password") }}
-	{{ input('newpw2',"Reenter Password",type="password") }}
-    </div>
+	<div id="pwCollapse" class="collapse form-row">
+		<div class="form-group col-lg-6">
+			{{ input('newpw1',"New Password",type="password") }}
+		</div>
+		<div class="form-group col-lg-6">
+			{{ input('newpw2',"Reenter Password",type="password") }}
+		</div>
   </div>
 </div>  
 

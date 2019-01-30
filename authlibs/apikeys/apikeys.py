@@ -37,20 +37,29 @@ def apikeys():
 @login_required
 @roles_required(['Admin','RATT'])
 def apikeys_create():
-	"""(Controller) Create a apikey from an HTML form POST"""
-        newpw=""
-	r = ApiKey()
-        r.name = (request.form['input_name'])
-        r.username = (request.form['input_username'])
-        clearpw  = (request.form['input_password'])
-        if clearpw == '':
-            clearpw = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
-            newpw = "New password is: "+clearpw
-        r.password = current_app.user_manager.hash_password(clearpw)
-	db.session.add(r)
-        db.session.commit()
-	flash("Created. "+newpw)
-	return redirect(url_for('apikeys.apikeys'))
+  """(Controller) Create a apikey from an HTML form POST"""
+  newpw=""
+  r = ApiKey()
+  r.name = (request.form['input_name'])
+  r.username = (request.form['input_username'])
+  pwgen  = (request.form['pwgen'])
+  if pwgen == "manual":
+    pw1  = (request.form['input_newpw1']).strip()
+    pw2  = (request.form['input_newpw2']).strip()
+    if (pw1 != pw2):
+      flash ("Passwords Mismatch")
+      return redirect(url_for('apikeys.apikeys'))
+    elif pw1 == "":
+      flash ("Manual password was not specified")
+      return redirect(url_for('apikeys.apikeys'))
+  else:
+    pw1 = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
+    newpw = "New password is: "+pw1
+  r.password = current_app.user_manager.hash_password(pw1)
+  db.session.add(r)
+  db.session.commit()
+  flash("Created. "+newpw)
+  return redirect(url_for('apikeys.apikeys'))
 
 @blueprint.route('/<string:apikey>', methods=['GET'])
 @login_required
@@ -66,21 +75,32 @@ def apikeys_show(apikey):
 @login_required
 @roles_required(['Admin','RATT'])
 def apikeys_update(apikey):
-		"""(Controller) Update an existing apikey from HTML form POST"""
-		tid = (apikey)
-		r = ApiKey.query.filter(ApiKey.id==tid).one_or_none()
-		if not r:
-                    flash("Error: ApiKey not found")
-                    return redirect(url_for('apikeys.apikeys'))
-		r.name = (request.form['input_name'])
-		if (request.form['input_node_id'] == "None"):
-			r.node_id = None
-		else:
-			r.node_id = (request.form['input_node_id'])
-		r.resource_id = (request.form['input_resource_id'])
-		db.session.commit()
-		flash("ApiKey updated")
-		return redirect(url_for('apikeys.apikeys'))
+  """(Controller) Update an existing apikey from HTML form POST"""
+  tid = (apikey)
+  r = ApiKey.query.filter(ApiKey.id==tid).one_or_none()
+  if not r:
+                  flash("Error: ApiKey not found")
+                  return redirect(url_for('apikeys.apikeys'))
+  r.name = (request.form['input_name'])
+  pwgen  = (request.form['pwgen'])
+  newpw=""
+  if pwgen == "manual":
+    pw1  = (request.form['input_newpw1']).strip()
+    pw2  = (request.form['input_newpw2']).strip()
+    if (pw1 != pw2):
+      flash ("Passwords Mismatch")
+      return redirect(url_for('apikeys.apikeys'))
+    elif pw1 == "":
+      flash ("Manual password was not specified")
+      return redirect(url_for('apikeys.apikeys'))
+    r.password = current_app.user_manager.hash_password(pw1)
+  elif pwgen == "auto":
+    pw1 = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
+    newpw = "New password is: "+pw1
+    r.password = current_app.user_manager.hash_password(pw1)
+  db.session.commit()
+  flash("ApiKey updated. "+newpw)
+  return redirect(url_for('apikeys.apikeys'))
 
 @blueprint.route('/<string:apikey>/delete', methods=['POST'])
 @roles_required(['Admin','RATT'])
