@@ -479,8 +479,9 @@ if __name__ == '__main__':
         nodes.register_pages(app)
         tools.register_pages(app)
         kvopts.register_pages(app)
-
         slackutils.create_routes(app)
+        g.main_menu = main_menu
+        app.config['main_menu'] = main_menu
         #print site_map(app)
     #app.login_manager.login_view="test"
     #print app.login_manager.login_view

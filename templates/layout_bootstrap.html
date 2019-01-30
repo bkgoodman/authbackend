@@ -67,48 +67,16 @@
         <a class="nav-link" href="{{ url_for("logout") }}">Logout</a>
       </li>
       <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
           Pages
         </a>
-        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-{# TODO make this menu from "main_menu" #}
-	<a class="dropdown-item" href="{{ url_for('authorize.authorize') }}">Authorize</a>
-	<a class="dropdown-item" href="{{ url_for('members.members') }}">Members</a>
-	{% if current_user.privs('RATT') %}
-	<a class="dropdown-item" href="{{ url_for('resources.resources') }}">Resources</a>
-	{% endif %}
-	<a class="dropdown-item" href="{{ url_for('logs.logs') }}">Logs</a>
-	{% if current_user.privs('RATT') %}
-	<a class="dropdown-item" href="{{ url_for('tools.tools') }}">Tools</a>
-	{% endif %}
-	{% if current_user.privs('Useredit') %}
-	<a class="dropdown-item" href="{{ url_for('waivers.waivers') }}">Logs</a>
-	<a class="dropdown-item" href="{{ url_for('slack_page') }}">Slack</a>
-	{% endif %}
-	{% if current_user.privs('Finance') %}
-	<a class="dropdown-item" href="{{ url_for('payments.payments') }}">Payments</a>
-	<a class="dropdown-item" href="{{ url_for('reports.blacklist') }}">Blacklists</a>
-	{% endif %}
-	<a class="dropdown-item" href="{{ url_for('reports.reports') }}">Reports</a>
-	{% if current_user.privs('Admin') %}
-	<a class="dropdown-item" href="{{ url_for('members.admin_page') }}">Admin Roles</a>
-	{% endif %}
-	<a class="dropdown-item" href="{{ url_for('waivers.waivers') }}">Waivers</a>
-	{% if current_user.privs('RATT') %}
-	<a class="dropdown-item" href="{{ url_for('nodes.nodes') }}">Nodes</a>
-	{% endif %}
-	{% if current_user.privs('RATT') %}
-	<a class="dropdown-item" href="{{ url_for('kvopts.kvopts') }}">Node Parameters</a>
-	{% endif %}
-          <a class="dropdown-item" href="#">Action</a>
-          <a class="dropdown-item" href="#">Another action</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="#">Something else here</a>
-        </div>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdown2">
+		{% for x in config['main_menu']() %}
+		<a class="dropdown-item" href="{{ x['url'] }}">{{ x['title'] }}</a>
+		{% endfor %}
+	</div>
       </li>
-      <li class="nav-item">
-        <a class="nav-link disabled" href="#">Disabled</a>
-      </li>
+
     </ul>
 	{% if current_user %}
     <p class="navbar-text navbar-right">
@@ -118,7 +86,6 @@
 {% endif %}
 </nav>
 <!-- NAVBAR --> 
-
 
 {% if DEPLOYTYPE  or TESTDB %}
 	<div class="alert alert-warning" role="alert">
