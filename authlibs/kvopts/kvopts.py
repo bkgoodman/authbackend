@@ -39,7 +39,7 @@ def kvopts():
 	 """(Controller) Display KVopts and controls"""
 	 kvopts = _get_kvopts()
 	 access = {}
-	 return render_template('kvopts.html',kvopts=kvopts,editable=True)
+	 return render_template('kvopts.html',kvopts=kvopts,editable=True,kinds=KVopt.valid_kinds)
 
 @blueprint.route('/', methods=['POST'])
 @login_required
@@ -50,6 +50,8 @@ def kvopt_create():
 	r.keyname = (request.form['input_keyname'])
 	r.default = (request.form['input_default'])
 	r.options = (request.form['input_options'])
+	r.kind = (request.form['input_kind'])
+	r.description = (request.form['input_description'])
 	r.displayOrder = (request.form['input_displayOrder'])
 	db.session.add(r)
 	db.session.commit()
@@ -67,7 +69,7 @@ def kvopt_show(kvopt):
                 readonly=False
                 if (not current_user.privs('RATT')):
                     readonly=True
-		return render_template('kvopts_edit.html',rec=r,readonly=readonly)
+		return render_template('kvopts_edit.html',rec=r,readonly=readonly,kinds=KVopt.valid_kinds)
 
 @blueprint.route('/<string:kvopt>', methods=['POST'])
 @login_required
@@ -82,6 +84,8 @@ def kvopt_update(kvopt):
 		r.keyname = (request.form['input_keyname'])
 		r.default = (request.form['input_default'])
 		r.options = (request.form['input_options'])
+		r.kind = (request.form['input_kind'])
+		r.description = (request.form['input_description'])
 		r.displayOrder = (request.form['input_displayOrder'])
 		db.session.commit()
 		flash("Parameter Updated")
