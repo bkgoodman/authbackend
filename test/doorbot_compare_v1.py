@@ -4,8 +4,8 @@ import os,sys,json,subprocess,re
 
 
 
-olds = json.load(open("doorbot-v1-api.acl"))
-news = json.load(open("new_doorbot_v1.acl"))
+olds = json.load(open("../doorbot-v1-api.acl"))
+news = json.load(open("../new_doorbot_v1.acl"))
 
 print olds[0].keys()
 

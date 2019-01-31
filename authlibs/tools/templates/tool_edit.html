@@ -41,4 +41,8 @@
   </div>
 </div>
   {% endif %} <!-- We have premissions to delete -->
+	
+	{% with tool_id=tool.id %}
+	{% include "comments.html" %}
+	{% endwith %}
 {% endblock %}

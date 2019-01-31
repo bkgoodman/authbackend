@@ -23,4 +23,8 @@
 	{% endif %}
 	</ul>
   </div>
+
+	{% with member_id=member.id %}
+	{% include "comments.html" %}
+	{% endwith %}
 {% endblock %}

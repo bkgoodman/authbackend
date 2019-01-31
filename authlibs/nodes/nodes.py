@@ -14,6 +14,7 @@ from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from ..utilities import _safeemail as safeemail
 from authlibs import eventtypes
+from authlibs.comments import comments
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -103,7 +104,8 @@ def nodes_show(node):
 				'ncid':ncid if ncid else '',
 			})
 
-	return render_template('node_edit.html',node=r,resources=resources,readonly=readonly,params=params)
+	cc=comments.get_comments(node_id=node)
+	return render_template('node_edit.html',node=r,resources=resources,readonly=readonly,params=params,comments=cc)
 
 @blueprint.route('/<string:node>', methods=['POST'])
 @login_required

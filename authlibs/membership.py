@@ -13,6 +13,7 @@ import argparse
 from db_models import db, Subscription, Member, Blacklist, Logs
 import ConfigParser
 import eventtypes
+from datetime import datetime
 from flask import current_app
 from init import GLOBAL_LOGGER_LEVEL
 
@@ -119,6 +120,7 @@ def addMissingMembers(missing):
     for b in bl_entries:
         ignorelist.append(b.entry)
     for p in missing:
+				logger.debug("Check add new for %s active %s expires %s" % (p.email,p.active,p.expires_date))
         if p.subid in ignorelist:
             logger.info("Explicitly ignoring subscription id %s" % p.subid)
             continue
@@ -127,6 +129,12 @@ def addMissingMembers(missing):
             continue
         elif p.customerid in ignorelist:
             logger.info("Explicitly ignoring customer id %s" % p.customerid)
+            continue
+        elif p.active.lower != "true":
+            logger.info("Skipping create for inactive sub %s" % p.customerid)
+            continue
+        elif p.expires_date < datetime.now():
+            logger.info("Skipping create for expired sub %s" % p.customerid)
             continue
         else:
             logger.info("Missing member: %s (%s) (%s)" % (p.name,p.email,p.created_date))

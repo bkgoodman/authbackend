@@ -89,5 +89,9 @@
 	  {% endfor %}
 	{% endif %}
 	</ul>
+
   </div> <!-- BASE container -->
+	{% with readonly=1,member_id=member.id %}
+	{% include "comments.html" %}
+	{% endwith %}
 {% endblock %}

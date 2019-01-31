@@ -62,4 +62,8 @@
   </div>
 </div>
   {% endif %} <!-- WE CAN EDIT -->
+
+	{% with resource_id=rec.id %}
+	{% include "comments.html" %}
+	{% endwith %}
 {% endblock %}

@@ -15,6 +15,7 @@ from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from ..utilities import _safeemail as safeemail
 from authlibs import eventtypes
+from authlibs.comments import comments
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -72,7 +73,8 @@ def resource_show(resource):
                 readonly=False
                 if (not current_user.privs('RATT')):
                     readonly=True
-		return render_template('resource_edit.html',rec=r,readonly=readonly,tools=tools)
+		cc=comments.get_comments(resource_id=r.id)
+		return render_template('resource_edit.html',rec=r,readonly=readonly,tools=tools,comments=cc)
 
 @blueprint.route('/<string:resource>', methods=['POST'])
 @login_required

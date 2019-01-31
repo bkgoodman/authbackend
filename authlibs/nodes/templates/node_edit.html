@@ -106,4 +106,8 @@
   </div>
 </div>
   {% endif %} <!-- We have premissions to delete -->
+
+	{% with node_id=node.id %}
+	{% include "comments.html" %}
+	{% endwith %}
 {% endblock %}

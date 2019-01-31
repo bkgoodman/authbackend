@@ -13,6 +13,7 @@ import json
 from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
+from authlibs.comments import comments
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -149,7 +150,9 @@ def member_edit(id):
                     print "AY IS",a
                     (r,level) = a
                     acc.append({'description':r.name,'level':authutil.accessLevelString(level,user="",noaccess="")})
-		return render_template('member_edit.html',member=member,subscription=subscription,access=acc)
+
+		cc=comments.get_comments(member_id=member.id)
+		return render_template('member_edit.html',member=member,subscription=subscription,access=acc,comments=cc)
 
 
 @blueprint.route('/<string:id>', methods = ['GET'])
@@ -172,7 +175,9 @@ def member_show(id):
 		 access = access.filter(Member.id == member.id)
 		 access = access.filter(AccessByMember.active == 1)
 		 access = access.all()
-		 return render_template('member_show.html',member=member,access=access,subscription=subscription)
+
+		 cc=comments.get_comments(member_id=member.id)
+		 return render_template('member_show.html',member=member,access=access,subscription=subscription,comments=cc)
 	 else:
 		flash("Member not found")
 		return redirect(url_for("members.members"))
@@ -400,7 +405,6 @@ def admin_page():
     privs = privs.all()
     p=[]
     for x in privs:
-        print "MEMBER",x[3]
         p.append({'member':x[3],'resource':x[1],'priv':AccessByMember.ACCESS_LEVEL[int(x[2])]})
 
     return render_template('admin_page.html',privs=p,roles=roles)

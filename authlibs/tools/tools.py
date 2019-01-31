@@ -14,6 +14,7 @@ from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from ..utilities import _safeemail as safeemail
 from authlibs import eventtypes
+from authlibs.comments import comments
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -66,7 +67,8 @@ def tools_show(tool):
 	resources=Resource.query.all()
 	nodes=Node.query.all()
 	nodes.append(Node(id="None",name="UNASSINGED")) # TODO BUG This "None" match will break a non-sqlite3 database
-	return render_template('tool_edit.html',tool=r,resources=resources,readonly=readonly,nodes=nodes)
+	cc=comments.get_comments(tool_id=tool)
+	return render_template('tool_edit.html',tool=r,resources=resources,readonly=readonly,nodes=nodes,comments=cc)
 
 @blueprint.route('/<string:tool>', methods=['POST'])
 @login_required
