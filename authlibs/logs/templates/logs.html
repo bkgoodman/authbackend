@@ -9,6 +9,7 @@
         <th>When</th>
         <th>Who</th>
         <th>Tool</th>
+        <th>Node</th>
         <th>Resource</th>
         <th>Event</th>
         <th>Admin</th>
@@ -24,10 +25,23 @@
 			</a>
 			{% endif %}
 		</td>
-		<td>{{ l.tool}}</td>
+		<td>
+			{% if l.tool %}
+			<a href="{{ url_for("tools.tools_show",tool=l.tool_id) }}">
+			{{ l.tool }}
+			</a>
+			{% endif %}
+		</td>
+		<td>
+			{% if l.node %}
+			<a href="{{ url_for("nodes.nodes_show",node=l.node_id) }}">
+			{{ l.node }}
+			</a>
+			{% endif %}
+		</td>
 		<td>
 			{% if l.resource %}
-			<a href="{{ url_for("resources.resources",id=l.resource) }}">
+			<a href="{{ url_for("resources.resource_show",resource=l.resource) }}">
 			{{ l.resource }}
 			</a>
 			{% endif %}

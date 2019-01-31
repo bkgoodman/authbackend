@@ -7,7 +7,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from authlibs.eventtypes import get_events
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, Tool
+from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, Tool, Node
 from functools import wraps
 import json
 #from .. import requireauth as requireauth
@@ -64,10 +64,13 @@ def logs():
 		tools={}
 		members={}
 		resources={}
+		nodes={}
 		for t in Tool.query.all():
 				tools[t.id] = t.name
 		for r in Resource.query.all():
 				resources[r.id] = r.name
+		for n in Node.query.all():
+				nodes[n.id] = n.name
 		for m in Member.query.all():
 				members[m.id] = {
 								'member': m.member,
@@ -120,6 +123,7 @@ def logs():
 				else:
 						r['user']="Member #"+str(l.member_id)
 				
+				r['tool_id'] = l.tool_id
 				if not l.tool_id:
 						r['tool'] = ""
 				elif l.tool_id in tools:
@@ -127,6 +131,16 @@ def logs():
 				else:
 						r['tool']="Tool #"+str(l.tool_id)
 				
+
+				r['node_id']=l.node_id
+				if not l.node_id:
+						r['node']=""
+				elif l.node_id in nodes:
+						r['node'] = nodes[l.node_id]
+				else:
+						r['node']="Node #"+str(l.node_id)
+
+
 				if not l.resource_id:
 						r['resource']=""
 				elif l.resource_id in resources:
