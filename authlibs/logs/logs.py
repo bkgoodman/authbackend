@@ -137,14 +137,14 @@ def logs():
 				if (l.event_type in evt):
 						r['event']=evt[l.event_type]
 				else:
-						r['event']=l.event
+						r['event']=l.event_type
 
 				if l.message:
 						r['message']=l.message
 				else:
 						r['message']=""
 
-				if l.doneby in members:
+				if l.member_id in members:
 						r['doneby'] = members[l.member_id]['last']+", "+members[l.member_id]['first']
 						r['admin_id']=members[l.member_id]['member']
 				else:
