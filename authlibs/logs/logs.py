@@ -144,11 +144,17 @@ def logs():
 				else:
 						r['message']=""
 
-				if l.member_id in members:
-						r['doneby'] = members[l.member_id]['last']+", "+members[l.member_id]['first']
-						r['admin_id']=members[l.member_id]['member']
+				if not l.doneby:
+						r['doneby'] = ""
+						r['admin_id']=""
+				elif l.doneby in members:
+						if not members[l.doneby]['last']:
+							r['doneby'] = members[l.doneby]['member']
+						else:
+							r['doneby'] = str(members[l.doneby]['last'])+", "+str(members[l.doneby]['first'])
+						r['admin_id']=members[l.doneby]['member']
 				else:
-						r['doneby']="Member #"+str(l.member_id)
+						r['doneby']="Member #"+str(l.doneby)
 				logs.append(r)
 
 		# if format=="csv":

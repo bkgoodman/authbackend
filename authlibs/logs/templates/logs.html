@@ -33,7 +33,11 @@
 			{% endif %}
 		</td>
 		<td>{{ l.event }}</td>
-		<td>{{ l.doneby }}</td>
+		<td>
+			<a href="{{ url_for("members.member_show",id=l.admin_id) }}">
+				{{ l.doneby }}
+			</a>
+		</td>
 		<td>{{ l.message }}</td>
 	  </tr>
       {% endfor %}
