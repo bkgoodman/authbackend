@@ -102,7 +102,7 @@ def getSubscriptionsJSON():
         elif "WORKSPACE" in plan:
             # TODO: More alerting...
             print("Workspace check: %s  Status: %s (%s)" % (s['plan']['id'], s['status'], subid))
-            continue
+            #continue BKG wants to remove
         else:
             plantype = "unknown"
             need_emails = False
@@ -144,6 +144,7 @@ def getSubscriptionsJSON():
             sub = {'customerid': customerid, 'subid': subid, 'name': name, 'planname': plan, 'plantype': plantype, 'email': email, 'active': active, 'created': created, 'updatedon': updated, 'expires': expires, 'phone': phone , 'membership':membership}
             subscribers.append(sub)
             #print(sub)
+            print "IMPORTING",membership,email,name,expires,active
     return subscribers
 
 

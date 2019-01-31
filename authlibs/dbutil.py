@@ -111,20 +111,25 @@ def _addSubscriptionData(subs,paytype):
             else:
                 # We found another one. Which one do we use??
 
+                if s.active.lower() != "true"  and sub['active'].lower() == "true":
+                    pass
+                    print "REPLACING w/ INACTIVE record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires']
                 if s.active.lower() == "true"  and sub['active'].lower() != "true":
                     # skip if old was active, but new is inactive
-                    #print "SKIPPING INACTIVE record for ",sub['name'],sub['email'],sub['created']
+                    print "SKIPPING INACTIVE record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires']
                     continue 
+                elif s.expires_date < authutils.parse_datetime(sub['expires']):
+                    print "REPLACING NEWER EXPIRE records ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'],sub['active'],"VS Created",s.created_date,"expires",s.expires_date,s.active
                 elif s.created_date > authutils.parse_datetime(sub['created']):
                     #print "Old",s.created_date
                     #print "New",authutils.parse_datetime(sub['created'])
-                    #print "SKIPPING older records ",sub['name'],sub['email'],sub['created']
+                    print "SKIPPING older records ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'],sub['active'],"VS Created",s.created_date,"expires",s.expires_date,s.active
                     continue 
 
                 elif s.active.lower() == "true"  and sub['active'].lower() == "true":
-                    print "WARNING - Two active records for  record for ",sub['name'],sub['email'],sub['created']
+                    print "WARNING - Two active records for  record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires']
 
-                #print "OVERWRITE record for ",sub['name'],sub['email'],sub['created']
+                print "OVERWRITE record for ",sub['name'],sub['email'],sub['created']
             s.paysystem = paytype
             s.subid = sub['subid']
             s.customerid = sub['customerid']
@@ -138,6 +143,7 @@ def _addSubscriptionData(subs,paytype):
             s.checked_date = datetime.now()
             s.active = sub['active']
             users.append((sub['name'],sub['active'],sub['email'],paytype,sub['plantype'],sub['customerid'],sub['subid'],sub['created'],sub['expires'],sub['updatedon'],time.strftime("%c")))
+            print "ADDING record for",sub['email'],sub['name']
     db.session.commit() 
 
 

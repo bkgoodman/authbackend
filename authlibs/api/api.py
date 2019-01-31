@@ -311,6 +311,7 @@ def _getResourceUsers(resource):
     q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
     q = q.add_column(Member.member)
     q = q.add_column(MemberTag.member_id)
+    q = q.add_column(Subscription.membership)
     q = q.outerjoin(Member,Member.id == MemberTag.member_id)
 
     rid = db.session.query(Resource.id).filter(Resource.name == resource)
@@ -321,6 +322,7 @@ def _getResourceUsers(resource):
     # TODO BUG BKG We nuked the multi subscription line - becasue we nuked multiple subscriptions in the payment import
     # Logic here was:
     # left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
+    print q
     val =  q.all()
 
     #print "RECORDS",len(val)
@@ -343,6 +345,7 @@ def _getResourceUsers(resource):
             'level':x[9],
             'member':x[10],
             'member_id':x[11],
+            'membership':x[12],
             'last_accessed':"" # We may never want to report this for many reasons
             })
 
@@ -370,11 +373,15 @@ def getAccessControlList(resource):
     for u in users:
         warning = ""
         allowed = u['allowed']
-        if u['past_due'] == 'true':
+        # BKG TODO WARNING I added this first check to see if we had a valid sub
+        if u['membership'] is None:
+            warning = "You do not have a current subscription. Check your payment plan. %s" % (c['board'])
+            allowed = 'false'
+        elif u['past_due'] == 'true':
             if 'expires_date' in u:
                 warning = "Your membership expired (%s) and the grace period for access has ended. %s" % (u['expires_date'],c['board'])
             else:
-                warning = "You do not have a current subscription. Check your payment plan. %s" % (c['board'])
+                warning = "Membership Past due - no expiration date"
             allowed = 'false'
         elif u['enabled'] == 0:
             if u['reason'] is not None:
@@ -432,6 +439,40 @@ def cli_listapikeys(cmd,**kwargs):
   apikey = ApiKey.query.all()
   for x in apikey:
       print "Name:",x.name,"Username:",x.username
+
+
+def cli_querytest(cmd,**kwargs):
+    q = Member.query.filter(Member.member.ilike("%"+cmd[1]+"%")).first()
+    print q.member
+    mid = q.id
+
+    q = db.session.query(MemberTag,MemberTag.tag_ident,Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
+    q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
+    # TODO Disable user it no subscription at all??? Only with other "plantype" logic to figure out "free" memberships
+    q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now','-14 days')), 'true')], else_ = 'false').label('past_due'))
+    q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now') & (Subscription.expires_date > db.func.DateTime('now','-13 day'))), 'true')], else_ = 'false').label('grace_period'))
+    q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('now','+2 days'), 'true')], else_ = 'false').label('expires_soon'))
+    q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
+    q = q.add_column(Member.member)
+    q = q.add_column(MemberTag.member_id)
+
+    # DEBUG ITEMS
+    q = q.add_column(Subscription.membership)
+    q = q.add_column(Subscription.expires_date)
+    q = q.outerjoin(Member,Member.id == MemberTag.member_id)
+
+    q = q.filter(MemberTag.member_id == mid)
+    q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == 1)))
+    q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
+    q = q.group_by(MemberTag.tag_ident)
+
+    # TODO BUG BKG We nuked the multi subscription line - becasue we nuked multiple subscriptions in the payment import
+    # Logic here was:
+    # left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
+    #print q
+    val =  q.all()
+    for x in val:
+        print x
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

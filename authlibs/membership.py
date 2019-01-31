@@ -98,7 +98,7 @@ def createMember(m):
 def getMissingMembers():
     """Return details from active Subscriptions for name+email combination not in Members table"""
     missing = Subscription.query.filter(Subscription.member_id == None)
-    missing = missing.filter(Subscription.active == 'true')
+    #missing = missing.filter(Subscription.active == 'true')
     missing = missing.filter(Subscription.plan != 'workspace')
     missing = missing.filter(Subscription.plan != 'trial')
     missing = missing.all()

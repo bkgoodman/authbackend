@@ -153,6 +153,10 @@ commands = {
 		'usage':"slack -- Match slack users to members",
 		'cmd':cli_slack
 	},
+	"querytest":{
+		'usage':"querytest {member} -- Test DB Query",
+		'cmd':api.cli_querytest
+	},
 	"updatewaivers":{
 		'usage':"updatewaivers -- Update waiver data from smartwaivers",
 		'cmd':cli_waivers
