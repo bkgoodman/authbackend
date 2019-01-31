@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+#vim:tabstop=2:expandtab
 import os,sys,json,subprocess,re
 
 
@@ -9,6 +10,8 @@ news = json.load(open("../new_doorbot_v1.acl"))
 
 print olds[0].keys()
 
+# You do not have a current subscription
+# Your membership expired
 oldmembers={}
 newmembers={}
 accesschange=0
@@ -17,6 +20,10 @@ denied=0
 granted=0
 nc_allowed=0
 nc_denied=0
+
+nosub=0
+expired=0
+other=0
 
 
 for i in olds:
@@ -54,6 +61,9 @@ for x in newmembers:
             print "WAS",oldmembers[x]['warning']
             print "NEW",newmembers[x]['warning']
             print
+						if newmembers[x]['warning'].startswith('Your membership expired'): expired += 1
+						elif newmembers[x]['warning'].startswith('You do not have a current subscription'): nosub += 1
+						else: other+=1
         else:
             nochange+=1
             if oldmembers[x]['allowed'] == 'allowed':
@@ -64,4 +74,6 @@ for x in newmembers:
 print len(oldmembers),"OLD members"
 print len(newmembers),"NEW members"
 print "ACCESS CHANGES", accesschange,"GRANTED",granted,"DENIED",denied,"NO-CHANGE",nochange
+print "EXPIRED",expired,"NOSUB",nosub,"OTHER",other
+print 
 print "UNCHANGED: Total",nochange,"allowed",nc_allowed,"denied",nc_denied

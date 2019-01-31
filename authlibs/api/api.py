@@ -310,8 +310,10 @@ def _getResourceUsers(resource):
     q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('now','+2 days'), 'true')], else_ = 'false').label('expires_soon'))
     q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
     q = q.add_column(Member.member)
+		# BKG DEBUG LINES
     q = q.add_column(MemberTag.member_id)
     q = q.add_column(Subscription.membership)
+    q = q.add_column(Subscription.expires_date)
     q = q.outerjoin(Member,Member.id == MemberTag.member_id)
 
     rid = db.session.query(Resource.id).filter(Resource.name == resource)
@@ -346,6 +348,7 @@ def _getResourceUsers(resource):
             'member':x[10],
             'member_id':x[11],
             'membership':x[12],
+            'expires_date':x[13],
             'last_accessed':"" # We may never want to report this for many reasons
             })
 
