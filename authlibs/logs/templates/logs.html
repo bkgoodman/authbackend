@@ -1,9 +1,75 @@
 {% extends "layout_bootstrap.html" %}
-{% block search %}
+{% block head %}
+  <link href="{{ url_for('static', filename='css/bootstrap-datepicker3.min.css') }}" rel="stylesheet">
+	<script type="text/javascript" src="{{ url_for("static",filename="js/bootstrap-datepicker.min.js") }}"></script>
+	<script type="text/javascript" src="{{ url_for("logs.static",filename="logfilter.js") }}"></script>
+{% endblock %}
+{% block body %}
   <div class=body>
 	<div class="sectionhead">Logs</div>
     <a href="{{ url_for('logs.logs') }}">View All</a>
     <p></p>
+
+	<div class="content" style="margin-bottom:10px">
+		<a class="btn btn-secondary" data-toggle="collapse" href="#filterCollapse" role="button" aria-expanded="false" aria-controls="filterCollapse">
+			 Filter
+		</a>
+		<div class="collapse" id="filterCollapse">
+			<form method="GET">
+				<div class="card card-body">
+					<bkg:nohr><div class="form-row"><b>Members</b></div>
+					<div class="form-col">
+						<label for="memberInput">Search Member</label>
+						<input type="text" name="memberInput" id="searchfield1" 
+							oninput="changedDropdownText('searchfield1','{{ url_for("authorize.membersearch",search="") }}','memberList');" />
+					</div> 
+					<div class="form-row supercompact" id="memberList"> {# Member Form Row #}
+						{# Filled in via javascript #}
+					</div> {#  Member Form Row #}
+
+					<hr style="margin:1px"/><div class="form-row supercompact"><b>Resources</b></div>
+					<div class="form-row" id="resourceList"> {# Resource Form Row #}
+						{% for r in resources %}
+							<div class="form-group tightcbcell" >
+								<input type="checkbox" name="input_resource_{{ r.id }}"><label>{{ r.name}}</label>
+							</div>
+						{% endfor %}
+					</div> {#  Resource Form Row #}
+
+					<hr style="margin:1px" /><div class="form-row"><b>Tools</b></div>
+					<div class="form-row" id="toolList"> {# Tool Form Row #}
+						{% for t in tools %}
+							<div class="form-group tightcbcell">
+								<input type="checkbox" name="input_tool_{{ t.id }}"><label>{{ t.name}}</label>
+							</div>
+						{% endfor %}
+					</div> {# Tool Form Row #}
+
+					<hr style="margin:1px" /><div class="form-row"><b>Nodes</b></div>
+					<div class="form-row tightcbcell" id="nodeList"> {# Node Form Row #}
+						{% for n in nodes %}
+							<div class="form-group">
+								<input type="checkbox" name="input_node_{{ n.id }}"><label>{{ n.name}}</label>
+							</div>
+						{% endfor %}
+					</div> {#  Resource Form Row #}
+
+					<hr style="margin:1px" /><div class="form-row"><b>Date Range</b></div>
+					<div class="form-row"> {# Datepicker Row #}
+						<div class="input-daterange input-group" id="datepicker">
+								<span class="input-group-addon">From</span>
+								<input type="text" class="input-sm form-control" name="input_date_start" />
+								<span class="input-group-addon">to</span>
+								<input type="text" class="input-sm form-control" name="input_date_end" />
+						</div>
+					</div> {# Datepicker row #}
+
+					<input style="margin-top:10px" class="btn btn-primary" type="submit" value="filter" />
+				</div> {# Filter Card #}
+			</form>
+		</div>
+	</div> {# Outer filter content #}
+
 	<table  class="table table-compact supercompact">
       <tr>
         <th>When</th>

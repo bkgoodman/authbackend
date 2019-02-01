@@ -173,7 +173,10 @@ def logs():
 
 		# if format=="csv":
 		#    return Response(stream_with_context(generate(),content_type='text/csv'))
-		return render_template('logs.html',logs=logs)
+		resources=Resource.query.all()
+		tools=Tool.query.all()
+		nodes=Node.query.all()
+		return render_template('logs.html',logs=logs,resources=resources,tools=tools,nodes=nodes)
 
 
 

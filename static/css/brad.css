@@ -11,7 +11,7 @@
 	padding: 3px;
 }
 
-.supercompact td, .supercompact  tr, .supercompact  th {
+.supercompact td, .supercompact  tr, .supercompact  th, .supercompact div, .supercompact > div, .supercompact > div > div  {
 	padding:0px;
 }
 
@@ -95,3 +95,5 @@ transition: all 500ms ease;
     -moz-border-radius: 6px 0 6px 6px;
     border-radius: 6px 0 6px 6px;
 }
+
+.tightcbcell {padding:0px;margin:0px;margin-left:3px;margin-right:2px}

@@ -1,7 +1,6 @@
 
 makePostCall = function (url, data) { // here the data and url are not hardcoded anymore
    var json_data = JSON.stringify(data);
-	console.log("QERY "+url);
     return $.ajax({
         type: "GET",
         url: url,
@@ -20,98 +19,61 @@ function DoSearchButton() {
 	current_user_offset=0;
 }
 
-function DoAllButton() {
-	queryMembers("*");
-	document.getElementById("searchfield1").value="";
-	current_user_offset=0;
-}
 
 // and here a call example
-function changedDropdownText() {
-	searchstr=document.getElementById("searchfield1").value;
-	entermatch=document.getElementById("entermatchtext");
-	membertable=document.getElementById("membertable");
-	if (searchstr.length >= 3) {
-		if (entermatch) entermatch.setAttribute("style","display:none");
-		if (membertable) membertable.setAttribute("style","display:table");
-	} else {
-		if (entermatchtext) entermatch.setAttribute("style","display:block");
-		if (membertable) membertable.setAttribute("style","display:none");
-		return;
-	}
-	queryMembers(searchstr);
+function changedDropdownText(inputField,queryURL,outputList) {
+	searchstr=document.getElementById(inputField).value;
+	if (searchstr.length >= 3) 
+		queryItem(searchstr,queryURL,outputList);
 }
 
 
-function MoarUsers() {
-	current_user_offset += 50;
-	queryMembers(lastQuery);
-}
 
-function queryMembers(searchstr) {
+function queryItem(searchstr,queryURL,outputList) {
 	lastQuery=searchstr;
 	if (current_user_offset > 0) {
-		q=MEMBER_SEARCH_URL+searchstr; 
+		q=queryURL+searchstr; 
 		opt='offset='+String(current_user_offset);
 	}
 	else {
-		q=MEMBER_SEARCH_URL+searchstr;
+		q=queryURL+searchstr;
 		opt=""
 	}
 
+/*
+
+          <div class="form-group" style="padding:3px">
+            <input type="checkbox"><label>Test</label>
+          </div>
+
+*/
 	makePostCall(q, opt)
 			.success(function(data){
 
-						lst=document.getElementById("memberrows");
+						lst=document.getElementById(outputList);
 
-						var x = lst.getElementsByClassName("memberrow")[0];
+						console.log(lst);
+						var x = lst.getElementsByClassName("datarow")[0];
 						while(x) {
-							x.parentNode.removeChild(x);
-							x = lst.getElementsByClassName("memberrow")[0];
+							cb = x.getElementsByTagName("input")[0];
+							console.log("REMOVE",cb,cb.checked);
+							var e=x;
+							x = x.nextElementSibling;
+							if ( cb.checked == false)
+								e.parentNode.removeChild(e);
 						}
 
+						console.log(data);
 						for (x in data){ 
 							el = document.createElement("tr");
-							el.innerHTML = "<tr>"
-							if (USE_MEMBER_CHECKBOXES)
-								el.innerHTML += "<td><input type=\"checkbox\" onchange=\"click_checkbox();\" class=\"auth_user_cb\" /></td>";
-							td=""
-							if (MEMBER_URL) {
-								td += "<a href=\""+MEMBER_URL+data[x]['member']+"\">";
-							}
-							td += data[x]['member'];
-							if (MEMBER_URL)
-								td +="</a>";
-							el.innerHTML += "<td>"+td+"</td>";
-							el.innerHTML +=
-								"<td>"+data[x]['firstname']+"</td>"+
-								"<td>"+data[x]['lastname']+"</td>"+
-								"<td>"+data[x]['email']+"</td>"+
-								"<td>";
-							el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['member']+"\">"+
-							 "<img style=\"height:16px\" src=\""+STATIC_URL+"logicon.png\" />"+
-							 "</a>";
-							el.innerHTML += "&nbsp;<a href=\""+MEMBER_URL+data[x]['member']+"\">"+
-							 "<img style=\"height:16px\" src=\""+STATIC_URL+"eye.png\" />"+
-							 "</a>";
-							el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['id']+"/access\">"+
-							 "&nbsp;<img style=\"height:16px\" src=\""+STATIC_URL+"lock.png\" />"+
-							 "</a>";
-							el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['id']+"/edit\">"+
-							 "&nbsp;<img style=\"height:16px\" src=\""+STATIC_URL+"edit.png\" />"+
-							 "</a>";
-							el.innerHTML += "</td>"+
-								"</tr>";
-							el.classList.add("memberrow");
-							lst.appendChild(el);
+							t= `<div class="compact tightcbcell">
+									<input type="checkbox"><label>`+data[x]['member']+`</label>
+								</div>`;
+							el.innerHTML=t;
+							el.classList.add("datarow");
+							el.classList.add("compact");
+							lst.append(el);
 						}
-						b = document.getElementById("moarUsers");
-								if (data.length >= 50) {
-							b.className = b.className.replace(/\binvisible\b/g, " visible ");
-						} else {
-							b.className = b.className.replace(/\bvisible\b/g, " invisible ");
-						}
-						//lstb.appennd(document.CreateNode("a",<a class="dropdown-item" href="#">Action</a>"
 		
 		
 		 })
@@ -211,3 +173,13 @@ function authbutton() {
 
 	xx.innerHTML += "?"
 }
+
+/* Init date picker */
+$(document).ready(function () {
+	$('#datepicker').datepicker({
+			maxViewMode: 2,
+			todayBtn: true,
+			clearBtn: true,
+			todayHighlight: true
+	});
+});
