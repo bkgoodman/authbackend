@@ -57,13 +57,19 @@ for x in newmembers:
                 denied += 1
             else:
                 desc = "CHANGE from "+oldmembers[x]['allowed']+" TO "+newmembers[x]['allowed']
-            print x,desc
+            if newmembers[x]['warning'].startswith('Your membership expired'): 
+                expired += 1
+                desc += " EXPIRED"
+            elif newmembers[x]['warning'].startswith('You do not have a current subscription'): 
+                nosub += 1
+                desc += " NOSUB"
+            else: 
+                other+=1
+                desc += " OTHER"
+            print "[MEMBER]",x,desc
             print "WAS",oldmembers[x]['warning']
             print "NEW",newmembers[x]['warning']
             print
-						if newmembers[x]['warning'].startswith('Your membership expired'): expired += 1
-						elif newmembers[x]['warning'].startswith('You do not have a current subscription'): nosub += 1
-						else: other+=1
         else:
             nochange+=1
             if oldmembers[x]['allowed'] == 'allowed':

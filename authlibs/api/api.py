@@ -324,7 +324,6 @@ def _getResourceUsers(resource):
     # TODO BUG BKG We nuked the multi subscription line - becasue we nuked multiple subscriptions in the payment import
     # Logic here was:
     # left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
-    print q
     val =  q.all()
 
     #print "RECORDS",len(val)
@@ -444,11 +443,7 @@ def cli_listapikeys(cmd,**kwargs):
       print "Name:",x.name,"Username:",x.username
 
 
-def cli_querytest(cmd,**kwargs):
-    q = Member.query.filter(Member.member.ilike("%"+cmd[1]+"%")).first()
-    print q.member
-    mid = q.id
-
+def access_query(resource_id,member_id=None):
     q = db.session.query(MemberTag,MemberTag.tag_ident,Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
     q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
     # TODO Disable user it no subscription at all??? Only with other "plantype" logic to figure out "free" memberships
@@ -457,25 +452,61 @@ def cli_querytest(cmd,**kwargs):
     q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('now','+2 days'), 'true')], else_ = 'false').label('expires_soon'))
     q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
     q = q.add_column(Member.member)
-    q = q.add_column(MemberTag.member_id)
 
-    # DEBUG ITEMS
+    # BKG DEBUG LINES
+    q = q.add_column(MemberTag.member_id)
     q = q.add_column(Subscription.membership)
     q = q.add_column(Subscription.expires_date)
+    # BKG DEBUG ITEMS
     q = q.outerjoin(Member,Member.id == MemberTag.member_id)
 
-    q = q.filter(MemberTag.member_id == mid)
-    q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == 1)))
+    if member_id:
+        q = q.filter(MemberTag.member_id == member_id)
+
+    if resource_id:
+        q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
+    else:
+        q = q.outerjoin(AccessByMember, (AccessByMember.member_id == MemberTag.member_id))
+
     q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
     q = q.group_by(MemberTag.tag_ident)
 
-    # TODO BUG BKG We nuked the multi subscription line - becasue we nuked multiple subscriptions in the payment import
-    # Logic here was:
-    # left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
-    #print q
-    val =  q.all()
-    for x in val:
-        print x
+    return q
+    
+def cli_querytest(cmd,**kwargs):
+    q = Member.query.filter(Member.member.ilike("%"+cmd[1]+"%")).first()
+    print "Member:",q.member
+    mid = q.id
+
+    r = Resource.query.filter(Resource.name.ilike("%"+cmd[2]+"%")).first()
+    print "Resrouce:",r.name
+    rid = r.id
+
+    q = access_query(member_id=mid,resource_id=rid)
+    val = q.all()
+
+    result =[]
+    for y in val:
+        x = y[1:]
+        #print "REC",x
+        result.append({
+            'tag_ident':x[0],
+            'plan':x[1],
+            'nickname':x[2],
+            'enabled':x[3],
+            'access_reason':x[4],
+            'allowed':x[5],
+            'past_due':x[6],
+            'grace_period':x[7],
+            'expires_soon':x[8],
+            'level':x[9],
+            'member':x[10],
+            'member_id':x[11],
+            'membership':x[12],
+            'expires_date':x[13],
+            'last_accessed':"" # We may never want to report this for many reasons
+            })
+    print result
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
