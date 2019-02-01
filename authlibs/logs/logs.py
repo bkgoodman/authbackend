@@ -14,6 +14,7 @@ import json
 from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
+from sqlalchemy import or_
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -78,7 +79,46 @@ def logs():
 								'last': m.lastname
 								}
 
+		# Start Query
 		q = db.session.query(Logs).order_by(Logs.time_reported.desc())
+
+		# Handle form post query format
+		for x in request.values:
+			print x
+
+		# Resource Filter
+		filter_group = list()
+		for x in request.values:
+			if x.startswith("input_resource_"):
+				filter_group.append((Logs.resource_id == x.replace("input_resource_","")))
+		if (len(filter_group)>=1):
+			q = q.filter(or_(*filter_group))
+				
+		# Member Filter
+		filter_group = list()
+		for x in request.values:
+			if x.startswith("input_member_"):
+				filter_group.append((Logs.member_id == x.replace("input_member_","")))
+		if (len(filter_group)>=1):
+			q = q.filter(or_(*filter_group))
+
+		# Tool Filter
+		filter_group = list()
+		for x in request.values:
+			if x.startswith("input_tool_"):
+				filter_group.append((Logs.tool_id == x.replace("input_tool_","")))
+		if (len(filter_group)>=1):
+			q = q.filter(or_(*filter_group))
+
+		# Node Filter
+		filter_group = list()
+		for x in request.values:
+			if x.startswith("input_node_"):
+				filter_group.append((Logs.node_id == x.replace("input_node_","")))
+		if (len(filter_group)>=1):
+			q = q.filter(or_(*filter_group))
+	
+		# Normal query format
 
 		if ('offset' in request.values):
 				limit=int(request.values['offset'])
@@ -110,6 +150,7 @@ def logs():
 				q=q.filter(Logs.time_reported>=request.values['after'])
 		if ('format' in request.values):
 				format=request.values['format']
+		print "LOG QUERY",q
 		dbq = q.all()
 		logs=[]
 		for l in dbq:

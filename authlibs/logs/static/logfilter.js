@@ -67,7 +67,7 @@ function queryItem(searchstr,queryURL,outputList) {
 						for (x in data){ 
 							el = document.createElement("tr");
 							t= `<div class="compact tightcbcell">
-									<input type="checkbox"><label>`+data[x]['member']+`</label>
+									<input name="input_member_`+data[x]['id']+`" type="checkbox"><label>`+data[x]['member']+`</label>
 								</div>`;
 							el.innerHTML=t;
 							el.classList.add("datarow");
