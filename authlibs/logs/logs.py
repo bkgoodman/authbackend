@@ -9,6 +9,7 @@ from flask_login import LoginManager, UserMixin, login_required,  current_user, 
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, Tool, Node
 from functools import wraps
+import datetime
 import json
 #from .. import requireauth as requireauth
 from .. import utilities as authutil
@@ -117,6 +118,14 @@ def logs():
 				filter_group.append((Logs.node_id == x.replace("input_node_","")))
 		if (len(filter_group)>=1):
 			q = q.filter(or_(*filter_group))
+
+                if 'input_date_start' in request.values and request.values['input_date_start'] != "":
+                    dt = datetime.datetime.strptime(request.values['input_date_start'],"%m/%d/%Y")
+                    q = q.filter(Logs.time_reported >= dt)
+                if 'input_date_end' in request.values and request.values['input_date_end'] != "":
+                    dt = datetime.datetime.strptime(request.values['input_date_end'],"%m/%d/%Y")+datetime.timedelta(days=1)
+                    q = q.filter(Logs.time_reported < dt)
+
 	
 		# Normal query format
 
