@@ -15,7 +15,7 @@ import json
 from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -81,86 +81,88 @@ def logs():
 								}
 
 		# Start Query
-		q = db.session.query(Logs).order_by(Logs.time_reported.desc())
+                # We will do TWO queries that are almost identical - a normal one, 
+                # and a "count" with the limit (and offset) disabled
+                for qt in ('normal','count'):
+                    q = db.session.query(Logs).order_by(Logs.time_reported.desc())
 
-		# Handle form post query format
-		for x in request.values:
-			print x
+                    # Resource Filter
+                    filter_group = list()
+                    for x in request.values:
+                            if x.startswith("input_resource_"):
+                                    filter_group.append((Logs.resource_id == x.replace("input_resource_","")))
+                    if (len(filter_group)>=1):
+                            q = q.filter(or_(*filter_group))
+                                    
+                    # Member Filter
+                    filter_group = list()
+                    for x in request.values:
+                            if x.startswith("input_member_"):
+                                    filter_group.append((Logs.member_id == x.replace("input_member_","")))
+                    if (len(filter_group)>=1):
+                            q = q.filter(or_(*filter_group))
 
-		# Resource Filter
-		filter_group = list()
-		for x in request.values:
-			if x.startswith("input_resource_"):
-				filter_group.append((Logs.resource_id == x.replace("input_resource_","")))
-		if (len(filter_group)>=1):
-			q = q.filter(or_(*filter_group))
-				
-		# Member Filter
-		filter_group = list()
-		for x in request.values:
-			if x.startswith("input_member_"):
-				filter_group.append((Logs.member_id == x.replace("input_member_","")))
-		if (len(filter_group)>=1):
-			q = q.filter(or_(*filter_group))
+                    # Tool Filter
+                    filter_group = list()
+                    for x in request.values:
+                            if x.startswith("input_tool_"):
+                                    filter_group.append((Logs.tool_id == x.replace("input_tool_","")))
+                    if (len(filter_group)>=1):
+                            q = q.filter(or_(*filter_group))
 
-		# Tool Filter
-		filter_group = list()
-		for x in request.values:
-			if x.startswith("input_tool_"):
-				filter_group.append((Logs.tool_id == x.replace("input_tool_","")))
-		if (len(filter_group)>=1):
-			q = q.filter(or_(*filter_group))
+                    # Node Filter
+                    filter_group = list()
+                    for x in request.values:
+                            if x.startswith("input_node_"):
+                                    filter_group.append((Logs.node_id == x.replace("input_node_","")))
+                    if (len(filter_group)>=1):
+                            q = q.filter(or_(*filter_group))
 
-		# Node Filter
-		filter_group = list()
-		for x in request.values:
-			if x.startswith("input_node_"):
-				filter_group.append((Logs.node_id == x.replace("input_node_","")))
-		if (len(filter_group)>=1):
-			q = q.filter(or_(*filter_group))
+                    if 'input_date_start' in request.values and request.values['input_date_start'] != "":
+                        dt = datetime.datetime.strptime(request.values['input_date_start'],"%m/%d/%Y")
+                        q = q.filter(Logs.time_reported >= dt)
+                    if 'input_date_end' in request.values and request.values['input_date_end'] != "":
+                        dt = datetime.datetime.strptime(request.values['input_date_end'],"%m/%d/%Y")+datetime.timedelta(days=1)
+                        q = q.filter(Logs.time_reported < dt)
 
-                if 'input_date_start' in request.values and request.values['input_date_start'] != "":
-                    dt = datetime.datetime.strptime(request.values['input_date_start'],"%m/%d/%Y")
-                    q = q.filter(Logs.time_reported >= dt)
-                if 'input_date_end' in request.values and request.values['input_date_end'] != "":
-                    dt = datetime.datetime.strptime(request.values['input_date_end'],"%m/%d/%Y")+datetime.timedelta(days=1)
-                    q = q.filter(Logs.time_reported < dt)
+            
+                    # Normal query format
 
-	
-		# Normal query format
+                    offset=0
+                    if ('offset' in request.values):
+                                    offset=int(request.values['offset'])
 
-		if ('offset' in request.values):
-				limit=int(request.values['offset'])
+                    if ('limit' in request.values):
+                            if request.values['limit']!="all":
+                                    limit=int(request.values['limit'])
+                            else:
+                                    limit = 200
 
-		if ('limit' in request.values):
-			if request.values['limit']!="all":
-				limit=int(request.values['limit'])
-			else:
-				limit = 200
+                    if qt == 'normal':
+                        if limit>0:  q=q.limit(limit)
+                        if offset>0: q=q.offset(offset)
 
-		if limit>0: w=q.limit(limit)
-		if offset>0: w=q.offset(offset)
+                    if ('member' in request.values):
+                                    q=q.filter((Logs.member_id==members[request.values['member']]) | (Logs.doneby==members[request.values['member']]))
+                    if ('memberid' in request.values):
+                                    q=q.filter((Logs.member_id==request.values['memberid']) | (Logs.doneby==request.values['memberid']))
+                    if ('resource' in request.values):
+                                    q=q.filter(Logs.resource_id==resources[request.values['resource']])
+                    if ('resourceid' in request.values):
+                                    q=q.filter(Logs.resource_id==request.values['resourceid'])
+                    if ('tool' in request.values):
+                                    q=q.filter(Logs.tool_id==tools[request.values['tool']])
+                    if ('toolid' in request.values):
+                                    q=q.filter(Logs.tool_id==request.values['toolid'])
+                    if ('before' in request.values):
+                                    q=q.filter(Logs.time_reported<=request.values['before'])
+                    if ('after' in request.values):
+                                    q=q.filter(Logs.time_reported>=request.values['after'])
+                    if ('format' in request.values):
+                                    format=request.values['format']
 
-		if ('member' in request.values):
-				q=q.filter((Logs.member_id==members[request.values['member']]) | (Logs.doneby==members[request.values['member']]))
-		if ('memberid' in request.values):
-				q=q.filter((Logs.member_id==request.values['memberid']) | (Logs.doneby==request.values['memberid']))
-		if ('resource' in request.values):
-				q=q.filter(Logs.resource_id==resources[request.values['resource']])
-		if ('resourceid' in request.values):
-				q=q.filter(Logs.resource_id==request.values['resourceid'])
-		if ('tool' in request.values):
-				q=q.filter(Logs.tool_id==tools[request.values['tool']])
-		if ('toolid' in request.values):
-				q=q.filter(Logs.tool_id==request.values['toolid'])
-		if ('before' in request.values):
-				q=q.filter(Logs.time_reported<=request.values['before'])
-		if ('after' in request.values):
-				q=q.filter(Logs.time_reported>=request.values['after'])
-		if ('format' in request.values):
-				format=request.values['format']
-		print "LOG QUERY",q
-		dbq = q.all()
+                    if qt=='normal': dbq = q.all()
+                    if qt=='count': count = q.count()
 		logs=[]
 		for l in dbq:
 				r={}
@@ -226,7 +228,57 @@ def logs():
 		resources=Resource.query.all()
 		tools=Tool.query.all()
 		nodes=Node.query.all()
-		return render_template('logs.html',logs=logs,resources=resources,tools=tools,nodes=nodes)
+
+                nextoffset = offset+limit
+                if (offset >= count - limit):
+                    nextoffset=None
+                else:
+                    if re.search("[\?\&]offset=(\d+)",request.url):
+                        nextoffset = re.sub(r"([\?\&])offset=(\d+)",r"\1offset="+str(nextoffset),request.url)
+                    else:
+                        nextoffset = request.url+"&offset="+str(nextoffset)
+
+                prevoffset = offset-limit
+                if (prevoffset < 0): prevoffset=0
+                if (offset == 0):
+                    prevoffset=None
+                else:
+                    if re.search("[\?\&]offset=(\d+)",request.url):
+                        prevoffset = re.sub(r"([\?\&])offset=(\d+)",r"\1offset="+str(prevoffset),request.url)
+                    else:
+                        prevoffset = request.url+"&offset="+str(prevoffset)
+
+                if re.search("[\?\&]offset=(\d+)",request.url):
+                    firstoffset = re.sub(r"([\?\&])offset=(\d+)",r"",request.url)
+                else:
+                    firstoffset = request.url
+
+                lo = offset+limit
+                if (lo > count):
+                    lo = count
+
+                lastoffset = count-limit
+                if (lastoffset < 0): lastoffset=0
+                if re.search("[\?\&]offset=(\d+)",request.url):
+                    lastoffset = re.sub(r"([\?\&])offset=(\d+)",r"\1offset="+str(lastoffset),request.url)
+                else:
+                    if request.url.find("?") != -1:
+                        lastoffset = request.url+"&offset="+str(lastoffset)
+                    else:
+                        lastoffset = request.url+"?offset="+str(lastoffset)
+
+                meta = {
+                        'offset':offset,
+                        'limit':limit,
+                        'first':firstoffset,
+                        'back':prevoffset,
+                        'next':nextoffset,
+                        'last':lastoffset,
+                        'count':count,
+                        'displayoffset':offset+1,
+                        'lastoffset':lo
+                }
+		return render_template('logs.html',logs=logs,resources=resources,tools=tools,nodes=nodes,meta=meta)
 
 
 

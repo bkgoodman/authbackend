@@ -4,19 +4,40 @@
 	<script type="text/javascript" src="{{ url_for("static",filename="js/bootstrap-datepicker.min.js") }}"></script>
 	<script type="text/javascript" src="{{ url_for("logs.static",filename="logfilter.js") }}"></script>
 {% endblock %}
+
+{% macro dobuttons() %}
+		<div class="content">
+			<span>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-asterisk"  onclick="location.href='{{ url_for('logs.logs') }}'" />
+			<button class="btn btn-lg btn-light glyphicon glyphicon-filter" aria-hidden="true" data-toggle="collapse" href="#filterCollapse" role="button" aria-expanded="false" aria-controls="filterCollapse" /></button>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-backward" onclick="location.href='{{ meta.first }}'" />
+			{% if meta.prev %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left"  onclick="location.href='{{ meta.prev }}'" />
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left disabled" />
+			{% endif %}
+			{% if meta.next %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right" onclick="location.href='{{ meta.next }}'"  />
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right disabled"  />
+			{% endif %}
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-forward"  onclick="location.href='{{ meta.last }}'"></button>
+
+			</span>
+			<span>{{ meta.displayoffset }} - {{ meta.lastoffset}} of {{ meta.count }}</span>
+		</div>
+{%- endmacro -%}
+
 {% block body %}
   <div class=body>
 	<div class="sectionhead">Logs</div>
-    <a href="{{ url_for('logs.logs') }}">View All</a>
     <p></p>
 
 	<div class="content" style="margin-bottom:10px">
-		<a class="btn btn-secondary" data-toggle="collapse" href="#filterCollapse" role="button" aria-expanded="false" aria-controls="filterCollapse">
-			 Filter
-		</a>
+		{{ dobuttons() }}
 		<div class="collapse" id="filterCollapse">
 			<form method="GET">
-				<div class="card card-body">
+				<div class="card card-body" style="width: 50rem;">
 					<bkg:nohr><div class="form-row"><b>Members</b></div>
 					<div class="form-col">
 						<label for="memberInput">Search Member</label>
@@ -122,5 +143,8 @@
 	  </tr>
       {% endfor %}
 	</table>
+		{{ dobuttons() }}
+		{# 	<pre>{{ meta }}
+		{{ request.url }}</pre> #}
   </div>
 {% endblock %}
