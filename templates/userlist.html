@@ -72,9 +72,10 @@
       <td>{{ member.firstname }}</td>
       <td>{{ member.lastname }}</td>
       <td>{{ member.email }}</td>
-      <td>{{ url_for("static","eye.png") }}
-      {{ url_for("static","lock.png") }}
-      {{ url_for("static","edit.png") }}</td>
+      <td>
+      <img src="{{ url_for("static",filename="eye.png") }}" width="32px" >
+      <img src="{{ url_for("static",filename="lock.png") }}" width="32px" >
+      <img src="{{ url_for("static",filename="edit.png") }}" width="32px"> </td>
 	{% endfor %}
     </tr>
   </tbody>

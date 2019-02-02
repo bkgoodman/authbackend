@@ -36,7 +36,7 @@ function changedDropdownText() {
 		if (membertable) membertable.setAttribute("style","display:table");
 	} else {
 		if (entermatchtext) entermatch.setAttribute("style","display:block");
-		if (membertable) membertable.setAttribute("style","display:none");
+		//if (membertable) membertable.setAttribute("style","display:none");
 		return;
 	}
 	queryMembers(searchstr);
@@ -65,9 +65,16 @@ function queryMembers(searchstr) {
 						lst=document.getElementById("memberrows");
 
 						var x = lst.getElementsByClassName("memberrow")[0];
+
 						while(x) {
-							x.parentNode.removeChild(x);
-							x = lst.getElementsByClassName("memberrow")[0];
+							cb = x.getElementsByTagName("input")[0];
+							console.log("CB IS",cb);
+							console.log("X IS",x);
+							var e=x;
+							x = x.nextElementSibling;
+							if ( cb.checked == false)
+								e.parentNode.removeChild(e);
+							//x = lst.getElementsByClassName("memberrow")[0];
 						}
 
 						for (x in data){ 
@@ -76,12 +83,16 @@ function queryMembers(searchstr) {
 							if (USE_MEMBER_CHECKBOXES)
 								el.innerHTML += "<td><input type=\"checkbox\" onchange=\"click_checkbox();\" class=\"auth_user_cb\" /></td>";
 							td=""
-							if (MEMBER_URL) {
-								td += "<a href=\""+MEMBER_URL+data[x]['member']+"\">";
-							}
+							/* DO not add URLs w/ member checkboxes. Kills codes that
+							 pulls the member_id from this td */
+							if (! USE_MEMBER_CHECKBOXES)
+								if (MEMBER_URL) {
+									td += "<a href=\""+MEMBER_URL+data[x]['member']+"\">";
+								}
 							td += data[x]['member'];
-							if (MEMBER_URL)
-								td +="</a>";
+							if (! USE_MEMBER_CHECKBOXES)
+								if (MEMBER_URL)
+									td +="</a>";
 							el.innerHTML += "<td>"+td+"</td>";
 							el.innerHTML +=
 								"<td>"+data[x]['firstname']+"</td>"+

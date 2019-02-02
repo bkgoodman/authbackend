@@ -125,6 +125,11 @@ def logs():
                         dt = datetime.datetime.strptime(request.values['input_date_end'],"%m/%d/%Y")+datetime.timedelta(days=1)
                         q = q.filter(Logs.time_reported < dt)
 
+
+                    # Normal users can only see their own log info, but not their comments
+                    if not current_user.privs('Useredit','Finance','RATT'):
+                        q = q.filter(Logs.member_id == current_user.id)
+                        q = q.filter(Logs.event_type != eventtypes.RATTBE_LOGEVENT_COMMENT.id)
             
                     # Normal query format
 
@@ -160,6 +165,7 @@ def logs():
                                     q=q.filter(Logs.time_reported>=request.values['after'])
                     if ('format' in request.values):
                                     format=request.values['format']
+
 
                     if qt=='normal': dbq = q.all()
                     if qt=='count': count = q.count()
@@ -278,6 +284,12 @@ def logs():
                         'displayoffset':offset+1,
                         'lastoffset':lo
                 }
+                if current_user.privs('Useredit','Finance','RATT'):
+                    meta['nomembersearch']=True
+                else:
+                    meta['nomembersearch']=False
+
+
 		return render_template('logs.html',logs=logs,resources=resources,tools=tools,nodes=nodes,meta=meta)
 
 

@@ -56,7 +56,6 @@ function queryItem(searchstr,queryURL,outputList) {
 						var x = lst.getElementsByClassName("datarow")[0];
 						while(x) {
 							cb = x.getElementsByTagName("input")[0];
-							console.log("REMOVE",cb,cb.checked);
 							var e=x;
 							x = x.nextElementSibling;
 							if ( cb.checked == false)

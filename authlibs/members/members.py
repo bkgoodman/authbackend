@@ -83,6 +83,7 @@ def member_add():
 # memberedit
 @blueprint.route('/<string:id>/edit', methods = ['GET','POST'])
 @login_required
+@roles_required(['Admin','Useredit'])
 def member_edit(id):
 		mid = authutil._safestr(id)
 		member = {}
@@ -151,7 +152,10 @@ def member_edit(id):
                     (r,level) = a
                     acc.append({'description':r.name,'level':authutil.accessLevelString(level,user="",noaccess="")})
 
-		cc=comments.get_comments(member_id=member.id)
+                if current_user.privs('Useredit'):
+                    cc=comments.get_comments(member_id=member.id)
+                else:
+                    cc={}
 		return render_template('member_edit.html',member=member,subscription=subscription,access=acc,comments=cc)
 
 

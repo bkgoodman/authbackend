@@ -7,6 +7,8 @@ from flask_login.mixins import AnonymousUserMixin
 import random, string
 from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
 
+
+
 defined_roles=['Admin','RATT','Finance','Useredit','HeadRM']
 
 db = SQLAlchemy()
@@ -17,8 +19,11 @@ db = SQLAlchemy()
 class AnonymousMember(AnonymousUserMixin):
     member=None
     email=None
-    def privs(self,x):
+
+    # Anonymous users have no roles
+    def privs(self,roles):
         return False
+
     def effective_roles(self):
         return []
 # Members and their data
@@ -46,9 +51,15 @@ class Member(db.Model,UserMixin):
     password = db.Column(db.String(255),nullable=True)
     roles= db.relationship('Role', secondary = 'userroles')
 
+    # Returns "true" if use has at least one of the specified roles
     # Use this instead of "has_roles" - it treats "admin" like everyone
-    def privs(self,x):
-        return self.has_roles('Admin') or self.has_roles(x)
+    def privs(self,*roles):
+        if self.has_roles('Admin'): return True
+        for x in roles:
+            if x not in defined_roles:
+                print("\"%s\" is not a defined role" % x)
+            if self.has_roles(x): return True
+        return False
 
     def get(self,id):
         return Member.query.filter(Member.member ==id).one()
