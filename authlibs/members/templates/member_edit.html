@@ -12,7 +12,7 @@
 
 
 
-	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=member.member) }}">Edit</a>):</div>
+	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=member.id) }}">Edit</a>):</div>
 	<ul class="entries">
 	{% if not access %}
 	  <i> No current access defined for this user</i>
