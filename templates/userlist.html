@@ -65,17 +65,22 @@
 	class="auth_user_cb"/></td>
   {% endif %}
       <td>
+	      			{% if not add_checkboxes %}
 				<a href="{{ url_for('members.member_show',id=member.member)}}">
+				{% endif %}
 				{{ member.member }}
+	      			{% if not add_checkboxes %}
 			</a>
+				{% endif %}
 			</td>
       <td>{{ member.firstname }}</td>
       <td>{{ member.lastname }}</td>
       <td>{{ member.email }}</td>
       <td>
-      <img src="{{ url_for("static",filename="eye.png") }}" width="32px" >
-      <img src="{{ url_for("static",filename="lock.png") }}" width="32px" >
-      <img src="{{ url_for("static",filename="edit.png") }}" width="32px"> </td>
+      <img src="{{ url_for("static",filename="logicon.png") }}" height="16px" >
+      <img src="{{ url_for("static",filename="eye.png") }}" height="16px" >
+      <img src="{{ url_for("static",filename="lock.png") }}" height="16px" >
+      <img src="{{ url_for("static",filename="edit.png") }}" height="16px"> </td>
 	{% endfor %}
     </tr>
   </tbody>

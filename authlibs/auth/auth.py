@@ -45,8 +45,8 @@ def authorize():
         temp = request.form['resource_'+str(i)]
         resources.append(temp)
         i+=1
-      print "MEMBERS",members
-      print "RESOURCES",resources
+      #print "MEMBERS",members
+      #print "RESOURCES",resources
       if len(members) == 0:
         others['error']="No members specified to authorize"
       elif len(resources) == 0:
