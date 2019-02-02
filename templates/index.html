@@ -10,12 +10,15 @@
 
 {% for m in menu %}
 	{% if m.img %}
-	<div class="menubox">
-		<div class="row menucontent">
+	<div class="menubox content">
+		<div class="my-10 p-0 mx-auto">
 			<a href="{{ m.url }}"><img class="menuimg" src="{{ m.img }}" alt="{{ m.alt }}"></a>
 		</div>
-		<div class="row menucontent">
-			<p>{{ m.title }}</p>
+		<div class="m-0 p-0 mx-auto ">
+			<div class="m-0 p-0 text-center">{{ m.title }}</div>
+			<div class="m-0 p-0 text-center">
+				<small>{{ m.alt }}</small>
+			</div>
 		</div>
 	</div>
 	{% endif %}
