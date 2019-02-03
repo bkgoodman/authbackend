@@ -30,6 +30,14 @@ class RATTBE_LOGEVENT_CONFIG_PAY_MEMBER_REASSIGN:
     id=1005
     desc='Payment Reassignment'
 
+class RATTBE_LOGEVENT_MEMBER_TAG_ASSIGN:
+    id=1006
+    desc='Tag Assigned to Member'
+
+class RATTBE_LOGEVENT_MEMBER_TAG_UNASSIGN:
+    id=1007
+    desc='Tag Unassigned to Member'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'

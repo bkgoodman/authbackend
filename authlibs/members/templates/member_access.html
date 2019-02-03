@@ -4,8 +4,8 @@
 	<div class="sectionhead">Edit user access to Resources</div>
     <p>Member: <a href="{{ url_for('members.member_show',id=member.member) }}">{{ member.member }}</a></p>
 	<div class="sectionhead">Tags 
-		{% if current_user.privs("Useredit") %}
-	<a href="{{ url_for('members.member_tags',id=member.member) }}"><i>(Add/Change)</i></a>:
+	{% if current_user.privs("Useredit") %}
+	<a href="{{ url_for('members.member_tags',id=member.id) }}"><i>(Add/Change)</i></a>:
 	{% endif %}
 	</div>
 	{% if tags|length > 0 %}

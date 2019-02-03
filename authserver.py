@@ -276,20 +276,6 @@ def _updatePaymentsData():
     _addPaymentData(fsubs['valid'],'pinpayments')
     return fsubs
 
-def add_member_tag(mid,ntag,tag_type,tag_name):
-    """Associate a tag with a Member, given a known safe set of values"""
-    sqlstr = "select tag_ident from tags_by_member where tag_ident = '%s' and tag_type = '%s'" % (ntag,tag_type)
-    etags = query_db(sqlstr)
-    if not etags:
-        sqlstr = """insert into tags_by_member (member,tag_ident,tag_name,tag_type,updated_date)
-                    values ('%s','%s','%s','%s',DATETIME('now'))""" % (mid,ntag,tag_name,tag_type)
-        execute_db(sqlstr)
-        get_db().commit()
-        kick_backend()
-        return True
-    else:
-        return False
-
 ########
 # Request filters
 ########

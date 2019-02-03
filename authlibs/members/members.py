@@ -1,5 +1,6 @@
 # vim:shiftwidth=2:expandtab
 import pprint
+import binascii, zlib
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response,Blueprint
@@ -331,9 +332,11 @@ def member_setaccess(id):
 def member_tags(id):
 		"""Controller method to gather and display tags associated with a memberid"""
 		mid = safestr(id)
-		sqlstr = "select tag_ident,tag_type,tag_name from tags_by_member where member = '%s'" % mid
-		tags = query_db(sqlstr)
-		return render_template('member_tags.html',mid=mid,tags=tags)
+		#sqlstr = "select tag_ident,tag_type,tag_name from tags_by_member where member = '%s'" % mid
+		#tags = query_db(sqlstr)
+                tags = MemberTag.query.filter(MemberTag.member_id==mid).all()
+                member=Member.query.filter(Member.id==mid).one()
+		return render_template('member_tags.html',mid=mid,tags=tags,member=member)
 
 @blueprint.route('/updatebackends', methods = ['GET'])
 @login_required
@@ -342,9 +345,22 @@ def update_backends():
 		flash("Backend Update Request Send")
 		return redirect(url_for('index'))
 
+def add_member_tag(mid,ntag,tag_type,tag_name):
+    """Associate a tag with a Member, given a known safe set of values"""
+    etag = MemberTag.query.filter(MemberTag.tag_type == tag_type).filter(MemberTag.tag_ident == ntag).one_or_none()
+
+    if not etag:
+        tag = MemberTag(tag_ident = ntag,tag_name=tag_name,tag_type=tag_type,member_id=mid)
+        db.session.add(tag)
+        db.session.add(Logs(member_id=mid,event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_TAG_ASSIGN.id,doneby=current_user.id,message=tag.longhash))
+        db.session.commit()
+        return True
+    else:
+        return False
+
 @blueprint.route('/<string:id>/tags', methods = ['POST'])
 @login_required
-@roles_required(['Admin','Useredit'])
+@roles_required(['Admin','Finance','Useredit'])
 def member_tagadd(id):
 		"""(Controller) method for POST to add tag for a user, making sure they are not duplicates"""
 		mid = safestr(id)
@@ -353,30 +369,65 @@ def member_tagadd(id):
 		ntagname = safestr(request.form['newtagname'])
 		ntag = authutil.rfid_validate(ntag)
 		if ntag is None:
-				flash("ERROR: The specified RFID tag is invalid, must be 10-digit all-numeric")
+				flash("ERROR: The specified RFID tag is invalid, must be 10-digit all-numeric",'danger')
 		else:
 				if add_member_tag(mid,ntag,ntagtype,ntagname):
 						authutil.kick_backend()
-						flash("Tag added.")
+						flash("Tag added.",'success')
 				else:
-						flash("Error: That tag is already associated with a user")
-		return redirect(url_for('member_tags',id=mid))
+						flash("Error: That tag is already associated with a user",'danger')
+		return redirect(url_for('members.member_tags',id=mid))
 
-@blueprint.route('/<string:id>/tags/delete/<string:tag_ident>', methods = ['GET'])
+@blueprint.route('/tags/delete/<string:tag_ident>', methods = ['GET'])
 @login_required
-def member_tagdelete(id,tag_ident):
+@roles_required(['Admin','Finance','Useredit'])
+def member_tagdelete(tag_ident):
 		"""(Controller) Delete a Tag from a Member (HTTP GET, for use from a href link)"""
-		mid = safestr(id)
-		tid = authutil.rfid_validate(tag_ident)
-		if not tid:
-				flash("Invalid Tag - Must be 10 digit numeric")
-		else:
-			sqlstr = "delete from tags_by_member where tag_ident = '%s' and member = '%s'" % (tid,mid)
-			execute_db(sqlstr)
-			get_db().commit()
-			authutil.kick_backend()
-			flash("If that tag was associated with the current user, it was removed")
-		return redirect(url_for('member_tags',id=mid))
+                t = MemberTag.query.filter(MemberTag.id == tag_ident).join(Member,Member.id == MemberTag.member_id).one_or_none()
+                if not t:
+                    flash("Tag not found")
+                    return redirect(url_for('index'))
+                mid = t.member_id
+                db.session.delete(t)
+                db.session.commit()
+                flash("Tag deleted","success")
+                return redirect(url_for("members.member_tagadd",id=mid))
+
+@blueprint.route('/tags/lookup', methods = ['GET','POST'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def lookup_tag():
+    tags=[]
+    if 'input_tag' in request.form:
+        tag=request.form['input_tag'].strip()
+
+        if re.match("^\d{10}$",tag):
+            ts =  MemberTag.query.filter(MemberTag.tag_ident==tag).join(Member,Member.id == MemberTag.member_id).add_column(Member.id).add_column(Member.member).all()
+            if len(ts)==0:
+                flash("No matching tag found",'warning')
+                ts = [[MemberTag(tag_ident=tag),'','']]
+            else:
+                flash("Matched",'success');
+            for t in ts:
+                tags.append({'member_id':t[1],'member':t[2],'tag':t[0]})
+        elif re.match("^[0-9,a-f]{56}$",tag):
+            for x in MemberTag.query.all():
+                if x.longhash == tag:
+                    m = Member.query.filter(Member.id == x.member_id).one()
+                    tags.append({'member_id':m.id,'member':m.member,'tag':x})
+            if len(tags) ==0:
+                flash("No matching hash found",'warning')
+        elif re.match("^[0-9,a-f]{4}\.\.\.[0-9,a-f]{4}$",tag):
+            for x in MemberTag.query.all():
+                if x.shorthash == tag:
+                    m = Member.query.filter(Member.id == x.member_id).one()
+                    tags.append({'member_id':m.id,'member':m.member,'tag':x})
+            if len(tags) ==0:
+                flash("No matching fingerprint found",'warning')
+
+        else:
+            flash("Unknown Fob Type","danger")
+    return render_template("lookup_tag.html",tags=tags)
 #----------
 #
 # Brad's test stuff

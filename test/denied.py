@@ -18,5 +18,8 @@ for x in open("../doorbot-cmp.txt").readlines():
             f=subprocess.Popen(["grep","-i",l,"../memberpaysync_debug.txt"],stdout=subprocess.PIPE)
             for x in  f.stdout.readlines(): print x.strip()
             f.wait()
+            f=subprocess.Popen(["grep","-i",l,"../doorbot-v0-api.acl"],stdout=subprocess.PIPE)
+            for x in  f.stdout.readlines(): print x.strip()
+            f.wait()
 
             print 

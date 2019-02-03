@@ -96,6 +96,12 @@ def get_raw_menu():
                     'privs':'RATT',
                     'url':url_for('kvopts.kvopts'),
                     'title':"Node Parameters",
+            },
+            {
+                    'privs':'Useredit',
+                    'url':url_for('members.lookup_tag'),
+                    'title':"Tag Lookup",
+                    'alt':"Search for RFID Tag"
             }
     ]
 

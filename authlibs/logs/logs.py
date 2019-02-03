@@ -133,19 +133,6 @@ def logs():
             
                     # Normal query format
 
-                    offset=0
-                    if ('offset' in request.values):
-                                    offset=int(request.values['offset'])
-
-                    if ('limit' in request.values):
-                            if request.values['limit']!="all":
-                                    limit=int(request.values['limit'])
-                            else:
-                                    limit = 200
-
-                    if qt == 'normal':
-                        if limit>0:  q=q.limit(limit)
-                        if offset>0: q=q.offset(offset)
 
                     if ('member' in request.values):
                                     q=q.filter((Logs.member_id==members[request.values['member']]) | (Logs.doneby==members[request.values['member']]))
@@ -166,6 +153,22 @@ def logs():
                     if ('format' in request.values):
                                     format=request.values['format']
 
+
+                    # Limits and offsets ONLY after all filters have been applied
+
+                    offset=0
+                    if ('offset' in request.values):
+                                    offset=int(request.values['offset'])
+
+                    if ('limit' in request.values):
+                            if request.values['limit']!="all":
+                                    limit=int(request.values['limit'])
+                            else:
+                                    limit = 200
+
+                    if qt == 'normal':
+                        if limit>0:  q=q.limit(limit)
+                        if offset>0: q=q.offset(offset)
 
                     if qt=='normal': dbq = q.all()
                     if qt=='count': count = q.count()

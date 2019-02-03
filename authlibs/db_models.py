@@ -3,6 +3,7 @@
 # Single file containing all required DB models, for now
 from flask_sqlalchemy import SQLAlchemy
 from flask_user import UserManager, UserMixin
+import hashlib,zlib
 from flask_login.mixins import AnonymousUserMixin
 import random, string
 from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
@@ -69,6 +70,8 @@ class Member(db.Model,UserMixin):
       for r in defined_roles:
         if self.has_roles('Admin') or self.has_roles(r):
           roles.append(r)
+        if self.has_roles('Finance') and 'Useredit' not in roles:
+          roles.append("Useredit")
       return roles
 
     def get_id(self):
@@ -206,6 +209,24 @@ class MemberTag(db.Model):
     updated_date = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
     member = db.Column(db.String(50))
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+
+    @property
+    def longhash(self):
+        try:
+            m = hashlib.sha224()
+            rfidStr = "%.10d"%(int(self.tag_ident))
+            m.update(str(rfidStr).encode())
+            return str(m.hexdigest())
+        except:
+            return None
+        
+    @property
+    def shorthash(self):
+        try:
+            return self.longhash[0:4]+"..."+self.longhash[-4:]
+        except:
+            return None
+
     # member_id MIGHT not exist if user is gone, but "member" should be ok
 
 class Blacklist(db.Model):
