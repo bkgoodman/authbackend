@@ -157,23 +157,36 @@ def logs():
                     # Limits and offsets ONLY after all filters have been applied
 
                     offset=0
-                    if ('offset' in request.values):
-                                    offset=int(request.values['offset'])
+                    if format == "csv":
+                        # Ignore imits and offsets for CSV output
+                        pass
+                    else:
+                        if ('offset' in request.values):
+                                        offset=int(request.values['offset'])
 
-                    if ('limit' in request.values):
-                            if request.values['limit']!="all":
-                                    limit=int(request.values['limit'])
-                            else:
-                                    limit = 200
+                        if ('limit' in request.values):
+                                if request.values['limit']!="all":
+                                        limit=int(request.values['limit'])
+                                else:
+                                        limit = 200
 
-                    if qt == 'normal':
-                        if limit>0:  q=q.limit(limit)
-                        if offset>0: q=q.offset(offset)
+                        if qt == 'normal':
+                            if limit>0:  q=q.limit(limit)
+                            if offset>0: q=q.offset(offset)
 
-                    if qt=='normal': dbq = q.all()
+                    if qt=='normal': dbq = q
                     if qt=='count': count = q.count()
-		logs=[]
-		for l in dbq:
+                    
+
+
+                def generate(fmt=None):
+                    fields=['when','user','tool','node','resource','event','doneby','message']
+                    if fmt == "csv":
+                        s = ""
+                        for f in fields:
+                            s += "\""+str(f)+"\","
+                        yield s+"\n"
+                    for l in dbq.all():
 				r={}
 				r['when']=l.time_logged
 				if not l.member_id:
@@ -230,10 +243,28 @@ def logs():
 						r['admin_id']=members[l.doneby]['member']
 				else:
 						r['doneby']="Member #"+str(l.doneby)
-				logs.append(r)
+                                if fmt == "csv":
+                                    fields=['when','user','tool','node','resource','event','doneby','message']
+                                    s = ""
+                                    for f in fields:
+                                        s += "\""+str(r[f])+"\","
+                                    yield s+"\n"
+                                else:
+                                    yield (r)
 
-		# if format=="csv":
-		#    return Response(stream_with_context(generate(),content_type='text/csv'))
+
+                if format == "html":
+                     logs = generate(fmt=format)
+                     print "LOGS NOW",logs
+                elif format == "csv":
+                    resp=Response(generate(fmt=format),mimetype='text/csv')
+                    resp.headers['Content-Disposition']='attachment'
+                    resp.headers['filename']='log.csv'
+                    return resp
+                else:
+                    flash ("Invalid format requested","danger")
+                    return redirect_url(request.url);
+
 		resources=Resource.query.all()
 		tools=Tool.query.all()
 		nodes=Node.query.all()
@@ -276,6 +307,15 @@ def logs():
                     else:
                         lastoffset = request.url+"?offset="+str(lastoffset)
 
+                if re.search("[\?\&]format=(\a+)",request.url):
+                    csvurl = re.sub(r"([\?\&])format=(\a+)",r"\1format=csv",request.url)
+                else:
+                    if request.url.find("?") != -1:
+                        csvurl = request.url+"&format=csv"
+                    else:
+                        csvurl = request.url+"?format=csv"
+
+
                 meta = {
                         'offset':offset,
                         'limit':limit,
@@ -284,6 +324,7 @@ def logs():
                         'next':nextoffset,
                         'last':lastoffset,
                         'count':count,
+                        'csvurl':csvurl,
                         'displayoffset':offset+1,
                         'lastoffset':lo
                 }
@@ -296,6 +337,12 @@ def logs():
 		return render_template('logs.html',logs=logs,resources=resources,tools=tools,nodes=nodes,meta=meta)
 
 
+@blueprint.route('/large.csv')
+def generate_large_csv():
+    def generate():
+        for row in iter_all_rows():
+            yield ','.join(row) + '\n'
+    return Response(generate(), mimetype='text/csv')
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
