@@ -1,23 +1,9 @@
 {% extends "layout_bootstrap.html" %}
 {% block search %}
 <div class=body>
-	<div class="sectionhead">Edit user access to Resources</div>
-    <p>Member: <a href="{{ url_for('members.member_show',id=member.member) }}">{{ member.member }}</a></p>
-	<div class="sectionhead">Tags 
-	{% if current_user.privs("Useredit") %}
-	<a href="{{ url_for('members.member_tags',id=member.id) }}"><i>(Add/Change)</i></a>:
-	{% endif %}
-	</div>
-	{% if tags|length > 0 %}
-	  {% for t in tags %}
-		<li>{{ t.tag_ident }} {{ t.tag_type }} (Name: {{ t.tag_name }})</li>
-	  {% endfor %}
-	{% else %}
-	  <div><i>No tags currently exist for this user, be sure to add some</i></div>
-	{% endif %}
-	<br>
-	
-	<p>
+	{% include "member_header.html" %}
+	<div class="container"> {# outer container #}
+	<h3>Access</h3>
 	<form action="{{ url_for('members.member_setaccess',id=member.id) }}" method="post">
 	  <table class="table">
 		<tr>
@@ -93,5 +79,6 @@
 	 <hr />
 	<input type=submit value="Make changes"/>
 	</form>
-  </div>
+	</div> {# Outer  contrainer #}
+</div> {# Body base contrainer #}
 {% endblock %}

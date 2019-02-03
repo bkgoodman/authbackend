@@ -388,6 +388,7 @@ def member_tagdelete(tag_ident):
                     flash("Tag not found")
                     return redirect(url_for('index'))
                 mid = t.member_id
+                db.session.add(Logs(member_id=mid,event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_TAG_UNASSIGN.id,doneby=current_user.id,message=t.longhash))
                 db.session.delete(t)
                 db.session.commit()
                 flash("Tag deleted","success")

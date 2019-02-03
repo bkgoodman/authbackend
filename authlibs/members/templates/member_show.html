@@ -1,13 +1,13 @@
 {% extends "layout_bootstrap.html" %}
-{% block search %}
-  <div class="container"> <!-- BASE contrainer -->
-	<div><a href="{{ url_for('members.members') }}">(Back to Members list)</a></div>
-	<div class="sectionhead">Member Details (<a href="{{ url_for('members.member_edit',id=member.id) }}">Edit</a>):</div>
+{% block body %}
+{% include "member_header.html" %}
+<div class="body"> <!-- BASE contrainer -->
 
 {% with readonly='1' %}
 {% include 'member_form.html' %}
 {% endwith %}
 		
+<div class="container"> {# Outer container #}
 <div class="compact form-row row">
 	<div class="col-sm-4">
 			Last updated:
@@ -90,6 +90,7 @@
 	{% endif %}
 	</ul>
 
+	</div> {# Outer container #}
   </div> <!-- BASE container -->
 	{% with readonly=1,member_id=member.id %}
 	{% include "comments.html" %}

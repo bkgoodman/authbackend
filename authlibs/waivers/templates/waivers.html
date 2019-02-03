@@ -8,15 +8,17 @@
     <p></p>
 	<table>
       <tr>
-        <th>Waiver</th>
+	<th></th>
+	<th></th>
+        <th>Email</th>
         <th>Firstname</th>
         <th>Lastname</th>
-        <th>Email</th>
-				<th>Created</th>
-				<th>Member</th>
+	<th>Created</th>
+	<th>Member</th>
       </tr>
       {% for w in waivers %}
 	  <tr>
+		  <td><span data-toggle="popover" class="glyphicon glyphicon-resize-small" /></td>
 		<td>{{ w.waiverid }}</td>
 		<td>{{ w.email }}</td>
 		<td>{{ w.firstname }}</td>
@@ -26,5 +28,4 @@
 	  </tr>
       {% endfor %}
 	</table>
-  </div>
 {% endblock %}

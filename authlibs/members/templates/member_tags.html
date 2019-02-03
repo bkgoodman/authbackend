@@ -1,10 +1,9 @@
 {% extends "layout_bootstrap.html" %}
 {% block body %}
-  <h2>Welcome</h2>
-  <div class=welcometext>
-	Add or remove tags (NFC, RFID, etc) used to authenticate a user
-  </div>
-  <div class="sectionhead">Tags for <a href="{{ url_for('members.member_show',id=member.member) }}">{{ member.member }}</a>:</div>
+{% include "member_header.html" %}
+<div class="body">
+<div class="container"> {# Outer container #}
+	<h3>Tags</h3>
   {% if tags|length > 0 %}
   <table class="table">
     <tr>
@@ -70,4 +69,6 @@
 		}
 	</script>
   {% endif %}
+  </div> {# Outer container #}
+</div> {# BASE body container #}
 {% endblock %}

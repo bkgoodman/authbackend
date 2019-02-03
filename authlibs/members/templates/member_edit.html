@@ -1,15 +1,18 @@
 {% extends "layout_bootstrap.html" %}
 {% block search %}
   <div class=body>
-	<div><a href="{{ url_for('members.members') }}">(Back to Members list)</a></div>
+	{% include "member_header.html" %}
 
 	<form action="{{ url_for('members.member_edit',id=member.id) }}" method="post">
 		
 	{% include 'member_form.html' %}
 
+	<div class="container"> {# Outer container #}
 	  <input type="submit" name="SaveChanges" value="Save" />
+	</div> {# Outer container #}
 	</form>
 
+	<div class="container"> {# Outer container #}
 
 
 	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=member.id) }}">Edit</a>):</div>
@@ -27,4 +30,5 @@
 	{% with member_id=member.id %}
 	{% include "comments.html" %}
 	{% endwith %}
+	</div> {# Outer container #}
 {% endblock %}
