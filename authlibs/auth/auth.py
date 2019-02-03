@@ -86,12 +86,19 @@ def authorize():
 @blueprint.route("/membersearch/<string:search>",methods=['GET'])
 @login_required
 def membersearch(search):
+  type='all'
+  if 'type' in request.values:
+      type = request.values['type']
+  print "SEARCH TYPE",type
   sstr = authutil._safestr(search)
   sstr = "%"+sstr+"%"
   res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.id)
-  res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr))).limit(50)
+  res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr)))
+  if type == 'active':
+      res = res.filter((Member.active.ilike("True") | (Member.active == '1')))
   if 'offset' in request.values:
       res = res.offset(request.values['offset'])
+  res = res.limit(50)
   res = res.all()
   result=[]
   for x in res:

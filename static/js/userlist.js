@@ -20,6 +20,15 @@ function DoSearchButton() {
 	current_user_offset=0;
 }
 
+function DoActiveButton() {
+	b = document.getElementById("activeInactive");
+	if (b.innerHTML == "Active Members")
+		b.innerHTML="All Members";
+	else
+		b.innerHTML="Active Members";
+	changedDropdownText();
+	current_user_offset=0;
+}
 function DoAllButton() {
 	queryMembers("*");
 	document.getElementById("searchfield1").value="";
@@ -50,14 +59,20 @@ function MoarUsers() {
 
 function queryMembers(searchstr) {
 	lastQuery=searchstr;
+	opt = {};
 	if (current_user_offset > 0) {
 		q=MEMBER_SEARCH_URL+searchstr; 
-		opt='offset='+String(current_user_offset);
+		opt['offset']=String(current_user_offset);
 	}
 	else {
 		q=MEMBER_SEARCH_URL+searchstr;
-		opt=""
 	}
+
+	b = document.getElementById("activeInactive");
+	if (b.innerHTML == "Active Members")
+		opt['type']="active";
+	else
+		opt['type']='all';
 
 	makePostCall(q, opt)
 			.success(function(data){
@@ -68,13 +83,10 @@ function queryMembers(searchstr) {
 
 						while(x) {
 							cb = x.getElementsByTagName("input")[0];
-							console.log("CB IS",cb);
-							console.log("X IS",x);
 							var e=x;
 							x = x.nextElementSibling;
-							if ( cb.checked == false)
+							if ((!cb) || ( cb.checked == false))
 								e.parentNode.removeChild(e);
-							//x = lst.getElementsByClassName("memberrow")[0];
 						}
 
 						for (x in data){ 
