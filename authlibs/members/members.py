@@ -175,8 +175,8 @@ def member_show(id):
              flash("You cannot view that user")
              return redirect(url_for('members.members'))
  
-	 #(warning,allowed,dooraccess)=getDoorAccess(res[0].id)
-	 (warning,allowed,dooraccess)=(None,None,None)
+	 (warning,allowed,dooraccess)=getDoorAccess(res[0].id)
+	 #(warning,allowed,dooraccess)=(None,None,None)
  
 	 if res:
 		 (member,subscription) = res
@@ -490,13 +490,16 @@ def _createMember(m):
 def getDoorAccess(id):
   r = db.session.query(Resource.id).filter(Resource.name == "frontdoor").one_or_none()
   if r:
-    acc = api.access_query(r.id,member_id=id).one_or_none()
+    acc = api.access_query(r.id,member_id=id,tags=False)
+    acc = acc.first()
+    print acc
     if not acc:
 	    return ("No Access Record Returned",False,None)
   acc=api._accessQueryToDict(acc)
 
   (warning,allowed) = api.determineAccess(acc,"Door access pending orientation")
-  return (warning,allowed,acc)
+  print "ALLOWED",allowed,warning
+  return (warning,allowed.lower()=='allowed',acc)
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

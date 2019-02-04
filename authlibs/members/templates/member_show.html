@@ -30,9 +30,9 @@
 <div class="my-2 p-2 border border-secondary rounded container">
 <h3>Access</h3>
 	{% if not access_allowed %}
-		<div class="my-2 alert-warning">{{ access_warning }}</div>
+		<div class="my-2 alert-danger">Access Denied: {{ access_warning }}</div>
 	{% else %}
-		<div class="my-2 alert-success">Orientation Complete/Door access Granted</div>
+		<div class="my-2 alert-success">Access Granted {{ access_warning }}</div>
 	{% endif %}
 	{% if not dooraccess %}
 		<div class="my-2 alert-danger">No door access record</div>
@@ -41,9 +41,14 @@
 	{% elif dooraccess.grace_period  == "true" %}
 		<div class="my-2 alert-warning">Subscription expired {{ dooraccess.expires_date }} - in grace period</div>
 	{% else %}
-		<div class="my-2 alert-success">Subscription is current</div>
+		<div class="my-2 alert-info">Orientation Complete</div>
 	{% endif %}
-<pre> {{ dooraccess }} </pre>
+
+  <button class="btn btn-outline-info" type="button" data-toggle="collapse" data-target="#debugaccess" aria-expanded="false" aria-controls="collapseExample">
+    <span class="glyphicon glyphicon-info-sign"></span>
+  </button>
+<pre class="collapse" id="debugaccess" > {{ dooraccess }} </pre>
+
 </div>
 
 		 

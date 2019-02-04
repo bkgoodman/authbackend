@@ -325,7 +325,8 @@ def determineAccess(u,resource_text):
         warning = ""
         allowed = u['allowed']
         # BKG TODO WARNING I added this first check to see if we had a valid sub
-        if u['membership'] is None:
+
+        if not u['membership']:
             warning = "You do not have a current subscription. Check your payment plan. %s" % (c['board'])
             allowed = 'false'
         elif u['past_due'] == 'true':
@@ -403,8 +404,12 @@ def cli_listapikeys(cmd,**kwargs):
       print "Name:",x.name,"Username:",x.username
 
 
-def access_query(resource_id,member_id=None):
-    q = db.session.query(MemberTag,MemberTag.tag_ident,Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
+def access_query(resource_id,member_id=None,tags=True):
+    if tags:
+      q = db.session.query(MemberTag,MemberTag.tag_ident)
+    else:
+      q = db.session.query(Member,"''") 
+    q = q.add_columns(Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
     q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
     # TODO Disable user it no subscription at all??? Only with other "plantype" logic to figure out "free" memberships
     q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now','-14 days')), 'true')], else_ = 'false').label('past_due'))
@@ -413,23 +418,38 @@ def access_query(resource_id,member_id=None):
     q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
     q = q.add_column(Member.member)
 
-    # BKG DEBUG LINES
-    q = q.add_column(MemberTag.member_id)
+    # BKG DEBUG LINES 
+    if (tags):
+      q = q.add_column(MemberTag.member_id)
+    else:
+      q = q.add_column(AccessByMember.id)
     q = q.add_column(Subscription.membership)
     q = q.add_column(Subscription.expires_date)
     # BKG DEBUG ITEMS
-    q = q.outerjoin(Member,Member.id == MemberTag.member_id)
 
-    if member_id:
-        q = q.filter(MemberTag.member_id == member_id)
+    if (tags):
+        q = q.outerjoin(Member,Member.id == MemberTag.member_id)
+        if member_id:
+            q = q.filter(MemberTag.member_id == member_id)
+        if resource_id:
+            q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
+        else:
+            q = q.outerjoin(AccessByMember, (AccessByMember.member_id == MemberTag.member_id))
+    else: # No tags
+        if member_id:
+            q = q.filter(Member.id == member_id)
+        if resource_id and member_id:
+            q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == member_id)))
+            print "FILTER BOTH RID",resource_id,"AND MEMBER ID",member_id
 
-    if resource_id:
-        q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == resource_id)))
-    else:
-        q = q.outerjoin(AccessByMember, (AccessByMember.member_id == MemberTag.member_id))
+        elif resource_id:
+            q = q.join(AccessByMember, (AccessByMember.resource_id == resource_id))
+        elif member_id:
+            q = q.outerjoin(AccessByMember, (AccessByMember.member_id == member_id))
 
     q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
-    q = q.group_by(MemberTag.tag_ident)
+    if (tags):
+      q = q.group_by(MemberTag.tag_ident)
 
     return q
     
@@ -444,6 +464,7 @@ def cli_querytest(cmd,**kwargs):
 
     q = access_query(member_id=mid,resource_id=rid)
     val = q.all()
+
 
     result =[]
     for y in val:
