@@ -1,4 +1,4 @@
-# vim:shiftwidth=2:expandtab
+# vim:shiftwidth=2:noexpandtab
 import pprint
 import binascii, zlib
 import sqlite3, re, time
@@ -8,6 +8,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs
+from ..api import api 
 from functools import wraps
 import json
 #from .. import requireauth as requireauth
@@ -174,6 +175,8 @@ def member_show(id):
              flash("You cannot view that user")
              return redirect(url_for('members.members'))
  
+	 (warning,allowed,dooraccess)=getDoorAccess(res[0].id)
+ 
 	 if res:
 		 (member,subscription) = res
 		 access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
@@ -181,8 +184,11 @@ def member_show(id):
 		 access = access.filter(AccessByMember.active == 1)
 		 access = access.all()
 
-		 cc=comments.get_comments(member_id=member.id)
-		 return render_template('member_show.html',member=member,access=access,subscription=subscription,comments=cc)
+                 if current_user.privs('Useredit'):
+                     cc=comments.get_comments(member_id=member.id)
+                 else:
+                     cc={}
+		 return render_template('member_show.html',member=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed)
 	 else:
 		flash("Member not found")
 		return redirect(url_for("members.members"))
@@ -457,11 +463,11 @@ def admin_page():
 
     privs=AccessByMember.query.filter(AccessByMember.level>0).join(Member,Member.id==AccessByMember.member_id)
     privs = privs.join(Resource,Resource.id == AccessByMember.resource_id)
-    privs = privs.add_columns(Resource.name,AccessByMember.level,Member.member)
+    privs = privs.add_columns(Resource.name,AccessByMember.level,Member.member,Member.id)
     privs = privs.all()
     p=[]
     for x in privs:
-        p.append({'member':x[3],'resource':x[1],'priv':AccessByMember.ACCESS_LEVEL[int(x[2])]})
+        p.append({'member_id':x[4],'member':x[3],'resource':x[1],'priv':AccessByMember.ACCESS_LEVEL[int(x[2])]})
 
     return render_template('admin_page.html',privs=p,roles=roles)
 
@@ -479,6 +485,17 @@ def _createMember(m):
         get_db().commit()
     return {'status':'success','message':'Member %s was created' % m['memberid']}
     kick_backend()
+
+def getDoorAccess(id):
+  r = db.session.query(Resource.id).filter(Resource.name == "frontdoor").one_or_none()
+  if r:
+    acc = api.access_query(r.id,member_id=id).one_or_none()
+    if not acc:
+	    return ("No Access Record Returned",False,None)
+  acc=api._accessQueryToDict(acc)
+
+  (warning,allowed) = api.determineAccess(acc,"Door access pending orientation")
+  return (warning,allowed,acc)
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

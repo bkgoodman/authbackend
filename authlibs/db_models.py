@@ -39,14 +39,17 @@ class Member(db.Model,UserMixin):
     slack = db.Column(db.String(50))
     lastname = db.Column(db.String(50))
     phone = db.Column(db.String(50))
-    plan = db.Column(db.String(50))
-    access_enabled = db.Column(db.Integer())
+    plantype = db.Column(db.String(10))	 # Plan TYPE - manualy input: "Paid" (default), "Deactivated", "Free" are the three primary states
+    plan = db.Column(db.String(50))	 # "Pro", "Hobbiest" - "ProDuo" - from stripe??
+    access_enabled = db.Column(db.Integer()) # Manual input - temporary state - depricate  - other ways to do this TODO
     access_reason = db.Column(db.String(50))
-    active = db.Column(db.Integer()) # Applies to membership AND GUI login (flask-user)
+    active = db.Column(db.Integer()) # Applies to membership AND GUI login (flask-user) set ONLY by program logic
     nickname = db.Column(db.String(50))
     stripe_name = db.Column(db.String(50))
     time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
+    warning_sent = db.Column(db.DateTime(timezone=True))
+    warning_level = db.Column(db.Integer()) 
     email_confirmed_at = db.Column(db.DateTime())
 
     password = db.Column(db.String(255),nullable=True)

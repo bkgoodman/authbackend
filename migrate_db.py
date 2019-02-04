@@ -411,7 +411,7 @@ if __name__ == '__main__':
               slack=None
               if x[0] in corrected_slack_ids:
                   slack=corrected_slack_ids[x[0]]
-              mem = Member()
+              mem = Member(plantype="Paid")
 
 
               if slack:
@@ -649,6 +649,11 @@ if __name__ == '__main__':
               if args.overwrite: db.session.add(w)
           if args.overwrite: db.session.flush()
           if args.overwrite: db.session.commit()
+
+          door = Resource.query.filter(Resource.name=="frontdoor").one()
+          door.info_text = "You have a valid membership, but you must complete orientation for access. Orientation is every Thursday at 7pm, or contact board@makeitlabs to schedule a convenient time"
+          db.session.commit()
+
           print "waivers migrated",good,"nomatches",bad
 
           print """ END DB MIGRATION """
@@ -658,7 +663,7 @@ if __name__ == '__main__':
 *** ADDED TEST DATA
 ***
 """
-        os.system("sqlite3 "+args.overwrite+" < test/testdata.sql")
+        #os.system("sqlite3 "+args.overwrite+" < test/testdata.sql")
     with app.app_context():
         # Extensions like Flask-SQLAlchemy now know what the "current" app
         # is while within this block. Therefore, you can now run........
@@ -702,6 +707,50 @@ if __name__ == '__main__':
             password=app.user_manager.hash_password("unconfirmed"))
         db.session.add(member)
 
+        member = Member(id=5000,member="Testy.Testerson",email='Testy.Testerson@makeitlabs.com',
+            alt_email="testy@example.com",firstname="Testy",lastname="Testerson",slack="testy.testerson",
+            plantype="Paid",access_enabled=1,active=1,
+            email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+
+        member = Member(id=5001,member="First.User",email='First.User@makeitlabs.com',
+            alt_email="fu@example.com",firstname="First",lastname="User",slack="first.user",
+            plantype="Paid",access_enabled=1,active=1,
+            email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+
+        member = Member(id=5002,member="bill.tester",email='bill.tester@makeitlabs.com',
+            alt_email="billy@example.com",firstname="Bill",lastname="Tester",slack="bill.tester",
+            plantype="Paid",access_enabled=1,active=1,
+            email_confirmed_at=datetime.utcnow(),
+            password=app.user_manager.hash_password("password"))
+        db.session.add(member)
+
+        member = Member(id=5003,member="Example.McTester",email='Example.McTester@makeitlabs.com',
+            alt_email="emt@example.com",firstname="Example",lastname="McTester",slack="emtester",
+            plantype="Free",access_enabled=1,active=1,
+            email_confirmed_at=datetime.utcnow(),
+            password=app.user_manager.hash_password("password"))
+        db.session.add(member)
+
+        member = Member(id=5004,member="Oldy.McOldold",email='old.old@makeitlabs.com',
+            alt_email="oldguy@example.com",firstname="Oldy",lastname="McOldOld",slack="oldy",
+            plantype="Deactivated",access_enabled=1,active=1,
+            email_confirmed_at=datetime.utcnow(),
+            password=app.user_manager.hash_password("password"))
+        db.session.add(member)
+
+        db.session.add(MemberTag(id=5900,tag_ident="1110001111",tag_name="testfob",tag_type="rfid",member_id=5000))
+        db.session.add(MemberTag(id=5901,tag_ident="1111111122",tag_name="testfob",tag_type="rfid",member_id=5001))
+        db.session.add(MemberTag(id=5902,tag_ident="2222222222",tag_name="testfob",tag_type="rfid",member_id=5002))
+        db.session.add(MemberTag(id=5903,tag_ident="1212121212",tag_name="testfob",tag_type="rfid",member_id=5003))
+        db.session.add(MemberTag(id=5904,tag_ident="4545454545",tag_name="testfob",tag_type="rfid",member_id=5004))
+
+        db.session.add(Waiver(firstname="Testy",lastname="Testerson",email="testy@example.com",member_id=5000))
+        db.session.add(Waiver(firstname="First",lastname="User",email="fu@example.com"))
+        db.session.add(Waiver(firstname="Mc",lastname="Gyber",email="mcg@example.com"))
+
+
         apikey = ApiKey(name="testkey",username="testkey",
             password=app.user_manager.hash_password("testkey"))
         db.session.add(apikey)
@@ -744,6 +793,7 @@ if __name__ == '__main__':
         db.session.add(KVopt(id=5003,keyname="test2.Option4",options="red;green;blue;chartruse",description="Your favorite color"))
         db.session.add(KVopt(id=5004,keyname="test2.season",default="summer",options="spring;summer;winter;fall",description="A nice season"))
 
+
         db.session.add(NodeConfig(id=5000,node_id=5000,key_id=5000,value="val1"))
         db.session.add(NodeConfig(id=5001,node_id=5000,key_id=5001,value="val2"))
         db.session.add(NodeConfig(id=5002,node_id=5000,key_id=5003,value="green"))
@@ -751,6 +801,10 @@ if __name__ == '__main__':
         db.session.add(NodeConfig(id=5004,node_id=5001,key_id=5001,value="val2"))
         db.session.add(NodeConfig(id=5005,node_id=5001,key_id=5004,value="winter"))
 
+        res=Resource(id=5000,name="TestResource",description="Test Resource",owneremail="test@makeitlabs.com")
+        db.session.add(res)
+        res=Resource(id=5001,name="OtherTest",description="Another Test Resource",owneremail="test@makeitlabs.com")
+        db.session.add(res)
 
         if args.nomigrate:
             # Since we don't have any other data in here - create a "frontdoor" entry
@@ -762,6 +816,15 @@ if __name__ == '__main__':
             db.session.add(res)
             res=Resource(name="autolift",description="Auto lift",owneremail="lift@makeitlabs.com")
             db.session.add(res)
+
+        db.session.add(AccessByMember(member_id=5000,resource_id=1,active=True))
+        db.session.add(AccessByMember(member_id=5001,resource_id=1,active=True))
+        db.session.add(AccessByMember(member_id=5002,resource_id=1,active=True))
+        db.session.add(AccessByMember(member_id=5004,resource_id=1,active=True))
+        db.session.add(AccessByMember(member_id=5000,resource_id=5000,level=4,active=True))
+        db.session.add(AccessByMember(member_id=5000,resource_id=5001,active=True))
+        db.session.add(AccessByMember(member_id=5001,resource_id=5000,active=True))
+
 
         db.session.commit()
 

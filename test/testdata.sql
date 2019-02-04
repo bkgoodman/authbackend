@@ -19,12 +19,6 @@ INSERT INTO tools VALUES(7,'testtool','simhostid',1);
 
 /* TEST USERS */
 
-INSERT INTO members VALUES(5000,'Testy.Testerson','Testy.Testerson@makeitlabs.com','test@example.com','Testy','Testy.Testerson','Testerson',NULL,'hobbyist',NULL,NULL,1,'Testy','Testy Testerson','2017-08-03 06:35:09.000000',NULL,NULL,"$2b$12$PWuYZjVPAg/KvsKQypqw/OXzhdbW7R.r5VcAD9CPI.DMRXAAJNcKy");
-INSERT INTO members VALUES(5001,'First.User','fuser@makeitlabs.com','fu@example.com','First','fuser','User',NULL,'pro',NULL,NULL,'true','First','First User','2017-08-03 06:35:09.000000',NULL,NULL,"$2b$12$PWuYZjVPAg/KvsKQypqw/OXzhdbW7R.r5VcAD9CPI.DMRXAAJNcKy");
-INSERT INTO members VALUES(5002,'bill.tester','billtester@makeitlabs.com','tester@foo.com','Bill','bill.tester','Tester',NULL,'pro',NULL,NULL,'true','Bill','Bill Tester','2017-08-03 06:35:09.000000',NULL,NULL,"$2b$12$PWuYZjVPAg/KvsKQypqw/OXzhdbW7R.r5VcAD9CPI.DMRXAAJNcKy");
-INSERT INTO members VALUES(5003,'Example.McTester','emt@makeitlabs.com','emt@example.com','Example','e.mctester','McTester',NULL,'pro',NULL,NULL,'true','Exy','Example McTester','2017-08-03 06:35:09.000000',NULL,NULL,"$2b$12$PWuYZjVPAg/KvsKQypqw/OXzhdbW7R.r5VcAD9CPI.DMRXAAJNcKy");
-INSERT INTO members VALUES(5004,'Oldy.McOldOld','oldy.mcoldold@makeitlabs.com','omoo@example.com','Oldy','o.mcoo','McOldOld',NULL,'pro',NULL,NULL,'true','Oldy','Oldy McOldOld','2017-08-03 06:35:09.000000',NULL,NULL,"$2b$12$PWuYZjVPAg/KvsKQypqw/OXzhdbW7R.r5VcAD9CPI.DMRXAAJNcKy");
-
 
 /* Add Fake Resrouces */
 INSERT INTO resources VALUES(5000,'TestResource','TestData','anyone@example.com',NULL,NULL,NULL,NULL,NULL,NULL);

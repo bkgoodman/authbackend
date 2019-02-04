@@ -275,65 +275,9 @@ def error_401():
 ## ACL HANDLERS
 ###
 
-def _getResourceUsers(resource):
-    """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
-    # Also provides some basic logic on various date fields to simplify later processing
-    # - this could be done with raw calcs on the dates, if future editors are less comfortable with the SQL syntaxes used
-	# Note: The final left join is to account for "max(expires_date)" equivalence without neededing a subquery
-	# - yes, it's kind of odd, but it works
-
-    sqlstr = """select t.member_id,t.tag_ident,m.plan,m.nickname,/*l.last_accessed,*/m.access_enabled as enabled, m.access_reason as reason,s.expires_date,a.resource_id,
-        (case when a.resource_id is not null then 'allowed' else 'denied' end) as allowed,
-        (case when s.expires_date < Datetime('now','-14 day') then 'true' else 'false' end) as past_due,
-        (case when s.expires_date < Datetime('now') AND s.expires_date > Datetime('now','-13 day') then 'true' else 'false' end) as grace_period,
-        (case when s.expires_date < Datetime('now','+2 day') then 'true' else 'false' end) as expires_soon,
-        (case when a.level is not null then a.level else '0' end) as level,
-        m.member, /* BKG */
-        NULL as last_accessed
-        from tags_by_member t join members m on t.member=m.member
-        left outer join accessbymember a on a.member_id=t.member_id and a.resource_id=
-              (SELECT id FROM resources WHERE name ="%s")
-        left outer join subscriptions s on lower(s.name)=lower(m.stripe_name) and s.email=m.alt_email
-        left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
-        group by t.tag_ident;""" % (resource)
-    
-    """ REMOVED:
-        /*  left outer join (select member,MAX(event_date) as last_accessed from logs where resource_id='%s' group by member) l on t.member = l.member */
-    """
-    #users = db.session.execute(sqlstr)
-
-    q = db.session.query(MemberTag,MemberTag.tag_ident,Member.plan,Member.nickname,Member.access_enabled,Member.access_reason)
-    q = q.add_column(case([(AccessByMember.resource_id !=  None, 'allowed')], else_ = 'denied').label('allowed'))
-    # TODO Disable user it no subscription at all??? Only with other "plantype" logic to figure out "free" memberships
-    q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now','-14 days')), 'true')], else_ = 'false').label('past_due'))
-    q = q.add_column(case([((Subscription.expires_date < db.func.DateTime('now') & (Subscription.expires_date > db.func.DateTime('now','-13 day'))), 'true')], else_ = 'false').label('grace_period'))
-    q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('now','+2 days'), 'true')], else_ = 'false').label('expires_soon'))
-    q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
-    q = q.add_column(Member.member)
-		# BKG DEBUG LINES
-    q = q.add_column(MemberTag.member_id)
-    q = q.add_column(Subscription.membership)
-    q = q.add_column(Subscription.expires_date)
-    q = q.outerjoin(Member,Member.id == MemberTag.member_id)
-
-    rid = db.session.query(Resource.id).filter(Resource.name == resource)
-    q = q.outerjoin(AccessByMember, ((AccessByMember.member_id == MemberTag.member_id) & (AccessByMember.resource_id == rid)))
-    q = q.outerjoin(Subscription, Subscription.member_id == Member.id)
-    q = q.group_by(MemberTag.tag_ident)
-
-    # TODO BUG BKG We nuked the multi subscription line - becasue we nuked multiple subscriptions in the payment import
-    # Logic here was:
-    # left join subscriptions s2 on lower(s.name)=lower(s2.name) and s.expires_date < s2.expires_date where s2.expires_date is null
-    val =  q.all()
-
-    #print "RECORDS",len(val)
-
-    # TEMP TODO - SQLalchemy returning set of tuples - turn into a dict for now
-    result =[]
-    for y in val:
+def _accessQueryToDict(y):
         x = y[1:]
-        #print "REC",x
-        result.append({
+        return {
             'tag_ident':x[0],
             'plan':x[1],
             'nickname':x[2],
@@ -349,30 +293,35 @@ def _getResourceUsers(resource):
             'membership':x[12],
             'expires_date':x[13],
             'last_accessed':"" # We may never want to report this for many reasons
-            })
+            }
+
+def _getResourceUsers(resource):
+    """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
+    # Also provides some basic logic on various date fields to simplify later processing
+    # - this could be done with raw calcs on the dates, if future editors are less comfortable with the SQL syntaxes used
+	# Note: The final left join is to account for "max(expires_date)" equivalence without neededing a subquery
+	# - yes, it's kind of odd, but it works
+
+
+    rid = db.session.query(Resource.id).filter(Resource.name == resource)
+    val = access_query(rid)
+
+    # TEMP TODO - SQLalchemy returning set of tuples - turn into a dict for now
+    result =[]
+    for y in val:
+        result.append(_accessQueryToDict(y))
 
     # TODO Do we want to deal with adding people with implicit (Admin, RATT, HeadRM) permissions? This could be a LOT of extra queries
 
     return result
 
+def determineAccess(u,resource_text):
+        if not resource_text:
+          resource_text = "You do not have access to this resource. See the Wiki for training information and resource manager contact info."
 
-def getAccessControlList(resource):
-    """Given a Resource, return what tags/users can/cannot access a reource and why as a JSON structure"""
-    users = _getResourceUsers(resource)
-    jsonarr = []
-    resource_rec = Resource.query.filter(Resource.name==resource).first()
-    if resource_rec is None or not resource_rec.info_text:
-        resource_text = "See the Wiki for training information and resource manager contact info."
-        if resource_rec and resource_rec.info_url:
-            resrouce_text += " "+resource_rec.info_url
-    else:   
-        resource_text = resource_rec.info_text
-    c = {'board': "Contact board@makeitlabs.com with any questions.",
-         'orientation': 'Orientation is every Thursday at 7pm, or contact board@makeitlabs to schedule a convenient time',
-         'resource': "See the Wiki for training information and resource manager contact info."}
-    # TODO: Resource-specific contacts?
-    # Now that we know explicit allowed/denied per resource, provide an message
-    for u in users:
+        c = {'board': "Contact board@makeitlabs.com with any questions.",
+             'resource': resource_text}
+
         warning = ""
         allowed = u['allowed']
         # BKG TODO WARNING I added this first check to see if we had a valid sub
@@ -393,15 +342,26 @@ def getAccessControlList(resource):
                 warning = "This account is not enabled. It may be newly added and not have a waiver on file. %s" % c['board']
             allowed = 'false'
         elif u['allowed'] == 'denied':
-            # Special 'are you oriented' check
-            if resource == 'frontdoor':
-                warning = "You have a valid membership, but you must complete orientation for access. %s" % c['orientation']
-            else:
-                warning = "You do not have access to this resource. %s" % c['resource']
+                warning = c['resource']
         elif u['grace_period'] == 'true':
             warning = """Your membership expired (%s) and you are in the temporary grace period. Correct this
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
-        #print dict(u)
+        return (warning,allowed)
+
+def getAccessControlList(resource):
+    """Given a Resource, return what tags/users can/cannot access a reource and why as a JSON structure"""
+    users = _getResourceUsers(resource)
+    jsonarr = []
+    resource_text=None
+    reeource_url=None
+    resource_rec = Resource.query.filter(Resource.name==resource).first()
+    if resource_rec and resource_rec.info_text:
+        resource_text = resource_rec.info_text
+    if resource_rec and resource_rec.info_url:
+        resource_url = resource_rec.info_url
+
+    for u in users:
+        (warning,allowed) = determineAccess(u,resource_text)
         hashed_tag_id = authutil.hash_rfid(u['tag_ident'])
         jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level'],'raw_tag_id':u['tag_ident']})
     return json_dump(jsonarr,indent=2)

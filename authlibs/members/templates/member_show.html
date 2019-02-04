@@ -26,6 +26,26 @@
 			{{ member.waiver_date }}
 	</div>
 </div>
+
+<div class="my-2 p-2 border border-secondary rounded container">
+<h3>Access</h3>
+	{% if not access_allowed %}
+		<div class="my-2 alert-warning">{{ access_warning }}</div>
+	{% else %}
+		<div class="my-2 alert-success">Orientation Complete/Door access Granted</div>
+	{% endif %}
+	{% if not dooraccess %}
+		<div class="my-2 alert-danger">No door access record</div>
+	{% elif dooraccess.past_due  == "true" %}
+		<div class="my-2 alert-danger">Subscription past due since {{ dooraccess.expires_date }}</div>
+	{% elif dooraccess.grace_period  == "true" %}
+		<div class="my-2 alert-warning">Subscription expired {{ dooraccess.expires_date }} - in grace period</div>
+	{% else %}
+		<div class="my-2 alert-success">Subscription is current</div>
+	{% endif %}
+<pre> {{ dooraccess }} </pre>
+</div>
+
 		 
 		
 			<a href="{{ url_for("logs.logs",memberid=member.id) }}">Show Logs for Member</a>
@@ -92,7 +112,9 @@
 
 	</div> {# Outer container #}
   </div> <!-- BASE container -->
+  	{% if current_user.privs("Useredit") %}
 	{% with readonly=1,member_id=member.id %}
 	{% include "comments.html" %}
 	{% endwith %}
+	{% endif %}
 {% endblock %}

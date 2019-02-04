@@ -1,3 +1,4 @@
+{# vim:tabstop=2:expandtab #}
 {% extends "layout_bootstrap.html" %}
 {% block search %}
 <div class=body>
@@ -5,7 +6,7 @@
 	<div class="container"> {# outer container #}
 	<h3>Access</h3>
 	<form action="{{ url_for('members.member_setaccess',id=member.id) }}" method="post">
-	  <table class="table">
+	  <table class="table table-sm">
 		<tr>
 		  <th>Resource</th>
 		  <th>Description</th>
@@ -62,22 +63,43 @@
 	 {% if current_user.privs("Admin") %}
 	 <hr />
 	 <h3>Assigned Roles</h3>
-	 {% for r in roles %}
-	 {{ r.name }}<input type="checkbox" name="role_{{ r.name }}" {{ 'checked' if (r.id) else '' }} /><br />
-	 <input type="hidden" name="orgrole_{{ r.name }}" value="{{ 'on' if (r.id) else 'off' }}" />
-	 {% endfor %}
+	 <div class="container">
+		{% for r in roles %}
+			<div class="form-row">
+				<div class="form-col col-sm-1">
+					<input type="checkbox" id="role_{{ r.name }}" name="role_{{ r.name }}" {{ 'checked' if (r.id) else '' }} />
+				</div>
+					<label class="col-md-2 col-form-label" for="role_{{ r.name }}">{{ r.name }}</label>
+					<input type="hidden" name="orgrole_{{ r.name }}" value="{{ 'on' if (r.id) else 'off' }}" />
+			</div>
+		{% endfor %}
+	 </div>
 	 <hr />
 	 {% endif %}
 
 	 {% if current_user.privs("Useredit") %}
 	 <h3>Change Password</h3>
-	 <p>
-	 Password: <input type="password" name="password1" value="" size=20 /><br />
-	 Reenter:<input type="password" name="password2" value="" size=20 />
-	 </p>
+	 <div class="container">
+		 <div class="row">
+			<div class="col-sm-2">
+				 Password:
+			</div>
+			<div class="col-sm-4">
+				<input type="password" name="password1" value="" size=20 />
+			</div>
+		</div>
+		 <div class="row">
+			<div class="col-sm-2">
+				 Reenter:
+			</div>
+			<div class="col-sm-4">
+				 <input type="password" name="password2" value="" size=20 />
+			</div>
+		</div>
+	 </div>
+	<input type=submit value="Make changes"/>
 	 {% endif %}
 	 <hr />
-	<input type=submit value="Make changes"/>
 	</form>
 	</div> {# Outer  contrainer #}
 </div> {# Body base contrainer #}
