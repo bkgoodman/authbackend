@@ -175,7 +175,8 @@ def member_show(id):
              flash("You cannot view that user")
              return redirect(url_for('members.members'))
  
-	 (warning,allowed,dooraccess)=getDoorAccess(res[0].id)
+	 #(warning,allowed,dooraccess)=getDoorAccess(res[0].id)
+	 (warning,allowed,dooraccess)=(None,None,None)
  
 	 if res:
 		 (member,subscription) = res
