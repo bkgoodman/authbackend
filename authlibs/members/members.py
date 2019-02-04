@@ -171,15 +171,16 @@ def member_show(id):
 	 member=db.session.query(Member,Subscription)
 	 member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.member==mid)
 	 res = member.one_or_none()
-         if (not current_user.privs('Useredit')) and res[0].member != current_user.member:
-             flash("You cannot view that user")
-             return redirect(url_for('members.members'))
+
+	 if (not current_user.privs('Useredit')) and res[0].member != current_user.member:
+			 flash("You cannot view that user")
+			 return redirect(url_for('members.members'))
  
-	 (warning,allowed,dooraccess)=getDoorAccess(res[0].id)
-	 #(warning,allowed,dooraccess)=(None,None,None)
+	 (warning,allowed,dooraccess)=(None,None,None)
  
 	 if res:
 		 (member,subscription) = res
+		 (warning,allowed,dooraccess)=getDoorAccess(member.id)
 		 access=db.session.query(Resource).outerjoin(AccessByMember).outerjoin(Member)
 		 access = access.filter(Member.id == member.id)
 		 access = access.filter(AccessByMember.active == 1)
