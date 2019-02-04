@@ -275,8 +275,13 @@ def error_401():
 ## ACL HANDLERS
 ###
 
+
+# Since SQLalchemy returns complex query results as a list of
+# tuples in separate columns - we put these columns into a
+# meaningful dictionary for easier handling. If you change
+# the results of this query - change this function!
 def _accessQueryToDict(y):
-        x = y[1:]
+        x = y[1:] # Get rid of the first parameter - which is a MemberTag record
         return {
             'tag_ident':x[0],
             'plan':x[1],
@@ -295,6 +300,7 @@ def _accessQueryToDict(y):
             'last_accessed':"" # We may never want to report this for many reasons
             }
 
+# Get all the users of a given resource
 def _getResourceUsers(resource):
     """Given a Resource, return all users, their tags, and whether they are allowed or denied for the resource"""
     # Also provides some basic logic on various date fields to simplify later processing
@@ -315,6 +321,14 @@ def _getResourceUsers(resource):
 
     return result
 
+""" Pass this a record returned from an access_query() response
+		Shall determine if access to a resource will be allowed
+
+		"Resource text" generall comes from the database - it is a custom
+		"access denined" message. If none, a boilerplate one will be returned
+
+		returns a "false" or "allowed" string, and a warning message
+"""
 def determineAccess(u,resource_text):
         if not resource_text:
           resource_text = "You do not have access to this resource. See the Wiki for training information and resource manager contact info."
@@ -349,6 +363,10 @@ def determineAccess(u,resource_text):
             as soon as possible or you will lose all access! %s""" % (u['expires_date'],c['board'])
         return (warning,allowed)
 
+# Main entry to fetch an Access Control List for a given resource
+# containing disposition for this resource for ALL tags in the system
+# The final data is somewhat specific to the ACL APIs, though the actual
+# format in which it is conveyed on the wire is left to the caller
 def getAccessControlList(resource):
     """Given a Resource, return what tags/users can/cannot access a reource and why as a JSON structure"""
     users = _getResourceUsers(resource)
@@ -404,6 +422,31 @@ def cli_listapikeys(cmd,**kwargs):
       print "Name:",x.name,"Username:",x.username
 
 
+""" This is the ONE AND ONLY query used for ACL checks 
+		It is designed to run a few differnet ways.
+
+		With "tags=True" and a resource_id specified, it will
+		return records for ALL tags in the system - allong with
+		their validity, and info on their member and subscription
+
+		With "tags=False", it will serve as a vailidy check for
+		a given user on a given resource. (i.e. Return a single
+		record - independent of any tags).
+
+		This function only RETURNS the query, it does not EXECUTE it,
+		because different callers might want to handle it different
+		ways (i.e. "all", "one", etc).
+
+		The caller will also want to end the results of each record
+		trhough _accessQueryToDict() to turn it from a crazy list
+		into a coherent dictionary. IF YOU CHANGE any of the
+		returned results, change _accessQueryToDict!!
+
+		The results of EACH _accessQueryToDict (if more than one)
+		should then be parsed by "determineAccess()" (above) which
+		contains the ligher logic to determine if access should be
+		granted, and what warnings/error should be returned.
+"""
 def access_query(resource_id,member_id=None,tags=True):
     if tags:
       q = db.session.query(MemberTag,MemberTag.tag_ident)
@@ -440,7 +483,6 @@ def access_query(resource_id,member_id=None,tags=True):
             q = q.filter(Member.id == member_id)
         if resource_id and member_id:
             q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == member_id)))
-            print "FILTER BOTH RID",resource_id,"AND MEMBER ID",member_id
 
         elif resource_id:
             q = q.join(AccessByMember, (AccessByMember.resource_id == resource_id))
@@ -453,41 +495,20 @@ def access_query(resource_id,member_id=None,tags=True):
 
     return q
     
+# Placeholder to test stuff
 def cli_querytest(cmd,**kwargs):
-    q = Member.query.filter(Member.member.ilike("%"+cmd[1]+"%")).first()
-    print "Member:",q.member
-    mid = q.id
-
-    r = Resource.query.filter(Resource.name.ilike("%"+cmd[2]+"%")).first()
-    print "Resrouce:",r.name
-    rid = r.id
-
-    q = access_query(member_id=mid,resource_id=rid)
-    val = q.all()
-
-
-    result =[]
-    for y in val:
-        x = y[1:]
-        #print "REC",x
-        result.append({
-            'tag_ident':x[0],
-            'plan':x[1],
-            'nickname':x[2],
-            'enabled':x[3],
-            'access_reason':x[4],
-            'allowed':x[5],
-            'past_due':x[6],
-            'grace_period':x[7],
-            'expires_soon':x[8],
-            'level':x[9],
-            'member':x[10],
-            'member_id':x[11],
-            'membership':x[12],
-            'expires_date':x[13],
-            'last_accessed':"" # We may never want to report this for many reasons
-            })
-    print result
+	doorid = Resource.query.filter(Resource.name=="frontdoor").one().id
+	memberquery = Member.query
+	if len(cmd) >= 2:
+		memberquery = Member.query.filter(Member.member.ilike("%"+cmd[1]+"%"))
+	for member in memberquery.all():
+		acc= access_query(doorid,member_id=member.id,tags=False).one_or_none()
+		if acc: 
+			acc=_accessQueryToDict(acc)
+			(warning,allowed)=determineAccess(acc,"DENIED")
+			print member.member,allowed,warning
+		else:
+			print member.member,"NODOORACCESS"
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
