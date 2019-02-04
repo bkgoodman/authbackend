@@ -5,7 +5,6 @@ function layout_search_keypress(){
 	if (line == "") {
    $('#layout_search_menu').removeClass('open');
    $('#layout_search_menu').removeClass('show');
-	console.log("CLEAR");
 	return;
 }
 

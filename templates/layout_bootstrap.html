@@ -96,7 +96,7 @@
 <script type="text/javascript">
 var LAYOUT_MEMBERS_URL="{{ url_for("members.member_show",id="") }}";
 var LAYOUT_SEARCH_URL="{{ url_for("authorize.membersearch",search="") }}";
-$( "#layout_search_text" ).keypress(function() {
+$( "#layout_search_text" ).on('input',function() {
   layout_search_keypress();
 });
 $( "#layout_search_text" ).on('focusout', function() {
