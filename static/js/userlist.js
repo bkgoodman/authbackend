@@ -110,6 +110,7 @@ function queryMembers(searchstr) {
 								"<td>"+data[x]['firstname']+"</td>"+
 								"<td>"+data[x]['lastname']+"</td>"+
 								"<td>"+data[x]['email']+"</td>"+
+								"<td>"+data[x]['active']+"</td>"+
 								"<td>";
 							el.innerHTML += "<a href=\""+MEMBER_URL+data[x]['member']+"\">"+
 							 "<img style=\"height:16px\" src=\""+STATIC_URL+"logicon.png\" />"+

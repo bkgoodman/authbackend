@@ -207,7 +207,7 @@ def member_show(id):
 		 if subscription:
 			 if subscription.expires_date < datetime.datetime.now():
 				 meta['is_expired'] = True
-			 if subscription.active.startswith("false"):
+			 if subscription.active:
 				 meta['is_inactive'] = True
 
 		 return render_template('member_show.html',member=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta)

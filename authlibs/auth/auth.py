@@ -5,8 +5,9 @@ from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response,Blueprint
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
-from ..db_models import Member, db, Resource, AccessByMember
+from ..db_models import Member, db, Resource, AccessByMember, Subscription
 from functools import wraps
+from sqlalchemy import case, DateTime
 import json
 #from .. import requireauth as requireauth
 from .. import utilities as authutil
@@ -96,13 +97,28 @@ def membersearch(search):
   res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr)))
   if type == 'active':
       res = res.filter((Member.active.ilike("True") | (Member.active == '1')))
+      res = res.filter(Subscription.expires_date < db.func.DateTime('now','+14 days'))
+      #res = res.filter(Member.membership != None)
+      res = res.join(Subscription,Subscription.member_id == Member.id)
+  else:
+      res = res.outerjoin(Subscription,Subscription.member_id == Member.id)
+  res = res.add_column(case([
+          ((Subscription.expires_date  == None), 'No Subscription'),
+          ((Subscription.expires_date > db.func.DateTime('now')), 'Active'),
+          ((Subscription.expires_date > db.func.DateTime('now','-14 days')), 'Grace Period'),
+          ((Subscription.expires_date > db.func.DateTime('now','-45 days')), 'Recent Expire')
+          ], else_ = 'Expired').label('active'))
+  res = res.add_column(Subscription.active)
+  res = res.add_column(Subscription.expires_date)
+			
   if 'offset' in request.values:
       res = res.offset(request.values['offset'])
   res = res.limit(50)
   res = res.all()
   result=[]
   for x in res:
-    result.append({'member':x[0],'firstname':x[1],'lastname':x[2],'email':x[3], 'id':x[4]})
+    print x
+    result.append({'member':x[0],'firstname':x[1],'lastname':x[2],'email':x[3], 'id':x[4], 'active':x[5]})
   return json.dumps(result)
 
 def register_pages(app):

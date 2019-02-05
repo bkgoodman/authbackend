@@ -54,6 +54,7 @@
       <th>First</th>
       <th>Last</th>
       <th>Email</th>
+      <th>Status</th>
       <th></th>
     </tr>
   </thead>
@@ -77,6 +78,7 @@
       <td>{{ member.firstname }}</td>
       <td>{{ member.lastname }}</td>
       <td>{{ member.email }}</td>
+      <td>{{ member.active }}</td>
       <td>
       <img src="{{ url_for("static",filename="logicon.png") }}" height="16px" >
       <img src="{{ url_for("static",filename="eye.png") }}" height="16px" >
