@@ -10,6 +10,11 @@ from flask_login import LoginManager
 from flask_user import UserManager
 from accesslib import quickSubscriptionCheck
 
+# Set-up Python module logging
+import logging
+#from authlibs.init import GLOBAL_LOGGER_LEVEL
+logger = logging.getLogger(__name__)
+#logger.setLevel(GLOBAL_LOGGER_LEVEL)
 import os
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE']='Yes'
 
@@ -78,7 +83,18 @@ def authinit(app):
             query = Member.query.filter(Member.email==email)
 
             try:
-                user = query.one()
+                user = query.all()
+                if len(user) > 1:
+                        flash("Error - Multiple accounts with same email - please seek assistance",'warning')
+                        logger.error("%s has multiple account (GUI Login)" % email)
+                        return redirect(url_for('index'))
+
+                if len(user) ==0:
+                        flash("Error - No account found - please seek assistance",'warning')
+                        logger.error("No account matchin %s for GUI login" % email)
+                        return redirect(url_for('index'))
+
+                user = user[0]
                 print "GOT USER",user
                 sub = quickSubscriptionCheck(member_id=user.id)
                 print "GOT SUB",sub

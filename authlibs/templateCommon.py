@@ -10,7 +10,7 @@ from ..templateCommon import *
 
 # Common includes
 
-import pprint
+import pprint,sys
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response,Blueprint, Markup
