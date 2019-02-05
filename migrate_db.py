@@ -411,7 +411,7 @@ if __name__ == '__main__':
               slack=None
               if x[0] in corrected_slack_ids:
                   slack=corrected_slack_ids[x[0]]
-              mem = Member(plantype="Paid")
+              mem = Member()
 
 
               if slack:
@@ -709,33 +709,33 @@ if __name__ == '__main__':
 
         member = Member(id=5000,member="Testy.Testerson",email='Testy.Testerson@makeitlabs.com',
             alt_email="testy@example.com",firstname="Testy",lastname="Testerson",slack="testy.testerson",
-            plantype="Paid",access_enabled=1,active=1,
+            access_enabled=1,active=1,
             email_confirmed_at=datetime.utcnow())
         db.session.add(member)
 
         member = Member(id=5001,member="First.User",email='First.User@makeitlabs.com',
             alt_email="fu@example.com",firstname="First",lastname="User",slack="first.user",
-            plantype="Paid",access_enabled=1,active=1,
+            access_enabled=1,active=1,
             email_confirmed_at=datetime.utcnow())
         db.session.add(member)
 
         member = Member(id=5002,member="bill.tester",email='bill.tester@makeitlabs.com',
             alt_email="billy@example.com",firstname="Bill",lastname="Tester",slack="bill.tester",
-            plantype="Paid",access_enabled=1,active=1,
+            access_enabled=1,active=1,
             email_confirmed_at=datetime.utcnow(),
             password=app.user_manager.hash_password("password"))
         db.session.add(member)
 
         member = Member(id=5003,member="Example.McTester",email='Example.McTester@makeitlabs.com',
             alt_email="emt@example.com",firstname="Example",lastname="McTester",slack="emtester",
-            plantype="Free",access_enabled=1,active=1,
+            access_enabled=1,active=1,
             email_confirmed_at=datetime.utcnow(),
             password=app.user_manager.hash_password("password"))
         db.session.add(member)
 
         member = Member(id=5004,member="Oldy.McOldold",email='old.old@makeitlabs.com',
             alt_email="oldguy@example.com",firstname="Oldy",lastname="McOldOld",slack="oldy",
-            plantype="Deactivated",access_enabled=1,active=1,
+            access_enabled=1,active=1,
             email_confirmed_at=datetime.utcnow(),
             password=app.user_manager.hash_password("password"))
         db.session.add(member)

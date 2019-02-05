@@ -39,7 +39,6 @@ class Member(db.Model,UserMixin):
     slack = db.Column(db.String(50))
     lastname = db.Column(db.String(50))
     phone = db.Column(db.String(50))
-    plantype = db.Column(db.String(10))	 # Plan TYPE - manualy input: "Paid" (default), "Deactivated", "Free" are the three primary states
     plan = db.Column(db.String(50))	 # "Pro", "Hobbiest" - "ProDuo" - from stripe??
     access_enabled = db.Column(db.Integer()) # Manual input - temporary state - depricate  - other ways to do this TODO
     access_reason = db.Column(db.String(50))

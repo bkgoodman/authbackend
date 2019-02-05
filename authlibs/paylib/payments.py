@@ -2,7 +2,7 @@
 import pprint
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash, Response,Blueprint
+	abort, render_template, flash, Response,Blueprint, Markup
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
@@ -53,6 +53,7 @@ def payments_missing(assign=None):
     if 'Undo' in request.form:
         s = Subscription.query.filter(Subscription.membership == request.form['membership']).one()
         s.member_id = None
+        authutil.kick_backend()
         db.session.commit()
         flash ("Undone.")
     if 'Assign' in request.form:
@@ -67,6 +68,7 @@ def payments_missing(assign=None):
             s.member_id = db.session.query(Member.id).filter(Member.member == request.form['member'])
             db.session.commit()
             btn = '<form method="POST"><input type="hidden" name="membership" value="%s" /><input type="submit" value="Undo" name="Undo" /></form>' % request.form['membership']
+            authutil.kick_backend()
             flash(Markup("Linked %s to %s %s" % (request.form['member'],request.form['membership'],btn)))
 
     subscriptions = Subscription.query.filter(Subscription.member_id == None).all()
