@@ -81,6 +81,9 @@ function queryMembers(searchstr) {
 
 						var x = lst.getElementsByClassName("memberrow")[0];
 
+						/* Wipe list 
+							If we are in "checkbox" mode - and boxes are checked - DON'T delte
+							*/
 						while(x) {
 							cb = x.getElementsByTagName("input")[0];
 							var e=x;
@@ -89,6 +92,8 @@ function queryMembers(searchstr) {
 								e.parentNode.removeChild(e);
 						}
 
+						/* Add new data from query to list */
+						/* TODO - in Checkbox mode - if there are checked people already in list - Don't re-add */
 						for (x in data){ 
 							el = document.createElement("tr");
 							el.innerHTML = "<tr>"

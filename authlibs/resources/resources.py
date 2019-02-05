@@ -1,31 +1,9 @@
 # vim:shiftwidth=2:expandtab
-import pprint
-import sqlite3, re, time
-from sqlalchemy import func
-from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash, Response,Blueprint
-#from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
-from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
-from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, Tool
-from functools import wraps
-import json
-#from .. import requireauth as requireauth
-from .. import utilities as authutil
-from ..utilities import _safestr as safestr
-from ..utilities import _safeemail as safeemail
-from authlibs import eventtypes
+
+from ..templateCommon import  *
+
 from authlibs.comments import comments
-
-import logging
-from authlibs.init import GLOBAL_LOGGER_LEVEL
-logger = logging.getLogger(__name__)
-logger.setLevel(GLOBAL_LOGGER_LEVEL)
-
 blueprint = Blueprint("resources", __name__, template_folder='templates', static_folder="static",url_prefix="/resources")
-
-
-
 # ----------------------------------------------------
 # Resource management (not including member access)
 # Routes:

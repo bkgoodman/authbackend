@@ -1,23 +1,8 @@
 # vim:shiftwidth=2:expandtab
-import pprint
-import sqlite3, re, time
-from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash, Response,Blueprint
-#from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
-from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
-from ..db_models import Member, db, Resource, AccessByMember, Subscription
-from functools import wraps
-from sqlalchemy import case, DateTime
-import json
-#from .. import requireauth as requireauth
-from .. import utilities as authutil
 
-from authlibs.init import GLOBAL_LOGGER_LEVEL
+from ..templateCommon import  *
 
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(GLOBAL_LOGGER_LEVEL)
-
+from sqlalchemy import case
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
 # Version 1:
@@ -39,7 +24,6 @@ def authorize():
       i=0
       while "memberid_"+str(i) in request.form:
         temp = request.form['memberid_'+str(i)]
-        print "GOT MEMBER_ID",temp
         members.append(temp)
         i+=1
       i=0
@@ -90,7 +74,6 @@ def membersearch(search):
   type='all'
   if 'type' in request.values:
       type = request.values['type']
-  print "SEARCH TYPE",type
   sstr = authutil._safestr(search)
   sstr = "%"+sstr+"%"
   res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.id)
@@ -117,7 +100,6 @@ def membersearch(search):
   res = res.all()
   result=[]
   for x in res:
-    print x
     result.append({'member':x[0],'firstname':x[1],'lastname':x[2],'email':x[3], 'id':x[4], 'active':x[5]})
   return json.dumps(result)
 

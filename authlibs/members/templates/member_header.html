@@ -7,6 +7,7 @@
 		<a href="{{ url_for("members.member_edit",id=member.id) }}"  type="button" class="btn btn-link">Edit</a>
 		<a href="{{ url_for("members.member_tags",id=member.id) }}"  type="button" class="btn btn-link">Tags</a>
 		<a href="{{ url_for("members.member_setaccess",id=member.id) }}"  type="button" class="btn btn-link">Access</a>
+		<a href="{{ url_for("logs.logs",member_id=member.id) }}"  type="button" class="btn btn-link">Logs</a>
 	</div>
 	<div class="container m-0 mb-3 p-0">
 		<div class="m-0 p-0 row">

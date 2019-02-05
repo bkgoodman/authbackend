@@ -1,28 +1,12 @@
 # vim:shiftwidth=2:noexpandtab
-import pprint
-import binascii, zlib
-import sqlite3, re, time
-from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash, Response,Blueprint, Markup
-#from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
-from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
-from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs
-from ..api import api 
-from functools import wraps
-import json
-#from .. import requireauth as requireauth
-from .. import utilities as authutil
-from ..utilities import _safestr as safestr
-from authlibs import eventtypes
+
+from ..templateCommon import  *
+
 from authlibs.comments import comments
 import datetime
-
-import logging
-from authlibs.init import GLOBAL_LOGGER_LEVEL
-logger = logging.getLogger(__name__)
-logger.setLevel(GLOBAL_LOGGER_LEVEL)
-
+import binascii, zlib
+from ..api import api 
+from .. import accesslib 
 
 ## TODO make sure member's w/o Useredit can't see other users' data or search for them
 ## TODO make sure users can't see cleartext RFID fobs
@@ -64,7 +48,6 @@ def member_add():
 		member = {}
 		mandatory_fields = ['firstname','lastname','memberid','plan','payment']
 		optional_fields = ['alt_email','phone','nickname']
-		print request
 		for f in mandatory_fields:
 				member[f] = ''
 				if f in request.form:
@@ -158,11 +141,8 @@ def member_edit(id):
 		access = access.filter(Member.member == mid)
 		access = access.filter(AccessByMember.active == 1)
 		access = access.all()
-                print access
-
                 acc =[]
                 for a in access:
-                    print "AY IS",a
                     (r,level) = a
                     acc.append({'description':r.name,'level':authutil.accessLevelString(level,user="",noaccess="")})
 
@@ -511,15 +491,13 @@ def _createMember(m):
 def getDoorAccess(id):
   r = db.session.query(Resource.id).filter(Resource.name == "frontdoor").one_or_none()
   if r:
-    acc = api.access_query(r.id,member_id=id,tags=False)
+    acc = accesslib.access_query(r.id,member_id=id,tags=False)
     acc = acc.first()
-    print acc
     if not acc:
 	    return ("No Access Record Returned",False,None)
-  acc=api._accessQueryToDict(acc)
+  acc=accesslib.accessQueryToDict(acc)
 
-  (warning,allowed) = api.determineAccess(acc,"Door access pending orientation")
-  print "ALLOWED",allowed,warning
+  (warning,allowed) = accesslib.determineAccess(acc,"Door access pending orientation")
   return (warning,allowed.lower()=='allowed',acc)
 
 def register_pages(app):

@@ -1,26 +1,6 @@
 # vim:shiftwidth=2:expandtab
-import pprint
-import sqlite3, re, time
-from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash, Response,Blueprint
-#from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
-from authlibs.eventtypes import get_events
-from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
-from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, Tool, Node
-from functools import wraps
-import datetime
-import json
-#from .. import requireauth as requireauth
-from .. import utilities as authutil
-from ..utilities import _safestr as safestr
-from authlibs import eventtypes
-from sqlalchemy import or_, func
 
-import logging
-from authlibs.init import GLOBAL_LOGGER_LEVEL
-logger = logging.getLogger(__name__)
-logger.setLevel(GLOBAL_LOGGER_LEVEL)
+from ..templateCommon import  *
 
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
@@ -61,7 +41,7 @@ def logs():
 		limit = 200
 		offset = 0
 		format='html'
-		evt= get_events()
+		evt= eventtypes.get_events()
 		# Query main DB to Build relational tables
 		tools={}
 		members={}
@@ -255,7 +235,6 @@ def logs():
 
                 if format == "html":
                      logs = generate(fmt=format)
-                     print "LOGS NOW",logs
                 elif format == "csv":
                     resp=Response(generate(fmt=format),mimetype='text/csv')
                     resp.headers['Content-Disposition']='attachment'
