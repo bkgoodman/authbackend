@@ -97,7 +97,7 @@ def membersearch(search):
   res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr)))
   if type == 'active':
       res = res.filter((Member.active.ilike("True") | (Member.active == '1')))
-      res = res.filter(Subscription.expires_date < db.func.DateTime('now','+14 days'))
+      res = res.filter(Subscription.expires_date > db.func.DateTime('now','-14 days'))
       #res = res.filter(Member.membership != None)
       res = res.join(Subscription,Subscription.member_id == Member.id)
   else:
