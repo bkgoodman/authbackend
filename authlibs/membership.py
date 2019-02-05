@@ -58,23 +58,29 @@ def matchMissingMembers(missing):
     newMembers = []
     ''' Return UNMACHED ones - i.e. new subs'''
     for s in missing:
-        q = Member.query
-        q = q.filter(Member.alt_email.ilike(s.email))
-        q = q.filter(Member.stripe_name.ilike(s.name)) # TODO BKG FIX - Depricate - use first and last names only
-        try:
-            mm = q.one_or_none()
-            if mm:
-                logger.debug("MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
-                s.member_id = mm.id
-                # We APPEAR to have a match Just update the sub record w/ existing member ID
-                # Remember - this gets committed at the VERY end when everything is DONE
-            else:
-                # No match - create new one
-                logger.debug("NO MATCH - %s %s %s" % (s.name,s.email,s.subid))
-                newMembers.append(s)
-        except:
-            mm=None
-            logger.warning("MULTIPLE MATCHES - FIX MANUALLY  - %s %s %s" % (s.name,s.email,s.subid))
+        mm = Member.query.filter(Member.membership == s.membership).one_or_none()
+				if mm:
+								logger.debug("MEMBERSHIP MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+								s.member_id=mm.id
+        else:
+								q = Member.query
+								q = q.filter(Member.alt_email.ilike(s.email))
+								q = q.filter(Member.stripe_name.ilike(s.name)) # TODO BKG FIX - Depricate - use first and last names only
+								try:
+										mm = q.one_or_none()
+										if mm:
+												logger.debug("email/name MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+												s.member_id = mm.id
+												mm.membership = s.membership
+												# We APPEAR to have a match Just update the sub record w/ existing member ID
+												# Remember - this gets committed at the VERY end when everything is DONE
+										else:
+												# No match - create new one
+												logger.debug("NO MATCH - %s %s %s" % (s.name,s.email,s.subid))
+												newMembers.append(s)
+								except:
+										mm=None
+										logger.warning("MULTIPLE MATCHES - FIX MANUALLY  - %s %s %s" % (s.name,s.email,s.subid))
 
 
     return newMembers

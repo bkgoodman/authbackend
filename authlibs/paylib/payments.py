@@ -61,6 +61,8 @@ def payments_missing(assign=None):
         elif request.form['member']=="" or request.form['membership']=="":
             flash("Must select a member and a subscription to link")
         else:
+            m = Member.query.filter(Member.member == request.form['member']).one()
+            m.membership=request.form['membership']
             s = Subscription.query.filter(Subscription.membership == request.form['membership']).one()
             s.member_id = db.session.query(Member.id).filter(Member.member == request.form['member'])
             db.session.commit()

@@ -60,21 +60,36 @@
 		 
 		
 			Payment Membership ID
-			<a href="{{ url_for("payments.payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
 		 
+<div class="compact form-row row">
+	<div class="col-sm-2">
+			Affined to membership
+	</div>
+	<div class="col-sm-5">
+			{{ member.membership }}
+	</div>
+	<div class="col-sm-5">
+			<a href="{{ url_for("payments.payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
+	</div>
+</div>
 		
 <div class="compact form-row row">
-	<div class="col-sm-4">
+	<div class="col-sm-2">
 			Active
 	</div>
-	<div class="col-sm-6">
-			{{ subscription.active }}
+	<div class="col-sm-2">
+			<div 
+			{% if meta.is_expired %}
+				class="alert-warning"
+			{% endif %}
+			>{{ subscription.active }}
+			</div>
 	</div>
 </div>
 		 
 		
 <div class="compact form-row row">
-	<div class="col-sm-4">
+	<div class="col-sm-2">
 			Plan
 	</div>
 	<div class="col-sm-6">
@@ -84,7 +99,7 @@
 		 
 		
 <div class="compact form-row row">
-	<div class="col-sm-4">
+	<div class="col-sm-2">
 			Updated
 	</div>
 	<div class="col-sm-6">
@@ -94,7 +109,7 @@
 		 
 		
 <div class="compact form-row row">
-	<div class="col-sm-4">
+	<div class="col-sm-2">
 			Created
 	</div>
 	<div class="col-sm-6">
@@ -102,6 +117,19 @@
 	</div>
 </div>
 	   
+<div class="compact form-row row">
+	<div class="col-sm-2">
+			Expires
+	</div>
+	<div class="col-sm-2">
+			<div 
+			{% if meta.is_expired %}
+				class="alert-warning"
+			{% endif %}
+			> {{ subscription.expires_date }}
+			</div>
+	</div>
+</div>
 
 
 	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=member.id) }}">Edit</a>):</div>

@@ -3,7 +3,7 @@ import pprint
 import binascii, zlib
 import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
-	abort, render_template, flash, Response,Blueprint
+	abort, render_template, flash, Response,Blueprint, Markup
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
@@ -16,6 +16,7 @@ from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
 from authlibs.comments import comments
+import datetime
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -110,6 +111,17 @@ def member_edit(id):
 				s.member_id = request.form['member_id']
 				db.session.commit()
 				flash ("Undone.")
+		elif request.method=="POST" and 'DeleteMember' in  request.form:
+				if current_user.privs("Finance"):
+					flash (Markup("WARNING: Slack and GMail accounts have <b>not</b> been deleted"),"danger")
+					m=Member.query.filter(Member.id==mid).one()
+					for s in Subscription.query.filter(Subscription.member_id == m.id).all():
+						s.member_id=None
+					db.session.delete(m)
+					db.session.commit()
+					return redirect(url_for("members.members"))
+				else:
+					flash ("You do not have authority to delete users","warning")
 		elif request.method=="POST" and 'SaveChanges' in  request.form:
 				flash ("Changes Saved (Please Review!)")
 				m=Member.query.filter(Member.id==mid).one()
@@ -166,6 +178,7 @@ def member_edit(id):
 def member_show(id):
 	 """Controller method to Display or modify a single user"""
 	 #TODO: Move member query functions to membership module
+	 meta = {}
 	 access = {}
 	 mid = authutil._safestr(id)
 	 member=db.session.query(Member,Subscription)
@@ -190,7 +203,14 @@ def member_show(id):
                      cc=comments.get_comments(member_id=member.id)
                  else:
                      cc={}
-		 return render_template('member_show.html',member=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed)
+
+		 if subscription:
+			 if subscription.expires_date < datetime.datetime.now():
+				 meta['is_expired'] = True
+			 if subscription.active.startswith("false"):
+				 meta['is_inactive'] = True
+
+		 return render_template('member_show.html',member=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta)
 	 else:
 		flash("Member not found")
 		return redirect(url_for("members.members"))

@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "layout_bootstrap.html" %}
 {% block search %}
   <form method="POST">
   <div class=body>
@@ -6,7 +6,7 @@
     <a href="{{ url_for('logs.logs') }}">View All</a>
     <p></p>
 	<h3>Subscription/Payment Records with no Members</h3>
-	<table class="bkg">
+	<table class="table table-sm bkg">
       <tr>
         <th>Name</th>
         <th>Email</th>
@@ -24,12 +24,13 @@
 		{% endif %}
 	  </tr>
       {% endfor %}
+<hr />
 	</table>
 	<h3>Members with no Subscription/Payment Records</h3>
 	<div>
 		<input type="text" name="memberfilter" label="Member" value=""><input type="submit" name="applymemberfilter" value="Search" />
 	</div>
-	<table class="bkg">
+	<table class="table table-sm bkg">
       <tr>
         <th>Member ID</th>
         <th>Stripe Name</th>
