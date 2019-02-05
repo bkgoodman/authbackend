@@ -8,7 +8,10 @@ from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
 from db_models import db, Member, OAuth, AnonymousMember
 from flask_login import LoginManager
 from flask_user import UserManager
+from accesslib import quickSubscriptionCheck
 
+import os
+os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE']='Yes'
 
 """ 
 TODO FIX BUG
@@ -26,7 +29,7 @@ def authinit(app):
     google_blueprint = make_google_blueprint(
         client_id=app.config['globalConfig'].Config.get("OAuth","GOOGLE_CLIENT_ID"),
         client_secret=app.config['globalConfig'].Config.get("OAuth","GOOGLE_CLIENT_SECRET"),
-        scope=["https://www.googleapis.com/auth/plus.me",
+        scope=[#"https://www.googleapis.com/auth/plus.me",
         "https://www.googleapis.com/auth/userinfo.email"
         ],
         offline=True
@@ -68,7 +71,7 @@ def authinit(app):
             print "EMAIL IS",email
             member=email.split("@")[0]
             if not email.endswith("@makeitlabs.com"):
-                flash("Invalid Domain")
+                flash("Not a MakeIt Labs account",'warning')
                 return redirect(url_for('login'))
             #query = Member.query.filter_by(Member.member.ilike(member))
             #if not query:
@@ -77,8 +80,13 @@ def authinit(app):
             try:
                 user = query.one()
                 print "GOT USER",user
-                flash("Welcome!")
-                login_user(user, remember=True)
+                sub = quickSubscriptionCheck(member_id=user.id)
+                print "GOT SUB",sub
+                if sub == "Active":
+                        flash("Welcome!")
+                        login_user(user, remember=True)
+                else:
+                        flash("Login Denied - "+sub,'danger')
                 return redirect(url_for('index'))
             except NoResultFound:
                 flash("Email adddress "+str(email)+" not found in member database")

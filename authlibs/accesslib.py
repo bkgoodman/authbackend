@@ -15,16 +15,14 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey, Node, NodeConfig, KVopt, Tool
 from functools import wraps
 import json
-import utilities as authutil
-from utilities import _safestr as safestr
 from authlibs import eventtypes
 from json import dumps as json_dump
 from json import loads as json_loads
 
-import logging
-from authlibs.init import GLOBAL_LOGGER_LEVEL
-logger = logging.getLogger(__name__)
-logger.setLevel(GLOBAL_LOGGER_LEVEL)
+#import logging
+#from authlibs.init import GLOBAL_LOGGER_LEVEL
+#logger = logging.getLogger(__name__)
+#logger.setLevel(GLOBAL_LOGGER_LEVEL)
 from sqlalchemy import case, DateTime
 
 
@@ -142,6 +140,23 @@ def getAccessControlList(resource):
         jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level'],'raw_tag_id':u['tag_ident']})
     return json_dump(jsonarr,indent=2)
 
+def quickSubscriptionCheck(member=None,member_id=None):
+  if not member_id:
+          member_id = Member.query.filter(Member.member==member).one().id
+
+  res = Subscription.query.filter(Subscription.member_id == member_id)
+  res = res.add_column(case([
+          ((Subscription.expires_date  == None), 'No Subscription'),
+          ((Subscription.expires_date > db.func.DateTime('now')), 'Active'),
+          ((Subscription.expires_date > db.func.DateTime('now','-14 days')), 'Grace Period'),
+          ((Subscription.expires_date > db.func.DateTime('now','-45 days')), 'Recent Expire')
+          ], else_ = 'Expired').label('active'))
+
+  res = res.first()
+
+  if not res: return 'No Subscription'
+
+  return res[1]
 
 """ This is the ONE AND ONLY query used for ACL checks 
 		It is designed to run a few differnet ways.
