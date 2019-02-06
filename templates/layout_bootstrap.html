@@ -105,7 +105,7 @@
 {% endif %}
 <script type="text/javascript">
 var LAYOUT_MEMBERS_URL="{{ url_for("members.member_show",id="") }}";
-var LAYOUT_SEARCH_URL="{{ url_for("authorize.membersearch",search="") }}";
+var LAYOUT_SEARCH_URL="{{ url_for("api.ubersearch_handler",ss="") }}";
 $( "#layout_search_text" ).on('input',function() {
   layout_search_keypress();
 });

@@ -4,6 +4,7 @@ from ..templateCommon import *
 
 from authlibs import accesslib
 
+from authlibs.ubersearch import ubersearch
 from authlibs.membership import cli_syncmemberpayments
 from authlibs.payments import cli_updatepayments
 from authlibs.smartwaiver import cli_waivers
@@ -209,6 +210,11 @@ def api_v1_show_resource_acl(id):
 		output = accesslib.getAccessControlList(rid)
 		return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/ubersearch/<string:ss>',methods=['GET'])
+def ubersearch_handler(ss):
+  output  = json_dump(ubersearch(ss),indent=2)
+  return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
 @blueprint.route('/v0/resources/<string:id>/acl', methods=['GET'])
 @api_only
 def api_v0_show_resource_acl(id):
@@ -313,6 +319,7 @@ def cli_querytest(cmd,**kwargs):
 			print member.member,allowed,warning
 		else:
 			print member.member,"NODOORACCESS"
+
 
 # Placeholder to test stuff
 def cli_cron(cmd,**kwargs):
