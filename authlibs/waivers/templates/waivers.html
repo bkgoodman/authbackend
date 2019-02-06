@@ -19,12 +19,14 @@
       {% for w in waivers %}
 	  <tr>
 		  <td><span data-toggle="popover" class="glyphicon glyphicon-resize-small" /></td>
-		<td>{{ w.waiverid }}</td>
-		<td>{{ w.email }}</td>
-		<td>{{ w.firstname }}</td>
-		<td>{{ w.lastname }}</td>
-		<td>{{ w.created_date }}</td>
-		<td><a href="{{ url_for("members.members",id=w.member_id) }}">{{ w.member }}</a></td>
+		<td>{{ w.waiver.waiverid }}</td>
+		<td>{{ w.waiver.email }}</td>
+		<td>{{ w.waiver.firstname }}</td>
+		<td>{{ w.waiver.lastname }}</td>
+		<td>{{ w.waiver.created_date }}</td>
+		{% if w.waiver.member_id %}
+		<td><a href="{{ url_for("members.member_show",id=w.member) }}">{{ w.member }}</a></td>
+		{% endif %}
 	  </tr>
       {% endfor %}
 	</table>

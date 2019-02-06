@@ -22,8 +22,12 @@
 	<div class="col-sm-4">
 			Waiver Completed
 	</div>
-	<div class="col-sm-6">
-			{{ member.waiver_date }}
+	<div class="col-sm-2">
+			{% if meta.waiver %}
+			{{ meta.waiver }}
+			{% else %}
+			<div class="alert-warning">No Waiver</div>
+			{% endif %}
 	</div>
 </div>
 

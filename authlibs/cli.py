@@ -14,6 +14,7 @@ from flask_sqlalchemy import SQLAlchemy
 from init import GLOBAL_LOGGER_LEVEL
 from slackutils import cli_slack
 import getpass
+from waivers.waivers import cli_waivers_connect
 
 import logging
 logger = logging.getLogger(__name__)
@@ -160,7 +161,11 @@ commands = {
 	"updatewaivers":{
 		'usage':"updatewaivers -- Update waiver data from smartwaivers",
 		'cmd':cli_waivers
-	}
+	},
+	"connectwaivers":{
+		'usage':"connectwaivers -- Connect waivers with member records",
+		'cmd':cli_waivers_connect
+	},
 }
 
 

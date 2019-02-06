@@ -1,6 +1,8 @@
 #vim:shiftwidth=2:expandtab
 
 from ..templateCommon import  *
+
+from authlibs import smartwaiver as waiver
 waiversystem = {}
 
 # ------------------------------------------------------------
@@ -21,9 +23,12 @@ blueprint = Blueprint("waivers", __name__, template_folder='templates', static_f
 @login_required
 def waivers():
 		waivers = Waiver.query
-		#waivers = waivers.add_column(Member.member).outerjoin(Member,Member.id == Waiver.member_id)
-		waivers = waivers.all()
-		return render_template('waivers.html',waivers=waivers)
+		waivers = waivers.add_column(Member.member).outerjoin(Member,Member.id == Waiver.member_id)
+		res=[]
+		for (waiver,member) in waivers.all():
+			if member is None: member=""
+			res.append({'waiver':waiver,'member':member})
+		return render_template('waivers.html',waivers=res)
 
 @blueprint.route('/update', methods=['GET'])
 @login_required
@@ -63,3 +68,22 @@ def addNewWaivers():
 def register_pages(app):
 	app.register_blueprint(blueprint)
 	waiversystem['Apikey'] = app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
+
+def connect_waivers():
+	logger.debug("CONNECING WAIVERS")
+	for w in Waiver.query.filter(Waiver.member_id == None).all():
+		s =  "Unattached %s %s %s " % (w.email,w.firstname,w.lastname)
+		m = Member.query.filter(or_((Member.alt_email.ilike(w.email)),(Member.email.ilike(w.email))))
+		m = m.filter(Member.firstname.ilike(w.firstname))
+		m = m.filter(Member.lastname.ilike(w.lastname))
+		m = m.all()
+		if len(m)==1:
+			w.member_id = m[0].id
+			s += " CONNECTED %s" % m[0].member
+		else:
+			s += " NOMATCH"
+		logger.debug(s)
+	db.session.commit()
+
+def cli_waivers_connect(*cmd,**kvargs):
+	connect_waivers()
