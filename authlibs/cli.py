@@ -9,6 +9,7 @@ from authlibs.db_models import db, ApiKey,  Role, UserRoles, Member, Resource, A
 from authlibs.payments import cli_updatepayments
 from authlibs.membership import cli_syncmemberpayments
 from authlibs.smartwaiver import cli_waivers
+from authlibs.ubersearch import cli_ubersearch
 from authlibs.api import api
 from flask_sqlalchemy import SQLAlchemy
 from init import GLOBAL_LOGGER_LEVEL
@@ -166,6 +167,14 @@ commands = {
 		'usage':"connectwaivers -- Connect waivers with member records",
 		'cmd':cli_waivers_connect
 	},
+	"cron":{
+		'usage':"cron -- Do nightly cron job",
+		'cmd':api.cli_cron
+	},
+	"ubersearch":{
+		'usage':"ubersearch {searchstr} -- Try ubersearch",
+		'cmd':cli_ubersearch
+	}
 }
 
 

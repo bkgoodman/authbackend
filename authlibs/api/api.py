@@ -4,6 +4,11 @@ from ..templateCommon import *
 
 from authlibs import accesslib
 
+from authlibs.ubersearch import ubersearch
+from authlibs.membership import cli_syncmemberpayments
+from authlibs.payments import cli_updatepayments
+from authlibs.smartwaiver import cli_waivers
+
 # You must call this modules "register_pages" with main app's "create_rotues"
 blueprint = Blueprint("api", __name__, template_folder='templates', static_folder="static",url_prefix="/api")
 
@@ -205,6 +210,11 @@ def api_v1_show_resource_acl(id):
 		output = accesslib.getAccessControlList(rid)
 		return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/ubersearch/<string:ss>',methods=['GET'])
+def ubersearch_handler(ss):
+  output  = json_dump(ubersearch(ss),indent=2)
+  return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
 @blueprint.route('/v0/resources/<string:id>/acl', methods=['GET'])
 @api_only
 def api_v0_show_resource_acl(id):
@@ -212,7 +222,7 @@ def api_v0_show_resource_acl(id):
 		rid = safestr(id)
 		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
 		#users = _getResourceUsers(rid)
-		users = json_loads(accesslib.getAccessControlList(rid))
+		users = json_load(accesslib.getAccessControlList(rid))
 		outformat = request.args.get('output','csv')
 		if outformat == 'csv':
 				outstr = "username,key,value,allowed,hashedCard,lastAccessed"
@@ -250,6 +260,14 @@ def error_401():
     'What the hell. .\n'
     'You have to login with proper credentials', 401,
     {'WWW-Authenticate': 'Basic realm="Login Required"'})
+
+@blueprint.route('/cron/nightly', methods=['GET'])
+@api_only
+def api_cron_nightly():
+  cli_syncmemberpayments([])
+  cli_updatepayments([])
+  cli_waivers([])
+  return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
 
 #####
 ##
@@ -301,6 +319,11 @@ def cli_querytest(cmd,**kwargs):
 			print member.member,allowed,warning
 		else:
 			print member.member,"NODOORACCESS"
+
+
+# Placeholder to test stuff
+def cli_cron(cmd,**kwargs):
+  api_cron_nightly()
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

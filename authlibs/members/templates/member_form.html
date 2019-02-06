@@ -32,16 +32,7 @@
 {% endif %}
 
 
-{% macro input(name, label, placeholder='', small='',type='text') -%}
-			{% if readonly is not defined %}
-			{% set ph = placeholder %}
-			{% endif %}
-      <label for="input_{{ name }}">{{ label }}</label>
-      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ member[name] }}">
-			{% if small != '' %}
-			<small>{{ small }}</small>
-			{% endif %}
-{%- endmacro %}
+{% from 'global_macros.html' import input with context %}
 
 <div class="container">
   <div class="form-row">
@@ -58,46 +49,15 @@
     </div>
   </div>
 
-	<div class="form-group row">
-		 <label class="col-sm-2 col-form-label" for="plan">Plan:</label>
-			<div class="col-sm-4">
-				<div class="btn-group btn-group-toggle" data-toggle="buttons">
-					<label class="btn btn-secondary
-						{% if (member.plan == "hobbyist") %} active {% endif %}
-						">
-						<input type="radio" name="input_plan" value="hobbyist" id="option1" autocomplete="off"
-						{% if (member.plan == "hobbyist") %} checked="" {% endif %}
-						>Hobbyist</input>
-					</label>
-					<label class="btn btn-secondary
-						{% if (member.plan == "pro") %} active {% endif %}
-						">
-						<input type="radio" name="input_plan" value="pro" id="option1" autocomplete="off"
-						{% if (member.plan == "pro") %} checked="" {% endif %}
-						>Pro</input>
-				</div>
-				<small class="form-text text-muted">ProDuo must be done via stripe</small>
-			</div>
-			<label class="col-md-2 col-form-label" for="payment">Payment system:</label>
-			<div class="col-md-4">
-				<div class="btn-group btn-group-toggle" data-toggle="buttons">
-					<label class="btn btn-secondary
-						{% if (member.payment == "manual") %} active {% endif %}
-						">
-						<input type="radio" name="input_payment" value="manual" id="option1" autocomplete="off"
-						{% if (member.payment == "manual") %} checked="" {% endif %}
-						>Manual</input>
-					</label>
-					<label class="btn btn-secondary
-						{% if (member.payment == "stripe") %} active {% endif %}
-						">
-						<input type="radio" name="input_payment" value="stripe" id="option1" autocomplete="off"
-						{% if (member.payment == "stripe") %} checked="" {% endif %}
-						>Stripe</input>
-				</div>
-			</div>
-	</div>
 
+  <div class="form-row">
+    <div class="form-group col-md-5">
+			{{ input('access_enabled',"Access Enabled",type="boolean") }}
+    </div>
+    <div class="form-group col-md-5">
+			{{ input('access_reason',"Denial Reason",small="Reason for access denial. Blank if pending waiver. (Can auto-check when waiver completed)") }}
+    </div>
+  </div>
 
   <div class="form-row">
     <div class="form-group col-md-6">

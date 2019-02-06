@@ -16,9 +16,8 @@ from db_models import Member, db, Resource, Subscription, Waiver, AccessByMember
 from functools import wraps
 import json
 from authlibs import eventtypes
-from json import dumps as json_dump
-from json import loads as json_loads
 from authlibs import utilities as authutil
+from json import dumps as json_dump
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -43,7 +42,7 @@ def accessQueryToDict(y):
             'plan':x[1],
             'nickname':x[2],
             'enabled':x[3],
-            'access_reason':x[4],
+            'reason':x[4],
             'allowed':x[5],
             'past_due':x[6],
             'grace_period':x[7],
@@ -141,18 +140,22 @@ def getAccessControlList(resource):
         jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level'],'raw_tag_id':u['tag_ident']})
     return json_dump(jsonarr,indent=2)
 
+def addQuickAccessQuery(query):
+  query = query.add_column(case([
+          ((Subscription.expires_date  == None), 'No Subscription'),
+          ((Member.access_enabled ==0) , 'Access Disabled'),
+          ((Subscription.expires_date > db.func.DateTime('now')), 'Active'),
+          ((Subscription.expires_date > db.func.DateTime('now','-14 days')), 'Grace Period'),
+          ((Subscription.expires_date > db.func.DateTime('now','-45 days')), 'Recent Expire'),
+          ], else_ = 'Expired').label('active'))
+  return query
 def quickSubscriptionCheck(member=None,member_id=None):
   if not member_id:
           member_id = Member.query.filter(Member.member==member).one().id
 
   res = Subscription.query.filter(Subscription.member_id == member_id)
-  res = res.add_column(case([
-          ((Subscription.expires_date  == None), 'No Subscription'),
-          ((Subscription.expires_date > db.func.DateTime('now')), 'Active'),
-          ((Subscription.expires_date > db.func.DateTime('now','-14 days')), 'Grace Period'),
-          ((Subscription.expires_date > db.func.DateTime('now','-45 days')), 'Recent Expire')
-          ], else_ = 'Expired').label('active'))
 
+  res = addQuickAccessQuery(res)
   res = res.first()
 
   if not res: return 'No Subscription'

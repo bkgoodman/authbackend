@@ -25,18 +25,19 @@ function layout_search_keypress(){
 				x.parentNode.removeChild(x);
 				var x = $(".layout_search_item")[0]
 			}
-						var lst = $("#layout_search_menu")[0]
-						for (x in data){ 
-							el = document.createElement("a");
-							el.setAttribute("data-target",LAYOUT_MEMBERS_URL+String(data[x]['member']));
-							el.setAttribute("href",LAYOUT_MEMBERS_URL+String(data[x]['member']));
-							el.className="dropdown-item layout_search_item nav-item nav-link";
-							el.innerHTML = data[x]['member'];
-							lst.appendChild(el);
-						}
+			var lst = $("#layout_search_menu")[0]
+			for (x in data){ 
+				el = document.createElement("div");
+				el.style='cursor: pointer;';
+				//el.onclick="window.location="+data[x]['url'];
+				el.setAttribute("data-target",data[x]['url'])
+				el.setAttribute("href",data[x]['url'])
+				el.className="dropdown-item content layout_search_item nav-item nav-link";
+				el.innerHTML = data[x]['title']+"<br /><small>"+data[x]['in']+"</small>";
+				lst.appendChild(el);
+			}
 $( ".layout_search_item" ).on('click',function(event) {
-  console.log(event.target.href);
-	window.location=event.target.href;
+  window.location=event.target.getAttribute('href');
 });
 		})
 		.fail(function(sender, message, details){

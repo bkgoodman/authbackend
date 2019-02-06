@@ -13,7 +13,7 @@
 			Last updated:
 	</div>
 	<div class="col-sm-6">
-			{{ member.time_updated }}
+			{{ rec.time_updated }}
 	</div>
 </div>
 		 
@@ -22,12 +22,17 @@
 	<div class="col-sm-4">
 			Waiver Completed
 	</div>
+<<<<<<< HEAD
 	<div class="col-sm-2">
 			{% if meta.waiver %}
 			{{ meta.waiver }}
 			{% else %}
 			<div class="alert-warning">No Waiver</div>
 			{% endif %}
+=======
+	<div class="col-sm-6">
+			{{ rec.waiver_date }}
+>>>>>>> 3a147d95334ab64d15f058d1797e86d839da6fc1
 	</div>
 </div>
 
@@ -57,7 +62,7 @@
 
 		 
 		
-			<a href="{{ url_for("logs.logs",memberid=member.id) }}">Show Logs for Member</a>
+			<a href="{{ url_for("logs.logs",memberid=rec.id) }}">Show Logs for Member</a>
 		 
 		
 			<td colspan=2><h3>Payment Info</h3>
@@ -70,7 +75,7 @@
 			Affined to membership
 	</div>
 	<div class="col-sm-5">
-			{{ member.membership }}
+			{{ rec.membership }}
 	</div>
 	<div class="col-sm-5">
 			<a href="{{ url_for("payments.payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
@@ -136,7 +141,7 @@
 </div>
 
 
-	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=member.id) }}">Edit</a>):</div>
+	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=rec.id) }}">Edit</a>):</div>
 	<ul class="entries">
 	{% if not access %}
 	  <i> No current access defined for this user</i>
@@ -150,7 +155,7 @@
 	</div> {# Outer container #}
   </div> <!-- BASE container -->
   	{% if current_user.privs("Useredit") %}
-	{% with readonly=1,member_id=member.id %}
+	{% with readonly=1,member_id=rec.id %}
 	{% include "comments.html" %}
 	{% endwith %}
 	{% endif %}
