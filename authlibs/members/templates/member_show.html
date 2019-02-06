@@ -13,7 +13,7 @@
 			Last updated:
 	</div>
 	<div class="col-sm-6">
-			{{ member.time_updated }}
+			{{ rec.time_updated }}
 	</div>
 </div>
 		 
@@ -23,7 +23,7 @@
 			Waiver Completed
 	</div>
 	<div class="col-sm-6">
-			{{ member.waiver_date }}
+			{{ rec.waiver_date }}
 	</div>
 </div>
 
@@ -53,7 +53,7 @@
 
 		 
 		
-			<a href="{{ url_for("logs.logs",memberid=member.id) }}">Show Logs for Member</a>
+			<a href="{{ url_for("logs.logs",memberid=rec.id) }}">Show Logs for Member</a>
 		 
 		
 			<td colspan=2><h3>Payment Info</h3>
@@ -66,7 +66,7 @@
 			Affined to membership
 	</div>
 	<div class="col-sm-5">
-			{{ member.membership }}
+			{{ rec.membership }}
 	</div>
 	<div class="col-sm-5">
 			<a href="{{ url_for("payments.payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
@@ -132,7 +132,7 @@
 </div>
 
 
-	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=member.id) }}">Edit</a>):</div>
+	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=rec.id) }}">Edit</a>):</div>
 	<ul class="entries">
 	{% if not access %}
 	  <i> No current access defined for this user</i>
@@ -146,7 +146,7 @@
 	</div> {# Outer container #}
   </div> <!-- BASE container -->
   	{% if current_user.privs("Useredit") %}
-	{% with readonly=1,member_id=member.id %}
+	{% with readonly=1,member_id=rec.id %}
 	{% include "comments.html" %}
 	{% endwith %}
 	{% endif %}

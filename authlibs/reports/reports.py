@@ -13,8 +13,6 @@ import json
 from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
-from json import dumps as json_dump
-from json import loads as json_loads
 from authlibs import payments as pay
 from sqlalchemy import case, DateTime
 

@@ -160,6 +160,10 @@ commands = {
 	"updatewaivers":{
 		'usage':"updatewaivers -- Update waiver data from smartwaivers",
 		'cmd':cli_waivers
+	},
+	"cron":{
+		'usage':"cron -- Do nightly cron job",
+		'cmd':api.cli_cron
 	}
 }
 

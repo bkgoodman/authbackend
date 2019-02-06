@@ -2,6 +2,7 @@
 
 from ..templateCommon import  *
 
+from authlibs import accesslib
 from sqlalchemy import case
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
@@ -85,12 +86,7 @@ def membersearch(search):
       res = res.join(Subscription,Subscription.member_id == Member.id)
   else:
       res = res.outerjoin(Subscription,Subscription.member_id == Member.id)
-  res = res.add_column(case([
-          ((Subscription.expires_date  == None), 'No Subscription'),
-          ((Subscription.expires_date > db.func.DateTime('now')), 'Active'),
-          ((Subscription.expires_date > db.func.DateTime('now','-14 days')), 'Grace Period'),
-          ((Subscription.expires_date > db.func.DateTime('now','-45 days')), 'Recent Expire')
-          ], else_ = 'Expired').label('active'))
+  res = accesslib.addQuickAccessQuery(res)
   res = res.add_column(Subscription.active)
   res = res.add_column(Subscription.expires_date)
 			

@@ -445,7 +445,12 @@ if __name__ == '__main__':
                   mem.lastname = last
                   mem.phone = x[4]
                   mem.plan = x[5]
-                  mem.access_enabled = x[7]
+                  if x[7] is None: mem.access_enabled = 1 
+                  elif x[7]=="": mem.access_enabled = 1 
+                  elif x[7]==0: mem.access_enabled = 0 
+                  else:
+                    print "ERROR - %s access_enabled is \"%s\" type %s" % (x[0],x[7],type(x[7]))
+                    sys.exit (0)
                   mem.access_reason = x[8]
                   mem.active = x[9]
                   mem.nickname = first

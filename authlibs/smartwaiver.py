@@ -33,6 +33,7 @@ import xml.etree.ElementTree as ET
 import ConfigParser
 from db_models import db, Waiver
 from StringIO import StringIO
+from flask import current_app
 
 baseuri = "https://www.smartwaiver.com/api/v3/"
 
@@ -103,7 +104,7 @@ def getLastWaiverId():
 def cli_waivers(cmd,**kwargs):
 		print "Updating waivers..."
 		waiversystem = {}
-		waiversystem['Apikey'] = kwargs['app'].globalConfig.Config.get('Smartwaiver','Apikey')
+		waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
     last_waiverid = getLastWaiverId()
     waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid}
     waivers = getWaivers(waiver_dict)

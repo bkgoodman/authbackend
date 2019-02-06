@@ -40,8 +40,8 @@ class Member(db.Model,UserMixin):
     lastname = db.Column(db.String(50))
     phone = db.Column(db.String(50))
     plan = db.Column(db.String(50))	 # "Pro", "Hobbiest" - "ProDuo" - from stripe??
-    access_enabled = db.Column(db.Integer()) # Manual input - temporary state - depricate  - other ways to do this TODO
-    access_reason = db.Column(db.String(50))
+    access_enabled = db.Column(db.Integer(),default=0) # Defaults to "0" for new member - Waiver will make this non-zero - means no access
+    access_reason = db.Column(db.String(50)) # If access_enabled is nonzero - access_reason will be a MANUAL reason for no access (empty means waiver-block)
     active = db.Column(db.Integer()) # Applies to membership AND GUI login (flask-user) set ONLY by program logic
     nickname = db.Column(db.String(50))
     stripe_name = db.Column(db.String(50))

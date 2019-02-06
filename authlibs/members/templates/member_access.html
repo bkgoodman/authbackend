@@ -5,7 +5,7 @@
 	{% include "member_header.html" %}
 	<div class="container"> {# outer container #}
 	<h3>Access</h3>
-	<form action="{{ url_for('members.member_setaccess',id=member.id) }}" method="post">
+	<form action="{{ url_for('members.member_setaccess',id=rec.id) }}" method="post">
 	  <table class="table table-sm">
 		<tr>
 		  <th>Resource</th>

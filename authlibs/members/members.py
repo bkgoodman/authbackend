@@ -37,7 +37,7 @@ def members():
 	members = {}
         if not current_user.privs('Useredit'):
             return redirect(url_for('members.member_show',id=current_user.member))
-	return render_template('members.html',members=members)
+	return render_template('members.html',rec=members)
 
 @blueprint.route('/', methods= ['POST'])
 @login_required
@@ -113,8 +113,6 @@ def member_edit(id):
 				m.firstname= f['input_firstname']
 				m.lastname= f['input_lastname']
 				#TODO REMOVE MISSING FIELD CHEKCS HERE
-				m.plan=""
-				m.payment=""
 				if 'input_plan' in f: m.plan= f['input_plan']
 				if 'input_payment' in f: m.payment= f['input_payment']
 				if f['input_phone'] == "None" or f['input_phone'].strip() == "":
@@ -124,6 +122,8 @@ def member_edit(id):
 				m.slack= f['input_slack']
 				m.alt_email= f['input_alt_email']
 				m.email= f['input_email']
+				m.access_enabled= 1 if 'input_access_enabled' in f else 0;
+				m.access_reason= f['input_access_reason']
 				db.session.commit()
 				
 		#(member,subscription)=Member.query.outerjoin(Subscription).filter(Member.member==mid).first()
@@ -150,7 +150,7 @@ def member_edit(id):
                     cc=comments.get_comments(member_id=member.id)
                 else:
                     cc={}
-		return render_template('member_edit.html',member=member,subscription=subscription,access=acc,comments=cc)
+		return render_template('member_edit.html',rec=member,subscription=subscription,access=acc,comments=cc)
 
 
 @blueprint.route('/<string:id>', methods = ['GET'])
@@ -190,7 +190,7 @@ def member_show(id):
 			 if subscription.active:
 				 meta['is_inactive'] = True
 
-		 return render_template('member_show.html',member=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta)
+		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta)
 	 else:
 		flash("Member not found")
 		return redirect(url_for("members.members"))
@@ -231,7 +231,7 @@ def member_editaccess(id):
 				if level ==0:
 						levelText=""
 				access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms,'levelText':levelText})
-		return render_template('member_access.html',member=member,access=access,tags=tags,roles=roles)
+		return render_template('member_access.html',rec=member,access=access,tags=tags,roles=roles)
 
 @blueprint.route('/<string:id>/access', methods = ['POST'])
 @login_required
@@ -344,7 +344,7 @@ def member_tags(id):
 		#tags = query_db(sqlstr)
                 tags = MemberTag.query.filter(MemberTag.member_id==mid).all()
                 member=Member.query.filter(Member.id==mid).one()
-		return render_template('member_tags.html',mid=mid,tags=tags,member=member)
+		return render_template('member_tags.html',mid=mid,tags=tags,rec=member)
 
 @blueprint.route('/updatebackends', methods = ['GET'])
 @login_required
@@ -494,7 +494,7 @@ def getDoorAccess(id):
     acc = accesslib.access_query(r.id,member_id=id,tags=False)
     acc = acc.first()
     if not acc:
-	    return ("No Access Record Returned",False,None)
+	    return ("No Access Record (Needs orientation?)",False,None)
   acc=accesslib.accessQueryToDict(acc)
 
   (warning,allowed) = accesslib.determineAccess(acc,"Door access pending orientation")

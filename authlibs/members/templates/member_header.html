@@ -3,18 +3,18 @@
 <div class="container">
 	<div class="btn-group my-2" role="group" aria-label="Member Pages">
 		<a href="{{ url_for("members.members") }}"  type="button" class="btn btn-link">All</a>
-		<a href="{{ url_for("members.member_show",id=member.member) }}"  type="button" class="btn btn-link">View</a>
-		<a href="{{ url_for("members.member_edit",id=member.id) }}"  type="button" class="btn btn-link">Edit</a>
-		<a href="{{ url_for("members.member_tags",id=member.id) }}"  type="button" class="btn btn-link">Tags</a>
-		<a href="{{ url_for("members.member_setaccess",id=member.id) }}"  type="button" class="btn btn-link">Access</a>
-		<a href="{{ url_for("logs.logs",member_id=member.id) }}"  type="button" class="btn btn-link">Logs</a>
+		<a href="{{ url_for("members.member_show",id=rec.member) }}"  type="button" class="btn btn-link">View</a>
+		<a href="{{ url_for("members.member_edit",id=rec.id) }}"  type="button" class="btn btn-link">Edit</a>
+		<a href="{{ url_for("members.member_tags",id=rec.id) }}"  type="button" class="btn btn-link">Tags</a>
+		<a href="{{ url_for("members.member_setaccess",id=rec.id) }}"  type="button" class="btn btn-link">Access</a>
+		<a href="{{ url_for("logs.logs",member_id=rec.id) }}"  type="button" class="btn btn-link">Logs</a>
 	</div>
 	<div class="container m-0 mb-3 p-0">
 		<div class="m-0 p-0 row">
-			<h3>{{ member.firstname }} {{ member.lastname }}  </h3>
+			<h3>{{ rec.firstname }} {{ rec.lastname }}  </h3>
 		</div>
 		<div class="row m-0 p-0">
-			{{ member.member }} (#{{ member.id }})
+			{{ rec.member }} (#{{ rec.id }})
 		</div>
 	</div>
 </div>

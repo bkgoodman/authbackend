@@ -289,7 +289,7 @@ Options:
     isTest=False
     if '--test' in args:
         isTest=True
-    if app.config['globalConfig'].DeployType.lower() != "production":
+    if current_app.config['globalConfig'].DeployType.lower() != "production":
       if '--force' in args:
         logger.info( "Non-production environments - but you are FORCING account creation")
       else:

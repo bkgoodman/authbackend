@@ -31,14 +31,7 @@
 {% set rec={} %}
 {% endif %}
 
-
-{% macro input(name, label, placeholder='', type='text') -%}
-			{% if readonly is not defined %}
-			{% set ph = placeholder %}
-			{% endif %}
-      <label for="input_{{ name }}">{{ label }}</label>
-      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ rec[name] }}">
-{%- endmacro %}
+{% from 'global_macros.html' import input with context %}
 
 <div class="container">
   <div class="form-row">

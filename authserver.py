@@ -42,8 +42,6 @@ from authlibs import cli
 from authlibs import utilities as authutil
 from authlibs import google_admin as google_admin
 from authlibs import membership as membership
-from json import dumps as json_dump
-from json import loads as json_loads
 from functools import wraps
 import logging
 logging.basicConfig(stream=sys.stderr)

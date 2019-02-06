@@ -20,8 +20,8 @@ from db_models import Member, db, Resource, Subscription, Waiver, AccessByMember
 from functools import wraps
 import json
 from utilities import _safestr as safestr
-from json import loads as json_loads
-from json import dumps as json_dumps
+from json import loads as json_load
+from json import dumps as json_dump
 import utilities as authutil
 from sqlalchemy import or_, func, case
 
