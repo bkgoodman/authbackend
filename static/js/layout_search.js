@@ -27,16 +27,17 @@ function layout_search_keypress(){
 			}
 			var lst = $("#layout_search_menu")[0]
 			for (x in data){ 
-				el = document.createElement("a");
+				el = document.createElement("div");
+				el.style='cursor: pointer;';
+				//el.onclick="window.location="+data[x]['url'];
 				el.setAttribute("data-target",data[x]['url'])
 				el.setAttribute("href",data[x]['url'])
-				el.className="dropdown-item layout_search_item nav-item nav-link";
-				el.innerHTML = data[x]['title'];
+				el.className="dropdown-item content layout_search_item nav-item nav-link";
+				el.innerHTML = data[x]['title']+"<br /><small>"+data[x]['in']+"</small>";
 				lst.appendChild(el);
 			}
 $( ".layout_search_item" ).on('click',function(event) {
-  console.log(event.target.href);
-	window.location=event.target.href;
+  window.location=event.target.getAttribute('href');
 });
 		})
 		.fail(function(sender, message, details){
