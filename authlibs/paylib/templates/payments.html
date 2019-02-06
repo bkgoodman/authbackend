@@ -1,8 +1,8 @@
-{% extends "layout.html" %}
+{% extends "layout_bootstrap.html" %}
 {% block body %}
 <div>
   <h2>Payment System Management</h2>
-	<table>
+	<table class="table table-sm">
     <tr>
         <td><div class="menubox">
         <a href="{{ url_for('payments.test_payments') }}"><img class="menuimg" src="static/data-analytics.png" alt="Test Payment System Connection"></a>
@@ -43,5 +43,6 @@
 {% endif %}
 	
   </div>
+
 {% endblock %}
 
