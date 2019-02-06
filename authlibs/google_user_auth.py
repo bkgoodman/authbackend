@@ -12,9 +12,9 @@ from accesslib import quickSubscriptionCheck
 
 # Set-up Python module logging
 import logging
-#from authlibs.init import GLOBAL_LOGGER_LEVEL
+from authlibs.init import GLOBAL_LOGGER_LEVEL
 logger = logging.getLogger(__name__)
-#logger.setLevel(GLOBAL_LOGGER_LEVEL)
+logger.setLevel(GLOBAL_LOGGER_LEVEL)
 import os
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE']='Yes'
 

@@ -13,9 +13,7 @@ from db_models import db, AccessByMember, Member, Resource, Logs
 import paho.mqtt.publish as mqtt_pub
 import logging
 
-from authlibs.init import GLOBAL_LOGGER_LEVEL
-logger = logging.getLogger(__name__)
-logger.setLevel(GLOBAL_LOGGER_LEVEL)
+
     
 def hash_rfid(rfid):
     "Given an integer RFID, create a hashed value for storage"
@@ -160,4 +158,4 @@ def kick_backend():
       topic= gc.mqtt_base_topic+"/control/broadcast/acl/update"
       mqtt_pub.single(topic, "update", hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
     except BaseException as e:
-        logger.debug("MQTT acl/update failed to publish: "+str(e))
+        logging.debug("MQTT acl/update failed to publish: "+str(e))

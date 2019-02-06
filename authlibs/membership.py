@@ -136,8 +136,8 @@ def addMissingMembers(missing):
         elif p.customerid in ignorelist:
             logger.info("Explicitly ignoring customer id %s" % p.customerid)
             continue
-        elif p.active.lower != "true":
-            logger.info("Skipping create for inactive sub %s" % p.customerid)
+        elif p.active.lower() != "true":
+            logger.info("Skipping create for inactive sub %s id \"%s\"" % (p.customerid,p.active.lower()))
             continue
         elif p.expires_date < datetime.now():
             logger.info("Skipping create for expired sub %s" % p.customerid)

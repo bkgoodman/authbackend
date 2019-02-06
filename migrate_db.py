@@ -652,9 +652,19 @@ if __name__ == '__main__':
 
           door = Resource.query.filter(Resource.name=="frontdoor").one()
           door.info_text = "You have a valid membership, but you must complete orientation for access. Orientation is every Thursday at 7pm, or contact board@makeitlabs to schedule a convenient time"
+
+          # Add default admins
+
+          admin_id = Role.query.filter(Role.name=="Admin").one().id
+          for mem in ("Adam.Shrey","Brad.Goodman","Bradley.Goodman","Steve.Richardson","Bill.Schongar"):
+            m = Member.query.filter(Member.member==mem).one_or_none()
+            if m:
+              db.session.add(UserRoles(member_id=m.id,role_id=admin_id))
+
           db.session.commit()
 
           print "waivers migrated",good,"nomatches",bad
+
 
           print """ END DB MIGRATION """
     if args.testdata:

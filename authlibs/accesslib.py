@@ -18,11 +18,12 @@ import json
 from authlibs import eventtypes
 from json import dumps as json_dump
 from json import loads as json_loads
+from authlibs import utilities as authutil
 
-#import logging
-#from authlibs.init import GLOBAL_LOGGER_LEVEL
-#logger = logging.getLogger(__name__)
-#logger.setLevel(GLOBAL_LOGGER_LEVEL)
+import logging
+from authlibs.init import GLOBAL_LOGGER_LEVEL
+logger = logging.getLogger(__name__)
+logger.setLevel(GLOBAL_LOGGER_LEVEL)
 from sqlalchemy import case, DateTime
 
 

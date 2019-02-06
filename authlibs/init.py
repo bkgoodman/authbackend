@@ -20,7 +20,6 @@ from flask_dance.consumer import oauth_authorized
 from flask_dance.contrib.google import make_google_blueprint
 from flask_dance.contrib.google import  google as google_flask
 import requests
-import google_user_auth
 
 # SET THIS 
 GLOBAL_LOGGER_LEVEL = logging.DEBUG
@@ -29,6 +28,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(GLOBAL_LOGGER_LEVEL)
 
 
+from google_user_auth import authinit
 
 # Load general configuration from file
 
@@ -156,7 +156,7 @@ def authbackend_init(name):
   app.config.from_object(__name__+'.ConfigClass')
   app.config['globalConfig'] = GlobalConfig()
 
-  google_user_auth.authinit(app)
+  authinit(app)
 
   db.init_app(app)
   return app
