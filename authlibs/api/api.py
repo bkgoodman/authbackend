@@ -7,7 +7,7 @@ from authlibs import accesslib
 from authlibs.ubersearch import ubersearch
 from authlibs import membership
 from authlibs import payments
-from authlibs.smartwaiver import cli_waivers
+from authlibs.waivers.waivers import cli_waivers,connect_waivers
 
 # You must call this modules "register_pages" with main app's "create_rotues"
 blueprint = Blueprint("api", __name__, template_folder='templates', static_folder="static",url_prefix="/api")
@@ -264,10 +264,17 @@ def error_401():
 @blueprint.route('/cron/nightly', methods=['GET'])
 @api_only
 def api_cron_nightly():
+  logger.info("Nightly CRON started")
   payments.setupPaymentSystems()
   payments.updatePaymentData()
-  membership.syncWithSubscriptions(False)  
+  isTest=False
+  if current_app.config['globalConfig'].DeployType.lower() != "production":
+    isTest=True
+    logger.error("Non-Production environment - NOT creating google/slack accounts")
+    membership.syncWithSubscriptions(isTest)  
   cli_waivers([])
+  connect_waivers()
+  logger.info("Nightly CRON finished")
   return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
 
 #####

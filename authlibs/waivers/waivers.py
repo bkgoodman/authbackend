@@ -2,7 +2,7 @@
 
 from ..templateCommon import  *
 
-from authlibs import smartwaiver as waiver
+from authlibs import smartwaiver 
 waiversystem = {}
 
 # ------------------------------------------------------------
@@ -57,12 +57,18 @@ def _addWaivers(waiver_list):
     return len(waiver_list)
 
 def addNewWaivers():
-    """Check the DB to get the most recent waiver, add any new ones, return count added"""
-    last_waiverid = waiver.getLastWaiverId()
-    waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid}
-    waivers = waiver.getWaivers(waiver_dict)
-    return _addWaivers(waivers)
+	"""Check the DB to get the most recent waiver, add any new ones, return count added"""
+	logger.debug ("Updating waivers...")
+	waiversystem = {}
+	waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
+	last_waiverid = smartwaiver.getLastWaiverId()
+	waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid}
+	waivers = smartwaiver.getWaivers(waiver_dict)
+	logger.debug ("Done.")
+	return _addWaivers(waivers)
 
+def cli_waivers(cmd,**kwargs):
+	addNewWaivers()
 
 
 def register_pages(app):
@@ -79,10 +85,15 @@ def connect_waivers():
 		m = m.all()
 		if len(m)==1:
 			w.member_id = m[0].id
-			s += " CONNECTED %s" % m[0].member
+			s += " accept waiver for member %s" % m[0].member
+			if m[0].access_reason is None or m[0].access_reason == "":
+				m[0].access_enabled=1;
+				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED.id,member_id=m[0].id,commit=0)
+			else:
+				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DENIED.id,message="Waiver found, but access otherwise denied",member_id=m[0].id,commit=0)
 		else:
-			s += " NOMATCH"
-		logger.debug(s)
+			s += " no member found"
+		logger.info(s)
 	db.session.commit()
 
 def cli_waivers_connect(*cmd,**kvargs):

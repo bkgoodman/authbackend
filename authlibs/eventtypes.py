@@ -46,6 +46,10 @@ class RATTBE_LOGEVENT_MEMBER_ACCSSS_DISABLED:
     id=1009
     desc='Member Access Disabled'
 
+class RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED:
+    id=1010
+    desc='Waiver Accepted'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'

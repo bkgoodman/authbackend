@@ -8,14 +8,13 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from authlibs.db_models import db, ApiKey,  Role, UserRoles, Member, Resource, AccessByMember
 from authlibs.payments import cli_updatepayments
 from authlibs.membership import cli_syncmemberpayments
-from authlibs.smartwaiver import cli_waivers
 from authlibs.ubersearch import cli_ubersearch
 from authlibs.api import api
 from flask_sqlalchemy import SQLAlchemy
 from init import GLOBAL_LOGGER_LEVEL
 from slackutils import cli_slack
 import getpass
-from waivers.waivers import cli_waivers_connect
+from waivers.waivers import cli_waivers_connect, cli_waivers
 
 import logging
 logger = logging.getLogger(__name__)

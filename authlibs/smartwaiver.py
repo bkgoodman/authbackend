@@ -35,6 +35,8 @@ from db_models import db, Waiver
 from StringIO import StringIO
 from flask import current_app
 
+from templateCommon import *
+
 baseuri = "https://www.smartwaiver.com/api/v3/"
 
 def _getWaiversXML(api_key,waiverid):
@@ -71,12 +73,12 @@ def getWaivers(waiver_dict):
                  'lastname': lastname, 'created_date': created_date}
             members.append(m)
             # TEMP
-            print("%s %s" % (firstname,lastname))
+            logger.debug("%s %s" % (firstname,lastname))
         more = root.find('more_participants_exist')
         if more is None:
             more_members = False
         else:
-            print "More members... getting those after %s" % waiver_id
+            logger.debug ("More members... getting those after %s" % waiver_id)
             xmlwaivers = _getWaiversXML(waiver_dict['api_key'],waiver_id)
     f.close()
     return members
@@ -101,14 +103,6 @@ def getLastWaiverId():
       return None
     return w.waiver_id
 
-def cli_waivers(cmd,**kwargs):
-		print "Updating waivers..."
-		waiversystem = {}
-		waiversystem['Apikey'] = current_app.config['globalConfig'].Config.get('Smartwaiver','Apikey')
-    last_waiverid = getLastWaiverId()
-    waiver_dict = {'api_key': waiversystem['Apikey'],'waiver_id': last_waiverid}
-    waivers = getWaivers(waiver_dict)
-		print "Done."
 
 if __name__ == "__main__":
 		print "To do this, use:"
