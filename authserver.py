@@ -70,6 +70,7 @@ from authlibs.nodes import nodes
 from authlibs.kvopts import kvopts 
 from authlibs.comments import comments 
 from authlibs.apikeys import apikeys 
+from authlibs.belog import belog
 
     
 
@@ -315,6 +316,11 @@ def create_routes():
     @app.route('/whoami')
     @app.route('/test/anyone')
     def TestAnyone():
+        logger.debug("Debug test")
+        logger.error("Error test")
+        logger.info("Info test")
+        logger.warning("Warning test")
+        logger.critical("Critical test")
         return testdata()
 
     
@@ -466,6 +472,7 @@ if __name__ == '__main__':
         kvopts.register_pages(app)
         comments.register_pages(app)
         apikeys.register_pages(app)
+        belog.register_pages(app)
         slackutils.create_routes(app)
         g.main_menu = main_menu
         app.config['main_menu'] = main_menu

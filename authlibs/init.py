@@ -24,6 +24,7 @@ import logging.handlers
 
 # SET THIS 
 GLOBAL_LOGGER_LEVEL = logging.DEBUG
+GLOBAL_LOGGER_LOGFILE = "/tmp/authit.log"
 
 
 ## SETUP LOGGING
@@ -33,7 +34,7 @@ for handler in logging.root.handlers[:]:
 
 logger=logging.getLogger()
 handler = logging.handlers.RotatingFileHandler(
-    "/tmp/authit.log", maxBytes=(1048576*5), backupCount=7)
+    GLOBAL_LOGGER_LOGFILE, maxBytes=(1048576*5), backupCount=7)
 handler.setLevel(GLOBAL_LOGGER_LEVEL)
 format = logging.Formatter("%(asctime)s:%(levelname)s:%(module)s:%(message)s")
 handler.setFormatter(format)

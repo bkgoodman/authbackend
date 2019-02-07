@@ -98,6 +98,11 @@ def get_raw_menu():
                     'title':"Node Parameters",
             },
             {
+                    'privs':'Admin',
+                    'url':url_for('belog.belog'),
+                    'title':"Backend Web Logs",
+            },
+            {
                     'privs':'Useredit',
                     'url':url_for('members.lookup_tag'),
                     'title':"Tag Lookup",
