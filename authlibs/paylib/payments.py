@@ -16,10 +16,6 @@ from authlibs import eventtypes
 from authlibs import payments as pay
 from .. import membership
 
-import logging
-from authlibs.init import GLOBAL_LOGGER_LEVEL
-logger = logging.getLogger(__name__)
-logger.setLevel(GLOBAL_LOGGER_LEVEL)
 from sqlalchemy import case, DateTime
 
 

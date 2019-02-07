@@ -13,6 +13,7 @@ import datetime
 import utilities
 import dbutil
 import init
+from sqlalchemy import func
 from authlibs.db_models import db, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription
 
 import config
@@ -25,8 +26,7 @@ setupDone = False
 
 
 def getLastUpdatedDate():
-  sqlstr = "select MAX(updated_date) from subscriptions"
-  return dbutil.query_db(sqlstr,(),True)
+	return db.session.query(func.max(Subscription.updated_date)).scalar()
 
 def testPaymentSystems(modules=None):
     if modules is None:

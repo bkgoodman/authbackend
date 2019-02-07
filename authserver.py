@@ -23,7 +23,6 @@ import sqlite3, re, time
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response, Markup
 # NEwer login functionality
-import logging
 from werkzeug.contrib.fixers import ProxyFix
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 #from flask_oauth import OAuth
@@ -44,19 +43,18 @@ from authlibs import google_admin as google_admin
 from authlibs import membership as membership
 from functools import wraps
 import logging
-logging.basicConfig(stream=sys.stderr)
 import pprint
 import paho.mqtt.publish as mqtt_pub
 from datetime import datetime
 from authlibs.db_models import db, Role, UserRoles, Member, Resource, AccessByMember, Tool, Logs, UsageLog, Subscription, Waiver, MemberTag, ApiKey
 import argparse
-from authlibs.init import GLOBAL_LOGGER_LEVEL
 from flask_dance.contrib.google import  google 
 from flask_dance.consumer import oauth_authorized
+
+from authlibs.templateCommon import *
 import google_oauth
 from  authlibs import slackutils
 from authlibs.main_menu import main_menu, index_page
-
 """ GET PAGES"""
 
 from authlibs.auth import auth
@@ -73,8 +71,6 @@ from authlibs.kvopts import kvopts
 from authlibs.comments import comments 
 from authlibs.apikeys import apikeys 
 
-logger = logging.getLogger(__name__)
-logger.setLevel(GLOBAL_LOGGER_LEVEL)
     
 
 def create_app():
@@ -108,6 +104,8 @@ def requires_auth(f):
     return decorated
 
 
+'''
+DELETE
 def connect_db():
     """Convenience method to connect to the globally-defined database"""
     con = sqlite3.connect(app.globalConfig.Database,check_same_thread=False)
@@ -273,6 +271,7 @@ def _updatePaymentsData():
     _clearPaymentData('pinpayments')
     _addPaymentData(fsubs['valid'],'pinpayments')
     return fsubs
+'''
 
 ########
 # Request filters
@@ -473,4 +472,5 @@ if __name__ == '__main__':
         #print site_map(app)
     #app.login_manager.login_view="test"
     #print app.login_manager.login_view
+    logger.info("STARTING")
     app.run(host=app.config['globalConfig'].ServerHost, port=app.config['globalConfig'].ServerPort, debug=app.config['globalConfig'].Debug)

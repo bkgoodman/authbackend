@@ -15,11 +15,8 @@ import ConfigParser
 import eventtypes
 from datetime import datetime
 from flask import current_app
-from init import GLOBAL_LOGGER_LEVEL
 
-import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(GLOBAL_LOGGER_LEVEL)
+from templateCommon import *
 
 import google_admin as google
 

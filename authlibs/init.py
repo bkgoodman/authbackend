@@ -20,12 +20,30 @@ from flask_dance.consumer import oauth_authorized
 from flask_dance.contrib.google import make_google_blueprint
 from flask_dance.contrib.google import  google as google_flask
 import requests
+import logging.handlers
 
 # SET THIS 
 GLOBAL_LOGGER_LEVEL = logging.DEBUG
 
-logger = logging.getLogger(__name__)
-logger.setLevel(GLOBAL_LOGGER_LEVEL)
+
+## SETUP LOGGING
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+logger=logging.getLogger()
+handler = logging.handlers.RotatingFileHandler(
+    "/tmp/authit.log", maxBytes=(1048576*5), backupCount=7)
+handler.setLevel(GLOBAL_LOGGER_LEVEL)
+format = logging.Formatter("%(asctime)s:%(levelname)s:%(module)s:%(message)s")
+handler.setFormatter(format)
+ch = logging.StreamHandler()
+format = logging.Formatter("%(module)s:%(levelname)s:%(message)s")
+ch.setFormatter(format)
+ch.setLevel(GLOBAL_LOGGER_LEVEL)
+
+logger.addHandler(ch)
+logger.addHandler(handler)
 
 
 from google_user_auth import authinit
