@@ -139,13 +139,15 @@ def getResourcePrivs(resource=None,member=None,resourcename=None,memberid=None):
 # (Default)  "commit=1" to log and commit immediatley. THis will use a separate DB context as to
 # not interfere with anything else.
 # Use  "commit=0" will NOT commit. User MUST commit the default db.session to commit.
-def log(eventtype=0,message=None,member_id=None,resource_id=None,text=None,doneby=None,commit=1):
+def log(eventtype=0,message=None,member=None,member_id=None,resource_id=None,text=None,doneby=None,commit=1):
     logsess = db.session
     if commit:
         logsess = db.create_scoped_session(
         options=dict(bind=db.get_engine(g, 'logs'),
                      binds={}))
-    logsess.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtype,doneby=doneby,message=message))
+    if not member_id and member:
+      member_id = member.id
+    logsess.add(Logs(member_id=member_id,resource_id=resource_id,event_type=eventtype,doneby=doneby,message=message))
     if commit:
         logsess.commit()
 

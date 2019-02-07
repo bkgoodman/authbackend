@@ -38,6 +38,14 @@ class RATTBE_LOGEVENT_MEMBER_TAG_UNASSIGN:
     id=1007
     desc='Tag Unassigned to Member'
 
+class RATTBE_LOGEVENT_MEMBER_ACCSSS_ENABLED:
+    id=1008
+    desc='Member Access Enabled'
+
+class RATTBE_LOGEVENT_MEMBER_ACCSSS_DISABLED:
+    id=1009
+    desc='Member Access Disabled'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'

@@ -122,8 +122,16 @@ def member_edit(id):
 				m.slack= f['input_slack']
 				m.alt_email= f['input_alt_email']
 				m.email= f['input_email']
-				m.access_enabled= 1 if 'input_access_enabled' in f else 0;
-				m.access_reason= f['input_access_reason']
+				if 'input_access_enabled' in f:
+					if m.access_enabled != 1:
+						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCSSS_ENABLED.id,message=f['input_access_reason'],member_id=m.id,doneby=current_user.id,commit=0)
+					m.access_enabled=1
+					m.access_reason= f['input_access_reason']
+				else:
+					if m.access_enabled != 0:
+						authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCSSS_DISABLED.id,member_id=m.id,doneby=current_user.id,commit=0)
+					m.access_enabled=0
+					m.access_reason=""
 				db.session.commit()
 				
 		#(member,subscription)=Member.query.outerjoin(Subscription).filter(Member.member==mid).first()
