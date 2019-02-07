@@ -5,8 +5,8 @@ from ..templateCommon import *
 from authlibs import accesslib
 
 from authlibs.ubersearch import ubersearch
-from authlibs.membership import cli_syncmemberpayments
-from authlibs.payments import cli_updatepayments
+from authlibs import membership
+from authlibs import payments
 from authlibs.smartwaiver import cli_waivers
 
 # You must call this modules "register_pages" with main app's "create_rotues"
@@ -264,8 +264,9 @@ def error_401():
 @blueprint.route('/cron/nightly', methods=['GET'])
 @api_only
 def api_cron_nightly():
-  cli_syncmemberpayments([])
-  cli_updatepayments([])
+  payments.setupPaymentSystems()
+  payments.updatePaymentData()
+  membership.syncWithSubscriptions(False)  
   cli_waivers([])
   return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
 

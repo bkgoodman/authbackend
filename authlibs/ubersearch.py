@@ -1,15 +1,21 @@
 from templateCommon import *
 
+from accesslib import addQuickAccessQuery
 
 
 def ubersearch(ss):
 	result = []
 	if ss == "": return []
 
-	for x in Member.query.filter((Member.member.ilike('%'+ss+'%') | Member.alt_email.ilike('%'+ss+'%') | Member.firstname.ilike('%'+ss+'%') | Member.lastname.ilike('%'+ss+'%'))).all():
+	mq = 	Member.query.filter((Member.member.ilike('%'+ss+'%') | Member.alt_email.ilike('%'+ss+'%') | Member.firstname.ilike('%'+ss+'%') | Member.lastname.ilike('%'+ss+'%')))
+	mq = addQuickAccessQuery(mq)
+
+	mq = mq.outerjoin(Subscription,Subscription.member_id == Member.id)
+	for r in mq.all():
+		(x,s) = r
 		result.append({
 			'title':"%s %s" % (x.firstname,x.lastname),
-			'in':"Member",
+			'in':"Inactive Member" if ((s == "No Subscription") or  (s == "Expired")) else "Member",
 			'url':url_for("members.member_show",id=x.member)
 		})
 

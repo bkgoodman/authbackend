@@ -49,17 +49,6 @@
 	<div class="container"> {# Outer container #}
 
 
-	<div class="sectionhead">Current Access (<a href="{{ url_for('members.member_editaccess',id=rec.id) }}">Edit</a>):</div>
-	<ul class="entries">
-	{% if not access %}
-	  <i> No current access defined for this user</i>
-	{% else %}
-	  {% for a in access %}
-		<li>{{ a.description }}  {{ a.level }} </li>
-	  {% endfor %}
-	{% endif %}
-	</ul>
-  </div>
 
 	{% with member_id=rec.id %}
 	{% include "comments.html" %}
