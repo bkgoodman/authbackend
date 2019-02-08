@@ -53,7 +53,7 @@ def member_add():
 				if f in request.form:
 						member[f] = request.form[f]
 				if member[f] == '':
-						flash("Error: One or more mandatory fields not filled out")
+						flash("Error: One or more mandatory fields not filled out",'warning')
 						return redirect(url_for('members'))
 		for f in optional_fields:
 				member[f] = ''
@@ -75,7 +75,7 @@ def member_edit(id):
 		member = {}
 
                 if request.method=="POST" and (not current_user.privs('Useredit')):
-                     flash("You cannot edit users")
+                     flash("You cannot edit users",'warning')
                      return redirect(url_for('members.members'))
 
 		if request.method=="POST" and 'Unlink' in  request.form:
@@ -139,7 +139,7 @@ def member_edit(id):
 		member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.id==mid)
 		r = member.one_or_none()
                 if not r:
-                    flash("Member not found")
+                    flash("Member not found",'warning')
                     return redirect(url_for("members.members"))
 
 		(member,subscription) = r
@@ -174,7 +174,7 @@ def member_show(id):
 	 res = member.one_or_none()
 
 	 if (not current_user.privs('Useredit')) and res[0].member != current_user.member:
-			 flash("You cannot view that user")
+			 flash("You cannot view that user",'warning')
 			 return redirect(url_for('members.members'))
  
 	 (warning,allowed,dooraccess)=(None,None,None)
@@ -203,7 +203,7 @@ def member_show(id):
 
 		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view")
 	 else:
-		flash("Member not found")
+		flash("Member not found",'warning')
 		return redirect(url_for("members.members"))
 
 # See what rights the user has on the given resource
@@ -254,7 +254,7 @@ def member_setaccess(id):
 		# to change them - make it so in DB
 		member = Member.query.filter(Member.id == mid).one()
 		if ((member.id == current_user.id) and not (current_user.privs('Admin'))):
-				flash("You can't change your own access")
+				flash("You can't change your own access",'warning')
 				return redirect(url_for('members.member_editaccess',id=mid))
 		if (('password1' in request.form and 'password2' in request.form) and
 				(request.form['password1'] != "") and 
@@ -324,12 +324,12 @@ def member_setaccess(id):
 										acc = AccessByMember(member_id=member.id,resource_id=resource.id)
 										db.session.add(acc)
 								elif acc and newcheck == False and p>=myPerms:
-										flash("You aren't authorized to disable %s privs on %s" % (alstr,r))
+										flash("You aren't authorized to disable %s privs on %s" % (alstr,r),'warning')
 
 								if (p>=myPerms):
-										flash("You aren't authorized to grant %s privs on %s" % (alstr,r))
+										flash("You aren't authorized to grant %s privs on %s" % (alstr,r),'warning')
 								elif (acc.level >= myPerms):
-										flash("You aren't authorized to demote %s privs on %s" % (alstr,r))
+										flash("You aren't authorized to demote %s privs on %s" % (alstr,r),'warning')
 								elif acc.level != p:
 										db.session.add(Logs(member_id=member.id,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_PRIV_CHANGE.id,message=alstr,doneby=current_user.id))
 										acc.level=p
@@ -404,7 +404,7 @@ def member_tagdelete(tag_ident):
 		"""(Controller) Delete a Tag from a Member (HTTP GET, for use from a href link)"""
                 t = MemberTag.query.filter(MemberTag.id == tag_ident).join(Member,Member.id == MemberTag.member_id).one_or_none()
                 if not t:
-                    flash("Tag not found")
+                    flash("Tag not found",'warning')
                     return redirect(url_for('index'))
                 mid = t.member_id
                 db.session.add(Logs(member_id=mid,event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_TAG_UNASSIGN.id,doneby=current_user.id,message=t.longhash))

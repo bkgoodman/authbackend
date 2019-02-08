@@ -134,7 +134,7 @@ $( "#layout_search_text" ).on('focusout', function() {
 
 	  	{#
 		{% for message in get_flashed_messages() %}
-			<div class="alert alert-warning" role="alert">{{ message }}</div>
+			<div --bkg-flash="unknown" class="alert alert-warning" role="alert">{{ message }}</div>
 		{% endfor %}
 		#}
 
@@ -143,18 +143,18 @@ $( "#layout_search_text" ).on('focusout', function() {
 		    {% for category, message in messages %}
 		    	{% if category  %}
 				{% if category == "message" %}
-				    <div class="alert alert-info alert-dismissable fade show" role="alert">{{ message }}
+				    <div --bkg-flash="message" class="alert alert-info alert-dismissable fade show" role="alert">{{ message }}
 				      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
     <span aria-hidden="true">&times;</span>
   </button></div>
 			    	{% else %}
-				    <div class="alert alert-{{ category }} alert-dismissable fade show" role="alert">{{ message }}
+				    <div -bkg-flash="{{ category }}" class="alert alert-{{ category }} alert-dismissable fade show" role="alert">{{ message }}
 				      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
     <span aria-hidden="true">&times;</span>
   </button></div>
 				{% endif %}
 			{% else %}
-			    <div class="alert alert-primary alert-dismissable fade show" role="alert">{{ message }}
+			    <div --bkg-flash="unknown2" class="alert alert-primary alert-dismissable fade show" role="alert">{{ message }}
 			      <button type="button" class="close" data-dismiss="alert" aria-label="Close">
     <span aria-hidden="true">&times;</span>
   </button></div>

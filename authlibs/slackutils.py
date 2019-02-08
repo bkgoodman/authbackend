@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-vim:tabstop=2:expandtab
+vim:tabstop=2:noexpandtab
 Get from: https://www.digicert.com/CACerts/DigiCertGlobalRootCA.crt
 export WEBSOCKET_CLIENT_CA_BUNDLE=DigiCertGlobalRootCA.crt
 
@@ -39,10 +39,10 @@ def get_users():
 
 def get_users_by_name(all_users=None):
 	# Get a summarized, simplified recordeset
-        # Indexed by username
-        users={}
-        if not all_users:
-            all_users = get_users()
+	# Indexed by username
+	users={}
+	if not all_users:
+		all_users = get_users()
 	for m in all_users['members']:
 		p = m['profile']
 		if not m['is_bot'] and not m['deleted']:

@@ -323,7 +323,7 @@ def create_routes():
         logger.critical("Critical test")
         return testdata()
 
-    
+
     @app.route('/test/std')
     @login_required
     def TestStd():
