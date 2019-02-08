@@ -16,6 +16,8 @@ from authlibs import eventtypes
 from authlibs import payments as pay
 from .. import membership
 
+from authlibs.templateCommon import *
+
 from sqlalchemy import case, DateTime
 
 
@@ -144,7 +146,11 @@ def update_payments():
     """(Controller) Sync Payment data and update Member data (add missing, deactivate, etc)"""
     # TODO: Error handling
     pay.updatePaymentData()
-    membership.syncWithSubscriptions()
+    isTest=False
+    if current_app.config['globalConfig'].DeployType.lower() != "production":
+      isTest=True
+      logger.error("Non-Production environment - NOT creating google/slack accounts")
+    membership.syncWithSubscriptions(isTest)
     flash("Payment and Member data adjusted")
     return redirect(url_for('payments.payments'))
 

@@ -234,15 +234,19 @@ def api_v0_show_resource_acl(id):
 @blueprint.route('/v1/payments/update', methods=['GET'])
 @api_only
 def api_v1_payments_update():
-		"""(API) Local host-only API for forcing payment data updates via cron. Not ideal, but avoiding other schedulers"""
-		# Simplistic, and not incredibly secure, host-only filter
-		host_addr = str.split(request.environ['HTTP_HOST'],':')
-		if request.environ['REMOTE_ADDR'] == host_addr[0]:
-				pay.updatePaymentData()
-				membership.syncWithSubscriptions()
-				return "Completed."
-		else:
-				return "API not available to %s expecting %s" % (request.environ['REMOTE_ADDR'], host_addr[0])
+  """(API) Local host-only API for forcing payment data updates via cron. Not ideal, but avoiding other schedulers"""
+  # Simplistic, and not incredibly secure, host-only filter
+  host_addr = str.split(request.environ['HTTP_HOST'],':')
+  isTest=False
+  if current_app.config['globalConfig'].DeployType.lower() != "production":
+    isTest=True
+    logger.error("Non-Production environment - NOT creating google/slack accounts")
+  if request.environ['REMOTE_ADDR'] == host_addr[0]:
+    pay.updatePaymentData()
+    membership.syncWithSubscriptions(isTest)
+    return "Completed."
+  else:
+    return "API not available to %s expecting %s" % (request.environ['REMOTE_ADDR'], host_addr[0])
 
 @blueprint.route('/v1/test', methods=['GET'])
 @api_only
