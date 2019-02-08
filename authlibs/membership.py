@@ -19,6 +19,7 @@ from flask import current_app
 from templateCommon import *
 
 import google_admin as google
+from authlibs import accesslib
 
 def syncWithSubscriptions(isTest=False):
   '''Use the latest Subscription data to ensure Membership list is up to date'''
@@ -36,6 +37,15 @@ def syncWithSubscriptions(isTest=False):
   ''' Create Google (someday Slack?) accounts for new members '''
   logger.debug("Create new Accounts")
   createMissingMemberAccounts(added,isTest,False)
+
+	# Canary test 
+
+
+	check = accesslib.quickSubscriptionCheck(member="Adam.Shrey")
+	if check == "No Subscription":
+		logger.critical("No subscription found for Adam.Shey")
+		return
+
   db.session.commit()
   logger.debug("New Member/Sub data Committed")
   
