@@ -2,12 +2,11 @@
 
 <div class="container">
 	<div class="btn-group my-2" role="group" aria-label="Member Pages">
-		<a href="{{ url_for("members.members") }}"  type="button" class="btn btn-link">All</a>
-		<a href="{{ url_for("members.member_show",id=rec.member) }}"  type="button" class="btn btn-link">View</a>
-		<a href="{{ url_for("members.member_edit",id=rec.id) }}"  type="button" class="btn btn-link">Edit</a>
-		<a href="{{ url_for("members.member_tags",id=rec.id) }}"  type="button" class="btn btn-link">Tags</a>
-		<a href="{{ url_for("members.member_setaccess",id=rec.id) }}"  type="button" class="btn btn-link">Access</a>
-		<a href="{{ url_for("logs.logs",member_id=rec.id) }}"  type="button" class="btn btn-link">Logs</a>
+		<button onclick='location.href="{{ url_for("members.members") }}";'  type="button" class="btn btn-{% if page!="all" %}outline-{% endif %}info">All</button>
+		<button onclick='location.href="{{ url_for("members.member_show",id=rec.member) }}";'  type="button" class="btn btn-{% if page!="view" %}outline-{% endif %}info">View</button>
+		<button onclick='location.href="{{ url_for("members.member_edit",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="edit" %}outline-{% endif %}info">Edit</button>
+		<button onclick='location.href="{{ url_for("members.member_tags",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="tags" %}outline-{% endif %}info">Tags</button>
+		<button onclick='location.href="{{ url_for("members.member_setaccess",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="access" %}outline-{% endif %}info">Access</button>
 	</div>
 	<div class="container m-0 mb-3 p-0">
 		<div class="m-0 p-0 row">

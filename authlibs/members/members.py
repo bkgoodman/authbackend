@@ -37,7 +37,7 @@ def members():
 	members = {}
         if not current_user.privs('Useredit'):
             return redirect(url_for('members.member_show',id=current_user.member))
-	return render_template('members.html',rec=members)
+	return render_template('members.html',rec=members,page="all")
 
 @blueprint.route('/', methods= ['POST'])
 @login_required
@@ -158,7 +158,7 @@ def member_edit(id):
                     cc=comments.get_comments(member_id=member.id)
                 else:
                     cc={}
-		return render_template('member_edit.html',rec=member,subscription=subscription,access=acc,comments=cc)
+		return render_template('member_edit.html',rec=member,subscription=subscription,access=acc,comments=cc,page="edit")
 
 
 @blueprint.route('/<string:id>', methods = ['GET'])
@@ -201,7 +201,7 @@ def member_show(id):
 			 if subscription.active:
 				 meta['is_inactive'] = True
 
-		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta)
+		 return render_template('member_show.html',rec=member,access=access,subscription=subscription,comments=cc,dooraccess=dooraccess,access_warning=warning,access_allowed=allowed,meta=meta,page="view")
 	 else:
 		flash("Member not found")
 		return redirect(url_for("members.members"))
@@ -242,7 +242,7 @@ def member_editaccess(id):
 				if level ==0:
 						levelText=""
 				access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms,'levelText':levelText})
-		return render_template('member_access.html',rec=member,access=access,tags=tags,roles=roles)
+		return render_template('member_access.html',rec=member,access=access,tags=tags,roles=roles,page="access")
 
 @blueprint.route('/<string:id>/access', methods = ['POST'])
 @login_required
@@ -355,7 +355,7 @@ def member_tags(id):
 		#tags = query_db(sqlstr)
                 tags = MemberTag.query.filter(MemberTag.member_id==mid).all()
                 member=Member.query.filter(Member.id==mid).one()
-		return render_template('member_tags.html',mid=mid,tags=tags,rec=member)
+		return render_template('member_tags.html',mid=mid,tags=tags,rec=member,page="tags")
 
 @blueprint.route('/updatebackends', methods = ['GET'])
 @login_required
