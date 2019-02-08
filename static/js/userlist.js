@@ -1,7 +1,8 @@
 
 makePostCall = function (url, data) { // here the data and url are not hardcoded anymore
    var json_data = JSON.stringify(data);
-	console.log("QERY "+url);
+	// console.log("QERY "+url);
+	//console.log(json_data);
     return $.ajax({
         type: "GET",
         url: url,
@@ -20,15 +21,6 @@ function DoSearchButton() {
 	current_user_offset=0;
 }
 
-function DoActiveButton() {
-	b = document.getElementById("activeInactive");
-	if (b.innerHTML == "Active Members")
-		b.innerHTML="All Members";
-	else
-		b.innerHTML="Active Members";
-	changedDropdownText();
-	current_user_offset=0;
-}
 function DoAllButton() {
 	queryMembers("*");
 	document.getElementById("searchfield1").value="";
@@ -68,11 +60,13 @@ function queryMembers(searchstr) {
 		q=MEMBER_SEARCH_URL+searchstr;
 	}
 
-	b = document.getElementById("activeInactive");
-	if (b.innerHTML == "Active Members")
-		opt['type']="active";
-	else
-		opt['type']='all';
+	searchbox = document.getElementById("search_box");
+	bb = searchbox.querySelectorAll(".member_filter_cb");
+	for (b of bb) {
+		if (b.checked)  {
+			opt['filter_'+b.value]=1;
+		}
+	}
 
 	makePostCall(q, opt)
 			.success(function(data){

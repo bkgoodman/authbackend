@@ -34,10 +34,18 @@
 <div class="input-group mb-3">
   <input type="text" class="form-control" name="search" oninput="changedDropdownText();" id="searchfield1" placeholder="" aria-label="Example text with button addon" aria-describedby="button-addon1" autocomplete="off"  >
 	<div class="input-group-append" id="button-addon4">
-		<button name="membertype" id="activeInactive" class="btn btn-outline-secondary" onClick="DoActiveButton();" type="button">Active Members</button>
-		<button class="btn btn-outline-secondary" onClick="DoSearchButton();" type="button">Search</button>
+		{# <button name="membertype" id="activeInactive" class="btn btn-outline-secondary" onClick="DoActiveButton();" type="button">Active Members</button> #}
+		{# <button class="btn btn-outline-secondary" onClick="DoSearchButton();" type="button">Search</button> #}
 		<button class="btn btn-outline-secondary" onClick="DoAllButton();" type="button">All</button>
 	</div>
+</div>
+<div id="search_box">
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="active" checked type="checkbox">Active</input>
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="nosub" checked type="checkbox">No-Subscription</input>
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="noaccess" checked type="checkbox">Access Disabled</input>
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="exipred" checked type="checkbox">Expired</input>
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="grace" checked type="checkbox">Grace Period</input>
+	<input onclick="changedDropdownText();" class="cb member_filter_cb mx-3" value="recentexpire" checked type="checkbox">Recent Expire</input>
 </div>
 
 <div class="alert alert-secondary" role="alert" id="entermatchtext">

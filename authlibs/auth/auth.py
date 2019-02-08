@@ -72,31 +72,39 @@ def authorize():
 @blueprint.route("/membersearch/<string:search>",methods=['GET'])
 @login_required
 def membersearch(search):
-  type='all'
-  if 'type' in request.values:
-      type = request.values['type']
+  filters=[]
+  offset = 0
+  limit = 50
+  for x in request.values:
+      if x.startswith('filter_'): filters.append(x)
   sstr = authutil._safestr(search)
   sstr = "%"+sstr+"%"
   res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.id)
   res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr)))
-  if type == 'active':
-      res = res.filter((Member.active.ilike("True") | (Member.active == '1')))
-      res = res.filter(Subscription.expires_date > db.func.DateTime('now','-14 days'))
-      #res = res.filter(Member.membership != None)
-      res = res.join(Subscription,Subscription.member_id == Member.id)
-  else:
-      res = res.outerjoin(Subscription,Subscription.member_id == Member.id)
+  res = res.outerjoin(Subscription,Subscription.member_id == Member.id)
   res = accesslib.addQuickAccessQuery(res)
   res = res.add_column(Subscription.active)
   res = res.add_column(Subscription.expires_date)
 			
   if 'offset' in request.values:
-      res = res.offset(request.values['offset'])
-  res = res.limit(50)
+      offset = int(request.values['offset'])
+  
   res = res.all()
   result=[]
+  counted=0
   for x in res:
+    if x[5] == "No Subscription" and 'filter_nosub' not in filters: continue
+    if x[5] == "Grace Period"  and 'filter_grace' not in filters: continue
+    if x[5] == "Access Disabled"  and 'filter_noaccess' not in filters: continue
+    if x[5] == "Active"  and 'filter_active' not in filters: continue
+    if x[5] == "Expired"  and 'filter_expired' not in filters: continue
+    if x[5] == "Recent Expire"  and 'filter_recentexpire' not in filters: continue
+    if (offset > 0): 
+      offset -= 1
+      continue
+    if counted >= limit: continue
     result.append({'member':x[0],'firstname':x[1],'lastname':x[2],'email':x[3], 'id':x[4], 'active':x[5]})
+    counted += 1
   return json.dumps(result)
 
 def register_pages(app):
