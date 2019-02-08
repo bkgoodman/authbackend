@@ -40,11 +40,12 @@ def syncWithSubscriptions(isTest=False):
 
 	# Canary test 
 
-
-	check = accesslib.quickSubscriptionCheck(member="Adam.Shrey")
-	if check == "No Subscription":
-		logger.critical("No subscription found for Adam.Shey")
-		return
+	if current_app.config['globalConfig'].Config.has_option('Payments','Canary'):
+					canary = current_app.config['globalConfig'].Config.get('Payments','Canary')
+					check = accesslib.quickSubscriptionCheck(member=canary)
+					if check == "No Subscription":
+						logger.critical("No subscription found for Adam.Shey")
+						return
 
   db.session.commit()
   logger.debug("New Member/Sub data Committed")

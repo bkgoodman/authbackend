@@ -13,6 +13,8 @@ Deployment: Production
 [Payments]
 Modules: stripe
 Valid: false
+Canary:	Always.Member
+; "Canary" member is one who the system will refuse to make subscription adjustments if this user becomes invalid
 
 [Pinpayments]
 Valid: False
