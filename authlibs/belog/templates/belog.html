@@ -51,9 +51,18 @@
 					<hr style="margin:1px" /><div class="form-row">Exclude Modules:</div>
 					<div class="form-row tightcbcell" id="nodeList"> {# Node Form Row #}
 						<div class="form-group">
+							<button type="button" class="btn btn-sm" onclick="ClearButton();" >Clear</button>
+							<button type="button" class="btn btn-sm" onclick="AllButton();" >All</button>
+							<button type="button" class="btn btn-sm" onclick="InvertButton();" >Invert</button>
+						</div>
+						<div class="form-group">
+								<div class="d-flex flex-wrap" id="module_checkbox_group">
 							{% for mod in modules %}
-								<input type="checkbox" name="input_module_{{ mod }}"><label>{{ mod }}</label>
+									<div class="px-2">
+								<input type="checkbox" class="module_checkbox" name="input_module_{{ mod }}"><label>{{ mod }}</label>
+									</div>
 							{% endfor %}
+								</div>
 						</div>
 					</div> {#  Resource Form Row #}
 
@@ -101,5 +110,25 @@
 				todayHighlight: true
 		});
 	});
+
+function AllButton() {
+var x = document.querySelectorAll(".module_checkbox")
+				for (i=0;i<x.length;i++) {
+					 x[i].checked=true;
+				}
+}
+
+function InvertButton() {
+				var x = document.querySelectorAll(".module_checkbox")
+				for (i=0;i<x.length;i++) {
+					 x[i].checked=!x[i].checked;
+				}
+}
+function ClearButton() {
+				var x = document.querySelectorAll(".module_checkbox")
+				for (i=0;i<x.length;i++) {
+					 x[i].checked=false;
+				}
+}
 </script>
 {% endblock %}
