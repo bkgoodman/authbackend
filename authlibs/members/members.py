@@ -336,7 +336,7 @@ def member_setaccess(id):
 
 								if acc and newcheck == False and acc.level < myPerms:
 										#delete
-										db.session.add(Logs(member_id=mid,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id),doneby=current_user.id)
+										db.session.add(Logs(member_id=mid,resource_id=resource.id,event_type=eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id,doneby=current_user.id))
 										db.session.delete(acc)
 
 

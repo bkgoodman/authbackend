@@ -40,6 +40,7 @@ noprivs_mustfail="""
 /nodes
 /kvopts
 /resources
+/api/ubersearch/brad
 /member/Brad.Goodman
 """
 
