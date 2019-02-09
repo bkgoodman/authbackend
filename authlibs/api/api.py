@@ -118,7 +118,7 @@ def api_v1_nodeconfig(node):
 			result['tools'].append(tl)
 
 		#print json_dump(result,indent=2)
-		return json_dump(result, 200, {'Content-type': 'text/plain'})
+		return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 @blueprint.route('/v1/mac/<string:mac>/config', methods=['GET'])
 @api_only
