@@ -94,9 +94,14 @@ def api_v1_nodeconfig(node):
 		kv = KVopt.query.add_column(NodeConfig.value).outerjoin(NodeConfig,((NodeConfig.node_id == n.id) & (NodeConfig.key_id == KVopt.id))).all()
 		result['params']={}
 		for (k,v) in kv:
+			#print "KEy %s Value %s Default %s"%(k.keyname,v,k.default)
 			sp = k.keyname.split(".")
 			val=""
-			if v is not None: val = v
+			if v: 
+				val = v
+			else:
+				val = k.default
+			if val is None: val=""
 			if k.kind.lower() == "boolean":
 				if not v:
 					val = False
@@ -132,7 +137,7 @@ def api_v1_nodeconfig(node):
 			result['tools'].append(tl)
 
 		#print json_dump(result,indent=2)
-		return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+		return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
 
 @blueprint.route('/membersearch/<string:ss>',methods=['GET'])
