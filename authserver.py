@@ -306,10 +306,14 @@ def testdata():
     Active {4}
     Anonymous {5}
     ID  {6}
+    REMOMOTE_ADDDR  {7}
+    HTTP_HOST  {8}
     """.format(request,current_user.member,current_user.email,current_user.is_authenticated,
             current_user.is_active,
             current_user.is_anonymous,
             current_user.get_id(),
+            request.environ['REMOTE_ADDR'],
+            request.environ['HTTP_HOST']
             )
     return text, 200, {'Content-type': 'text/plain'}
 def create_routes():
@@ -323,7 +327,7 @@ def create_routes():
         logger.critical("Critical test")
         return testdata()
 
-    
+
     @app.route('/test/std')
     @login_required
     def TestStd():

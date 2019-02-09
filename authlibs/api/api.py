@@ -34,6 +34,15 @@ def api_only(f):
         return f(*args, **kwargs)
     return decorated
 
+def localhost_only(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if request.environ['REMOTE_ADDR'] != '127.0.0.1':
+            return Response(
+            'Access via localhost only', 403,
+            {'Content-Type': 'text/plain'})
+        return f(*args, **kwargs)
+    return decorated
 
 def check_api_access(username,password):
     a= ApiKey.query.filter_by(username=username).one_or_none()
@@ -58,6 +67,11 @@ def check_api_access(username,password):
 def api_v1_reloadacl():
 		authutil.kick_backend()
 		return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
+
+@blueprint.route('/test/localhost', methods=['GET'])
+@localhost_only
+def test_localhost():
+		return "Success", 200, {'Content-type': 'text/plain'}
 
 @blueprint.route('/v1/whoami', methods=['GET'])
 @api_only
@@ -119,6 +133,80 @@ def api_v1_nodeconfig(node):
 
 		#print json_dump(result,indent=2)
 		return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+
+@blueprint.route('/membersearch/<string:ss>',methods=['GET'])
+@api_only
+@localhost_only
+def api_member_search_handler(ss):
+  output  = json_dump(ubersearch(ss,only=['members'],membertypes=['Active']),indent=2)
+  return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+# REQUIRE json payload with proper JSON content-type as such:
+# curl http://testkey:testkey@127.0.0.1:5000/api/v1/authorize -H "Content-Type:application/json" -d '{"slack_id":"brad.goodman","resources":[4],"members":[11,22,32],"level":2}'
+# This is a hyper-prorected API call, because it cal assume the identity of anyone it specifies
+@blueprint.route('/v1/authorize', methods=['POST'])
+@api_only
+@localhost_only
+def api_v1_authorize():
+  data=request.get_json()
+  if not data:
+		return json_dump({'result':'failure','reason':'Not JSON request'}), 400, {'Content-type': 'application/json'}
+  if 'slack_id' not in data:
+		return json_dump({'result':'failure','reason':'Slack user not specified'}), 400, {'Content-type': 'application/json'}
+  user = data['slack_id']
+  
+  admin = Member.query.filter(Member.slack == user).all()
+  if not admin or len(admin)==0:
+		return json_dump({'result':'failure','reason':'Slack user unknown'}), 400, {'Content-type': 'application/json'}
+
+  if len(admin)>1:
+		return json_dump({'result':'failure','reason':'Multiple slack users found'}), 400, {'Content-type': 'application/json'}
+
+  print "Admin",admin[0].member
+  
+  for rid in data['resources']:
+    r = Resource.query.filter(Resource.id==rid).one()
+    au = AccessByMember.query.filter(AccessByMember.member_id==admin[0].id).filter(AccessByMember.resource_id == rid).one_or_none()
+
+    adminlevel = AccessByMember.LEVEL_NOACCESS
+    if admin[0].privs(['HeadRM']): adminlevel = AccessByMember.LEVEL_HEADRM
+    else: adminlevel = au.level
+  
+    if adminlevel < AccessByMember.LEVEL_TRAINER:
+      return json_dump({'result':'failure','reason':'%s has insufficient privs for %s'%(admin[0].member,r.name)}), 400, {'Content-type': 'application/json'}
+    print "Resource",rid,r.name
+
+    newlevel = data['level']
+    if newlevel>=adminlevel:
+      return json_dump({'result':'failure','reason':'%s has insufficient privs to grant level %s on %s'%(admin[0].member,newlevel,r.name)}), 400, {'Content-type': 'application/json'}
+
+  for mid in data['members']:
+    oldlevel=AccessByMember.LEVEL_NOACCESS
+    m = Member.query.filter(Member.id==mid).one()
+    ac = AccessByMember.query.filter(AccessByMember.member_id==mid).filter(AccessByMember.resource_id == rid).one_or_none()
+    if ac: oldlevel=ac.level
+    print "MEMBER",mid,m.member,oldlevel
+
+    # We have the old level, the (requested) new level, and the admin's priv level -
+    # Lets see if this is an escalation or deescallation, and if we have privileges to do so
+
+    if (oldlevel >= adminlevel):
+      return json_dump({'result':'failure','reason':'%s already has greater privileges on %s than %s can authorize." '%(m.member,r.name,admin[0].member)}), 400, {'Content-type': 'application/json'}
+
+    if ac and newlevel>AccessByMember.LEVEL_NOACCESS: 
+      # Just change the level
+      ac.level=newlevel
+    elif ac and newlevel == AccessByMember.LEVEL_NOACCESS:
+      # Delete it
+      db.session.delete(ac)
+    else:
+      # Create new access record
+      ac = AccessByMember(member_id = m.id,resource_id = r.id,level=newlevel)
+      db.session.add(ac)
+    
+  db.session.commit()
+  return json_dump({'result':'success'}), 200, {'Content-type': 'application/json'}
 
 @blueprint.route('/v1/mac/<string:mac>/config', methods=['GET'])
 @api_only
@@ -211,6 +299,7 @@ def api_v1_show_resource_acl(id):
 		return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/ubersearch/<string:ss>',methods=['GET'])
+@login_required
 def ubersearch_handler(ss):
   output  = json_dump(ubersearch(ss),indent=2)
   return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}

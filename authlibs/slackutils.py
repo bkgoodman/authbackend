@@ -1,6 +1,6 @@
 #!/usr/bin/python
 """
-vim:tabstop=2:expandtab
+vim:tabstop=2:noexpandtab
 Get from: https://www.digicert.com/CACerts/DigiCertGlobalRootCA.crt
 export WEBSOCKET_CLIENT_CA_BUNDLE=DigiCertGlobalRootCA.crt
 
@@ -19,10 +19,12 @@ import os,time,json,datetime,sys
 import linecache
 import init
 from db_models import db, ApiKey, Role, UserRoles, Member, Resource, MemberTag, AccessByMember, Blacklist, Waiver
-from slackclient import SlackClient
+from slackclient import SlackClient 
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response, Markup
+
+from templateCommon import *
 
 Config = init.get_config()
 slack_token = Config.get('Slack','BOT_API_TOKEN')
@@ -39,10 +41,10 @@ def get_users():
 
 def get_users_by_name(all_users=None):
 	# Get a summarized, simplified recordeset
-        # Indexed by username
-        users={}
-        if not all_users:
-            all_users = get_users()
+	# Indexed by username
+	users={}
+	if not all_users:
+		all_users = get_users()
 	for m in all_users['members']:
 		p = m['profile']
 		if not m['is_bot'] and not m['deleted']:
@@ -118,7 +120,7 @@ def automatch_missing_slack_ids():
         #    print "Missing",m.member
     
     db.session.commit()
-    print "Total",total,"Name",name,"Emails",email,"AltEmail",altemail,"Unfound",(total-(name+email+altemail))
+    logger.info("Slack Member match Total %s name %s emails %d altemail %s unfound %s" %(total,name,email,altemail,(total-(name+email+altemail))))
 
 def get_unmatched_slack_ids():
     missing=[]
@@ -137,14 +139,14 @@ def get_unmatched_slack_ids():
             found+=1
         else:
             missing.append({'name':x,'email':users[x]['email']})
-    print "SLACK DB: TOTAL",len(users),"FOUND IN MEMBERS:",found,"ORPHANS",len(missing)
+    logger.info( "SLACK DB: TOTAL"+str(len(users))+" FOUND IN MEMBERS: "+str(found)+" "+str(ORPHANS)+" "+str(len(missing)))
     #for x in missing:
     #    print "MSNG",x,users[x]['email']
     return missing
 
 def get_unmatched_members():
     members =   Member.query.filter((Member.slack == "") | (Member.slack == None)).all()
-    print "Members without slack records: ",len(members)
+    logger.debug( "Members without slack records: %s " % len(members))
     return members
 
 
@@ -172,8 +174,14 @@ def create_routes(app):
                         <input type="submit" value="Undo" name="Undo" />
                         </form>''' % (m.member)
                 flash(Markup("{0} assinged slack ID {1} {2}".format(m.member,m.slack,btn)))
-        slacks=get_unmatched_slack_ids()
-        members=get_unmatched_members()
+        try:
+          slacks=get_unmatched_slack_ids()
+          members=get_unmatched_members()
+        except BaseException as e:
+          logger.error("Failed to contact slack %s"%(str(e)))
+          flash("Could not reach slack. Communication or configuration error","warning")
+          slacks=[]
+          members={}
         return render_template('slack.html',slacks=slacks,members=members)
 
 def cli_slack(cmd,**kwargs):
