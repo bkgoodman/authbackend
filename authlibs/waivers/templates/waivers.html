@@ -2,7 +2,7 @@
 {% block search %}
   <div class=body>
 	<div class="sectionhead">Waiver Data</div>
-		{% if current_user.privs("Useredit") or current_user.privs("Privs","Finance") %}
+		{% if current_user.privs("Useredit") or current_user.privs("Finance") %}
     <a href="{{ url_for('waivers.waivers_update') }}">Update Waiver Data (May take a while)</a>
 		{% endif %}
     <p></p>

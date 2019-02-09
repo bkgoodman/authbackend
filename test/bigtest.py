@@ -50,15 +50,25 @@ mustfail="""
 /tool/asdfsdfgDoesNotexist
 /node/DoesNotExist
 /tool/9999
+/member/9999/tags
 /resource/9999
 /member/9999/edit
+/member/9990/access
 """
 
 internal_err="""
-/member/9990/access
-/member/9999/tags
 """
 
+api_tests = [
+	{'url':"/api/v1/node/node1/config"},
+	{'url':"/api/v1/members","access":"any"},
+	{'url':"/api/v1/whoami"},
+	{'url':"/api/v1/test","access":"any"},
+	{'url':"/api/v3/test","access":"any"},
+	{'url':"/api/membersearch/admin"},
+	{'url':"/api/v1/resources/frontdoor/acl"},
+	{'url':"/api/v0/resources/frontdoor/acl"}
+]
 later="""
 /payments/fees/charge
 /member/tags/lookup
@@ -246,3 +256,66 @@ for x in noprivs_mustfail.split("\n"):
 	if not err:
 		raise BaseException ("%s did not flash error" %(url))
 	print url,r.status_code,err
+
+# Do API tests - WITHOUT login
+req = requests.Session()
+for x in api_tests:
+	url = BASE+x['url']
+	r = req.get(url)
+	if 'access' not in x or x['access'] != "any":
+					if r.status_code < 400 :
+						raise BaseException ("%s API Should have failed auth, but got %d" % (url,r.status_code))
+	print url,r.status_code
+
+# Do API tests - WITH login
+req = requests.Session()
+for x in api_tests:
+	url = BASE+x['url']
+	r = req.get(url, auth=('testkey', 'testkey'))
+	if r.status_code != 200:
+		raise BaseException ("%s API failed %d" % (url,r.status_code))
+	print url,r.status_code
+
+# Let's get granular w/ V0 ACL checking...
+
+r = req.get(url, auth=('testkey', 'testkey'))
+url = BASE+"/api/v0/resources/frontdoor/acl"
+r = req.get(url, auth=('testkey', 'testkey'))
+if r.status_code != 200:
+	raise BaseException ("%s API failed %d" % (url,r.status_code))
+allowed=0
+denied=0
+other=0
+for x in  r.text.split("\n"):
+	sp = x.split(",")
+	if sp[3] == "allowed": allowed+=1
+	elif sp[3] == "denied": denied +=1
+	else: other +=1
+
+print "V0 frontdoor allowed",allowed,"denied",denied,"other",other
+if ((allowed > 370) or (allowed < 270) or (other > 0)):
+	raise BaseException("V0 ACL doesn't seem to have returned good values")
+
+
+# Let's get granular w/ V1 ACL checking...
+
+r = req.get(url, auth=('testkey', 'testkey'))
+url = BASE+"/api/v1/resources/frontdoor/acl"
+r = req.get(url, auth=('testkey', 'testkey'))
+if r.status_code != 200:
+	raise BaseException ("%s API failed %d" % (url,r.status_code))
+rec= r.json()
+allowed=0
+denied=0
+other=0
+for x in rec:
+	if x['allowed'] == "allowed": allowed+=1
+	elif x['allowed'] == "false": denied+=1
+	elif x['allowed'] == "denied": denied+=1
+	else: 
+		print "Got odd V1 frontdoor ACL value for %s: %s" %(x['member'],x['allowed'])
+		other +=1
+	
+print "V1 frontdoor allowed",allowed,"denied",denied,"other",other
+if ((allowed > 370) or (allowed < 270) or (other > 0)):
+	raise BaseException("V1 ACL doesn't seem to have returned good values")

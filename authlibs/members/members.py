@@ -216,7 +216,10 @@ def getAccessLevel(user,resource):
 def member_editaccess(id):
 		"""Controller method to display gather current access details for a member and display the editing interface"""
 		mid = safestr(id)
-		member = db.session.query(Member).filter(Member.id == mid).one()
+		member = db.session.query(Member).filter(Member.id == mid).one_or_none()
+		if not member:
+			flash("Invalid Tag","danger")
+			return redirect(url_for('members.members'))
 		tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
 
 		q = db.session.query(Resource).outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == member.id)))
@@ -353,8 +356,11 @@ def member_tags(id):
 		mid = safestr(id)
 		#sqlstr = "select tag_ident,tag_type,tag_name from tags_by_member where member = '%s'" % mid
 		#tags = query_db(sqlstr)
-                tags = MemberTag.query.filter(MemberTag.member_id==mid).all()
-                member=Member.query.filter(Member.id==mid).one()
+		tags = MemberTag.query.filter(MemberTag.member_id==mid).all()
+		member=Member.query.filter(Member.id==mid).one_or_none()
+		if not member:
+			flash("Invalid Tag","danger")
+			return redirect(url_for('members.members'))
 		return render_template('member_tags.html',mid=mid,tags=tags,rec=member,page="tags")
 
 @blueprint.route('/updatebackends', methods = ['GET'])

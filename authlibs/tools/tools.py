@@ -124,7 +124,7 @@ def _get_tools():
 	q = db.session.query(Tool.name,Tool.id)
 	q = q.add_column(Resource.name.label("resource_name")).join(Resource,Resource.id==Tool.resource_id)
 	q = q.add_column(Node.name.label("node")).outerjoin(Node,Node.id == Tool.node_id)
-	print "QUERY",q
+	#print "QUERY",q
 	return q.all()
 
 def register_pages(app):
