@@ -176,7 +176,6 @@ def logs():
 				r={}
 				r['datetime']=l.time_logged.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
 
-				print "AGO",ago.ago(r['datetime'],now)
 				(r['when'],r['ago'],r['othertime'])=ago.ago(r['datetime'],now)
 				if not l.member_id:
 					l.member_id=""
@@ -254,9 +253,6 @@ def logs():
                     flash ("Invalid format requested","danger")
                     return redirect_url(request.url);
 
-		#resources=Resource.query.all()
-		#tools=Tool.query.all()
-		#nodes=Node.query.all()
 
                 nextoffset = offset+limit
                 if (offset >= count - limit):
@@ -323,7 +319,10 @@ def logs():
                     meta['nomembersearch']=False
 
 
-		return render_template('logs.html',logs=logs,resources=resources,tools=tools,nodes=nodes,meta=meta)
+		fil_resources=Resource.query.all()
+		fil_tools=Tool.query.all()
+		fil_nodes=Node.query.all()
+		return render_template('logs.html',logs=logs,resources=fil_resources,tools=fil_tools,nodes=fil_nodes,meta=meta)
 
 
 @blueprint.route('/large.csv')
