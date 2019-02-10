@@ -145,6 +145,24 @@ def api_v1_nodeconfig(node):
 		#print json_dump(result,indent=2)
 		return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
+# See which tools a user can request access to
+@blueprint.route('/v1/slack/tools/<string:slackid>',methods=['GET'])
+@api_only
+@localhost_only
+def api_slack_tools(slackid):
+  t = db.session.query(Tool)
+  t = t.join(Member,Member.slack == slackid)
+  t = t.join(AccessByMember,((AccessByMember.member_id == Member.id) & (Tool.resource_id == AccessByMember.resource_id)))
+
+  result=""
+  for x in t.all():
+    print x.name,x.short
+    if x.short:
+      result += "`%s` (or `%s`)\n" % (x.name,x.short)
+    else:
+      result += "`%s`\n" % x.name
+  return result, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
+
 @blueprint.route('/v1/slack/open/<string:tool>/<string:slackid>',methods=['GET'])
 @api_only
 @localhost_only
@@ -178,7 +196,7 @@ def api_slack_open(tool,slackid):
       authutil.send_tool_unlock(tool.name,r[0],node,access,code)
       output = "Access granted -  Enter this temporary code into RATT: %s\n(Expires in 3 minutes)" % (code)
     print tool,resource,access
-  return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+  return output, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
   
 
 @blueprint.route('/v1/slack/whoami/<string:slackid>',methods=['GET'])

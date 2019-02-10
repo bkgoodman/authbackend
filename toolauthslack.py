@@ -248,6 +248,15 @@ def api_cmd(sc,user,ctx,*s):
   result += "```"
   return result
 
+def tools_cmd(sc,user,ctx,*s):
+  myid = safestr(user['user']['profile']['display_name'])
+  req = requests.Session()
+  url = "http://127.0.0.1:5000/api/v1/slack/tools/"+str(myid)
+  r = req.get(url, auth=(api_username,api_password))
+  if r.status_code != 200:
+    raise BaseException ("%s API failed %d" % (url,r.status_code))
+  else:
+    return r.text
 
 def use_tool(sc,user,ctx,*s):
   myid = safestr(user['user']['profile']['display_name'])
@@ -445,6 +454,10 @@ verbs = [
 	{	'name':"user", 
 		'desc':"email or slack id",
 		'detail':"A slack or email id in the format of firstname.lastname, or a \"quick id\" as returned from the \"userid\" command like \"01\". Use \"userid\" command to help find a user's ID"
+	},
+	{	'name':"tools", 
+		'desc':"tools - Show tools you have access to",
+		'callback':tools_cmd,
 	},
 	{	'name':"api", 
 		'desc':"api test",
