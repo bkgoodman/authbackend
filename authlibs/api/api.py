@@ -45,6 +45,11 @@ def localhost_only(f):
     return decorated
 
 def check_api_access(username,password):
+    if (current_app.config['globalConfig'].Config.has_option('Slack','SLACKBOT_API_USERNAME') and
+      current_app.config['globalConfig'].Config.has_option('Slack','SLACKBOT_API_PASSWORD')):
+      if ((current_app.config['globalConfig'].Config.get('Slack','SLACKBOT_API_USERNAME') == username) and
+        (current_app.config['globalConfig'].Config.get('Slack','SLACKBOT_API_PASSWORD') == password)):
+        return True
     a= ApiKey.query.filter_by(username=username).one_or_none()
     if not a:
         return False

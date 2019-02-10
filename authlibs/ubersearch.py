@@ -1,3 +1,4 @@
+# vim:tabstop=2:shiftwidth=2:expandtab
 from templateCommon import *
 
 from accesslib import addQuickAccessQuery
@@ -18,6 +19,8 @@ def ubersearch(ss,only=None,membertypes=None):
                     result.append({
                       'title':"%s %s" % (x.firstname,x.lastname),
                       'in':"Inactive Member" if ((s == "No Subscription") or  (s == "Expired")) else "Member",
+                      'id':x.id,
+                      'member':x.member,
                       'url':url_for("members.member_show",id=x.member)
                     })
 
@@ -26,6 +29,7 @@ def ubersearch(ss,only=None,membertypes=None):
             result.append({
               'title':"%s" % (x.name),
               'in':"Resource",
+              'id':x.id,
               'url':url_for("resources.resource_show",resource=x.name)
             })
 
@@ -34,6 +38,7 @@ def ubersearch(ss,only=None,membertypes=None):
             result.append({
               'title':"%s" % (x.name),
               'in':"Tool",
+              'id':x.id,
               'url':url_for("tools.tools_show",tool=x.name)
             })
 
@@ -42,6 +47,7 @@ def ubersearch(ss,only=None,membertypes=None):
             result.append({
               'title':"%s" % (x.name),
               'in':"Node",
+              'id':x.id,
               'url':url_for("nodes.nodes_show",node=x.name)
             })
   return result

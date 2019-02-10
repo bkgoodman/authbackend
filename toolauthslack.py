@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# vim:tabstop=2:shiftwidth=2:expandtab
 
 """
 Get from: https://www.digicert.com/CACerts/DigiCertGlobalRootCA.crt
@@ -18,6 +19,8 @@ logger.addHandler(logging.StreamHandler())
 import os,time,json,datetime,sys
 import linecache
 from authlibs import init
+import requests,urllib,urllib2
+from  authlibs import config
 
 import logging
 logger = logging.getLogger(__name__)
@@ -26,8 +29,13 @@ streamHandler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - SLACKBOT - %(name)s - %(levelname)s - %(message)s')
 streamHandler.setFormatter(formatter)
 
+api_username = config.Config.get("Slack","SLACKBOT_API_USERNAME")
+api_password = config.Config.get("Slack","SLACKBOT_API_PASSWORD")
+
 log_events=[]
 logger.addHandler(streamHandler)
+
+from authlibs.templateCommon import *
 
 logger.info("Files copied")
 print "LOAD"
@@ -63,24 +71,35 @@ def get_users(sc):
 	return users
 
 def matchusers(sc,user,ctx,pattern):
-	users = get_users(sc)
+  matches=[]
 	v=""
 
 	if 'quids' not in ctx:
 		ctx['quids']={}
 
-	for x in users:
-		if users[x]['name'].lower().find(pattern.lower()) >= 0:
+  req = requests.Session()
+  url = "http://127.0.0.1:5000/api/membersearch/"+safestr(pattern)
+  r = req.get(url, auth=(api_username,api_password))
+  if r.status_code != 200:
+    raise BaseException ("%s API failed %d" % (url,r.status_code))
+  members=r.json()
+  for x in members:
+      # Add to quid list
 			for q in range(0,99):
 				f= "{0:02d}".format(q)
 				if f not in ctx['quids']: break
 			
-			v += users[x]['name']+" "+x+" ["+f+"]\n"
-			ctx['quids'][f]=x
-	if v=="": 
-		return ""
-	else:
-	 return v
+      v += ("{1} {2} {0:s}\n".format(x['title'],f,x['member']))
+      inQ=False
+      for q in ctx['quids']:
+        if x['id'] == ctx['quids'][q]['id']: inQ=True
+  
+      if not inQ:
+        ctx['quids'][f]={'name':x['title'],'member':x['member'],'id':x['id']}
+
+			matches.append({'name':x['title'],'member':x['member'],'id':x['id']})
+  print "MATCHUSERS RETURNING",matches
+	return (matches,v)
 
 def cancel_callbacks(ctx):
 	if 'confirm_callback' in ctx: del ctx['confirm_callback']
@@ -88,7 +107,7 @@ def cancel_callbacks(ctx):
 
 def authorize_confirm(sc,user,ctx):
 	cancel_callbacks(ctx)
-	text = "Authorized "+oxfordlist(ctx['authorize_users'],conjunction="and")+" on "+oxfordlist(ctx['authorize_resources'],conjunction="and")+".\n\n(Not really, but pretend that I did)."
+	text = "Authorized "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist(ctx['authorize_resources'],conjunction="and")+".\n\n(Not really, but pretend that I did)."
 	return text
 
 def on_resource(sc,user,ctx,*s):
@@ -97,7 +116,7 @@ def on_resource(sc,user,ctx,*s):
 	if len(s) < 2:
 		return "Authorize on what resource? (Type \"on <resources...>\""
 	resources = s[1:]
-	text = "Authorize "+oxfordlist(ctx['authorize_users'],conjunction="and")+" on "+oxfordlist(resources,conjunction="and")+"? Type \"ok\" to confirm"
+	text = "Authorize "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist(resources,conjunction="and")+"? Type \"ok\" to confirm"
 	ctx['confirm_callback']=authorize_confirm
 	ctx['authorize_resources']=resources
 	return text
@@ -106,7 +125,6 @@ def on_resource(sc,user,ctx,*s):
 
 def authorize(sc,user,ctx,*s):
 	error=""
-	allusers = get_users(sc)
 	if len(s) <2:
 		return "`USAGE: authorize <usersids..> [on <resources...>]`"
 		
@@ -121,37 +139,42 @@ def authorize(sc,user,ctx,*s):
 		else:
 			resources.append(x)
 	
-	names=[]
+	mems=[]
 	for uid in users:
-		u=uid
-		print "Handling",u
+		print "Handling",uid
+    foundQuick=False
 		if 'quids' in ctx:
 			for q in ctx['quids']:
-				print "COMPARE",q,u,ctx['quids'][q]
-				if q==u:
+        print "COMPARE",q,uid
+				if q==uid:
 					u=ctx['quids'][q]
-		if u in allusers:
-			names.append(allusers[u]['name'])
-		else:
-			print "USERID",u,"NOT IN ALLMACHES"
-			if len(u)>=3:
-				possible = matchusers(sc,user,ctx,u)
-			else:
-				possible=""
-			error+=u+" is not a valid userid. "
-			if possible != "":
-				error+="Did you mean one of:\n```\n"+possible+"\n```\n"
-			print "match",u,"got",error
+          mems.append(u)
+          foundQuick=True
+
+    if not foundQuick:
+      print "USERID",uid,"NOT IN ALLMACTHES"
+      if len(uid)>=3:
+        print "MATCHIN USERS"
+        (matches,cleartext) = matchusers(sc,user,ctx,uid)
+      else:
+        matches=[]
+        error+=uid+" is not a valid userid. "
+      if len(matches)>1:
+        error+="Did you mean one of:\n```\n"+cleartext+"\n```\n"
+        return error
+      if len(matches)==1:
+        mems.append(matches[0])
+      print "match",uid,"got",error
 	
 	if error != "":
 		return error+"\n(Correct, or select from above list and try again)"
 
-	if (len(names)==0):
+	if (len(mems)==0):
 		return "You must specify users to authorized on"
-	ctx['authorize_users']=names
+	ctx['authorize_users']=mems
 	if (len(resources)==0):
-		return "Authorize "+oxfordlist(names,conjunction="and")+" on what resource? (Type \"on <resources...>\")"
-	text = "Authorize "+oxfordlist(names,conjunction="and")+" on "+oxfordlist(resources,conjunction="and")+"? Type \"ok\" to confirm"
+		return "Authorize "+oxfordlist([m['name'] for m in mems],conjunction="and")+" on what resource? (Type \"on <resources...>\")"
+	text = "Authorize "+oxfordlist([m['name'] for m in mems],conjunction="and")+" on "+oxfordlist(resources,conjunction="and")+"? Type \"ok\" to confirm"
 	ctx['confirm_callback']=authorize_confirm
 	ctx['authorize_resources']=resources
 	return text
@@ -161,15 +184,38 @@ def divzero(sc,user,ctx,*s):
 	x = 0/0
 	return "Tadah!"
 
+def echo_cmd(sc,user,ctx,*s):
+	print "echo"," ".join([x for x in s])
+	return "Echoed"
+
+def safestr(s):
+  """Sanitize input strings used in some operations"""
+  keepcharacters = r"~|!@#$%^_-+=[]{};:.,></?"
+  return "".join(c for c in s if c.isalnum() or c in keepcharacters).strip()
+
+def api_cmd(sc,user,ctx,*s):
+  result="```"
+  if len(s)<2:
+    return "No string specified"
+  req = requests.Session()
+  url = "http://127.0.0.1:5000/api/membersearch/"+safestr(s[1])
+  r = req.get(url, auth=(api_username,api_password))
+  if r.status_code != 200:
+    raise BaseException ("%s API failed %d" % (url,r.status_code))
+  members=json.loads(r.text)
+  for x in members:
+    print x
+    result += ("{1:4d} {0:s}\n".format(x['title'],x['id']))
+  result += "```"
+  return result
+
 def quickids(sc,user,ctx,*s):
 	if 'quids' not in ctx:
 		return "No IDs cached"
 
-	users = get_users(sc)
 	text=""
-	for q in ctx['quids']:
-		if ctx['quids'][q] in users:
-			text += users[ctx['quids'][q]]['name']+" "+q+"\n"
+	for q in sorted(ctx['quids']):
+      text += ("{0} {1} {2}\n".format(q,ctx['quids'][q]['member'],ctx['quids'][q]['name']))
 	return "```"+text+"```"
 		
 	
@@ -193,7 +239,7 @@ def confirm(sc,user,ctx,*s):
 def userid(sc,user,ctx,*s):
 	if len(s)!=2:
 		return "USAGE: userid <patternid>"
-	v= matchusers(sc,user,ctx,s[1])
+	(matches,v)= matchusers(sc,user,ctx,s[1])
 	if v=="":
 		return "None Found :white_frowning_face:"
 	else:
@@ -312,6 +358,11 @@ verbs = [
 		'desc':"email or slack id",
 		'detail':"A slack or email id in the format of firstname.lastname, or a \"quick id\" as returned from the \"userid\" command like \"01\". Use \"userid\" command to help find a user's ID"
 	},
+	{	'name':"api", 
+		'desc':"api test",
+		'callback':api_cmd,
+		'detail':"Test of API calls"
+	},
 	{	'name':"on", 
 		'callback':on_resource,
 		'desc':"Say what resources you are authorizing users on",
@@ -321,6 +372,12 @@ verbs = [
 		'name':"resource", 
 		"desc":"Tool or resoruce",
 		'detail':"Short name/id of a tool or resource, like \"laser\" or \"lift\". Use \"resources\" command to see a list"
+	},
+	{
+		'name':"echo", 
+		'callback':echo_cmd,
+		"desc":"Echo to console",
+		'detail':"Echo string to console - for debug"
 	},
 	{'name':"help", 'callback':help_cb,'aliases':['?']}
 ]
@@ -348,6 +405,8 @@ def log_event(name,message):
 	
 
 keepgoing=True
+
+
 while keepgoing:
 	log_event("<system>","Reconnect")
 	if sc.rtm_connect():
@@ -368,7 +427,7 @@ while keepgoing:
 			#print "READ",l
 			for msg in l:
 				if 'type' in msg and (msg['type'] == "message"):
-					try:
+					if 1: #try:
 						text="???"
 						#print "Message from ",msg['user'],msg['text'],msg['channel']
 						chan = msg['channel']
@@ -412,7 +471,7 @@ while keepgoing:
 							text += oxfordlist(matches)
 							text += "?\n(`help` for more)"
 						
-					except Exception as e:
+					else: #except Exception as e:
 						text = "Epic fail: ```"+str(e)+"```"
 						log_event( "<Error>",str(e))
 

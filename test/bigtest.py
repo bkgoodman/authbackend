@@ -278,7 +278,6 @@ for x in api_tests:
 
 # Let's get granular w/ V0 ACL checking...
 
-r = req.get(url, auth=('testkey', 'testkey'))
 url = BASE+"/api/v0/resources/frontdoor/acl"
 r = req.get(url, auth=('testkey', 'testkey'))
 if r.status_code != 200:
@@ -299,7 +298,6 @@ if ((allowed > 370) or (allowed < 270) or (other > 0)):
 
 # Let's get granular w/ V1 ACL checking...
 
-r = req.get(url, auth=('testkey', 'testkey'))
 url = BASE+"/api/v1/resources/frontdoor/acl"
 r = req.get(url, auth=('testkey', 'testkey'))
 if r.status_code != 200:
