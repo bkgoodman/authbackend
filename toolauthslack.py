@@ -138,7 +138,7 @@ def resources(sc,user,ctx,*s):
   text="*Resources*:\n"
   for r in get_resources():
     if r['short']:
-      text += "%s or %s\n" % (r['name'],r['short'])
+      text += "%s (or \"%s\")\n" % (r['name'],r['short'])
     else:
       text += "%s\n" % (r['name'])
   return text
@@ -181,7 +181,7 @@ def authorize(sc,user,ctx,*s):
 	mems=[]
 	for uid in users:
 
-    if len(uid)>=3:
+    if len(uid)>=2:
       (matches,cleartext) = matchusers(sc,user,ctx,uid)
     else:
       matches=[]
@@ -503,7 +503,7 @@ while keepgoing:
 			#print "READ",l
 			for msg in l:
 				if 'type' in msg and (msg['type'] == "message"):
-					if 1: #try:
+					try:
 						text="???"
 						#print "Message from ",msg['user'],msg['text'],msg['channel']
 						chan = msg['channel']
@@ -547,7 +547,7 @@ while keepgoing:
 							text += oxfordlist(matches)
 							text += "?\n(`help` for more)"
 						
-					else: #except Exception as e:
+					except Exception as e:
 						text = "Epic fail: ```"+str(e)+"```"
 						log_event( "<Error>",str(e))
 

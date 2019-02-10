@@ -278,9 +278,11 @@ def member_setaccess(id):
 								rr = UserRoles.query.filter(UserRoles.member_id == member.id).filter(UserRoles.role_id == db.session.query(Role.id).filter(Role.name == r)).one_or_none()
 								if rr: 
 										db.session.delete(rr)
+										authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PRIVILEGE_REVOKED.id,message=r,member_id=member.id,doneby=current_user.id,commit=0)
 										flash("Removed %s privs" % r)
 						elif newval and not oldval:
 								rr = UserRoles(member_id = member.id,role_id = db.session.query(Role.id).filter(Role.name == r))
+								authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PRIVILEGE_GRANTED.id,message=r,member_id=member.id,doneby=current_user.id,commit=0)
 								flash("Added %s privs" % r)
 								db.session.add(rr)
 

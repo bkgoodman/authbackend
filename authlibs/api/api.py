@@ -180,12 +180,15 @@ def api_v1_authorize():
 
     adminlevel = AccessByMember.LEVEL_NOACCESS
     if admin[0].privs(['HeadRM']): adminlevel = AccessByMember.LEVEL_HEADRM
-    else: adminlevel = au.level
+    elif au: adminlevel = au.level
+    else: adminlevel= AccessByMember.LEVEL_NOACCESS
   
     if adminlevel < AccessByMember.LEVEL_TRAINER:
       return json_dump({'result':'failure','reason':'%s has insufficient privs for %s'%(admin[0].member,r.name)}), 400, {'Content-type': 'application/json'}
 
     newlevel = data['level']
+    newlevelText = accessLevelToString(newlevel)
+    if newlevel  <= AccessByMember.LEVEL_USER: newlevelText=None
     if newlevel>=adminlevel:
       return json_dump({'result':'failure','reason':'%s has insufficient privs to grant level %s on %s'%(admin[0].member,newlevel,r.name)}), 400, {'Content-type': 'application/json'}
 
@@ -204,11 +207,14 @@ def api_v1_authorize():
     if ac and newlevel>AccessByMember.LEVEL_NOACCESS: 
       # Just change the level
       ac.level=newlevel
+      authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=rid,message=newlevelText,member_id=m.id,doneby=admin[0].id,commit=0)
     elif ac and newlevel == AccessByMember.LEVEL_NOACCESS:
       # Delete it
       db.session.delete(ac)
+      authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED.id,resource_id=rid,member_id=m.id,doneby=admin[0].id,commit=0)
     else:
       # Create new access record
+      authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=rid,member_id=m.id,message=newlevelText,doneby=admin[0].id,commit=0)
       ac = AccessByMember(member_id = m.id,resource_id = r.id,level=newlevel)
       db.session.add(ac)
     

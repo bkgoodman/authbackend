@@ -50,6 +50,13 @@ class RATTBE_LOGEVENT_MEMBER_WAIVER_ACCEPTED:
     id=1010
     desc='Waiver Accepted'
 
+class RATTBE_LOGEVENT_MEMBER_PRIVILEGE_GRANTED:
+    id=1011
+    desc='Member Privilege Granted'
+
+class RATTBE_LOGEVENT_MEMBER_PRIVILEGE_REVOKED:
+    id=1012
+    desc='Member Privilege Revoked'
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'
@@ -149,7 +156,7 @@ class RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED:
     id=4001
     desc='Resource access granted'
 
-class RATTBE_LOGEVENT_RESOURCE_ACCESS_REVOKED:
+class RATTBE_LOGEVENT_RESOURCE_ACCESS_XXX:
     id=4002
     desc='Resource access granted'
 

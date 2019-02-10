@@ -1,6 +1,9 @@
-# vim:shiftwidth=2:expandtab
+# vim:shiftwidth=2:noexpandtab
 
 from ..templateCommon import  *
+
+from datetime import datetime
+from .. import ago
 
 # ------------------------------------------------------------
 # API Routes - Stable, versioned URIs for outside integrations
@@ -38,6 +41,9 @@ blueprint = Blueprint("logs", __name__, template_folder='templates', static_fold
 @blueprint.route('/', methods=['GET'])
 @login_required
 def logs():
+		eastern = dateutil.tz.gettz('US/Eastern')
+		utc = dateutil.tz.gettz('UTC')
+		now = datetime.now()
 		limit = 200
 		offset = 0
 		format='html'
@@ -160,7 +166,7 @@ def logs():
 
 
                 def generate(fmt=None):
-                    fields=['when','user','tool','node','resource','event','doneby','message']
+                    fields=['datetime','user','tool','node','resource','event','doneby','message']
                     if fmt == "csv":
                         s = ""
                         for f in fields:
@@ -168,7 +174,10 @@ def logs():
                         yield s+"\n"
                     for l in dbq.all():
 				r={}
-				r['when']=l.time_logged
+				r['datetime']=l.time_logged.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+
+				print "AGO",ago.ago(r['datetime'],now)
+				(r['when'],r['ago'],r['othertime'])=ago.ago(r['datetime'],now)
 				if not l.member_id:
 					l.member_id=""
 				elif l.member_id in members:
@@ -200,6 +209,7 @@ def logs():
 				elif l.resource_id in resources:
 						r['resource'] = resources[l.resource_id]
 				else:
+						print "Wanted %d got RESOURCES %s" %(keys(l.resource_id,resources))
 						r['resource']="Resource #"+str(l.resource_id)
 
 				if (l.event_type in evt):
@@ -224,7 +234,7 @@ def logs():
 				else:
 						r['doneby']="Member #"+str(l.doneby)
                                 if fmt == "csv":
-                                    fields=['when','user','tool','node','resource','event','doneby','message']
+                                    fields=['datetime','user','tool','node','resource','event','doneby','message']
                                     s = ""
                                     for f in fields:
                                         s += "\""+str(r[f])+"\","
@@ -244,9 +254,9 @@ def logs():
                     flash ("Invalid format requested","danger")
                     return redirect_url(request.url);
 
-		resources=Resource.query.all()
-		tools=Tool.query.all()
-		nodes=Node.query.all()
+		#resources=Resource.query.all()
+		#tools=Tool.query.all()
+		#nodes=Node.query.all()
 
                 nextoffset = offset+limit
                 if (offset >= count - limit):

@@ -98,6 +98,7 @@
 	<table  class="table table-compact supercompact">
       <tr>
         <th>When</th>
+        <th>Ago</th>
         <th>Who</th>
         <th>Tool</th>
         <th>Node</th>
@@ -109,6 +110,7 @@
       {% for l in logs %}
 	  <tr>
 		<td>{{ l.when }}</td>
+		<td>{{ l.ago }} ago</td>
 		<td>
 			{% if l.user %}
 			<a href="{{ url_for("members.member_show",id=l.member_id) }}">
