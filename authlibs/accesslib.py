@@ -140,6 +140,11 @@ def getAccessControlList(resource):
         jsonarr.append({'tagid':hashed_tag_id,'tag_ident':u['tag_ident'],'allowed':allowed,'warning':warning,'member':u['member'],'nickname':u['nickname'],'plan':u['plan'],'last_accessed':u['last_accessed'],'level':u['level'],'raw_tag_id':u['tag_ident']})
     return json_dump(jsonarr,indent=2)
 
+""" This is probably NOT the function you are looking for.
+    it is used to ADD access check functions to a query you
+    are defining elsewhere - so we can keep the logic for this
+    in one common place
+"""
 def addQuickAccessQuery(query):
   query = query.add_column(case([
           ((Subscription.expires_date  == None), 'No Subscription'),
