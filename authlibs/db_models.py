@@ -126,6 +126,12 @@ class AccessByMember(db.Model):
     LEVEL_HEADRM=4 # Equiv of Admin
     LEVEL_NOACCESS=-1
 
+def accessLevelToString(x):
+	if x==AccessByMember.LEVEL_NOACCESS: return "NoAccess"
+	try:
+		return AccessByMember.ACCESS_LEVEL[x]
+	except:
+		return "??"
     
 # Define roles
 class Role(db.Model):
@@ -147,6 +153,7 @@ class Resource(db.Model):
     __bind_key__ = 'main'
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(50), unique=True)
+    short = db.Column(db.String(20), unique=True,nullable=True)
     description = db.Column(db.String(50))
     owneremail = db.Column(db.String(50))
     last_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())

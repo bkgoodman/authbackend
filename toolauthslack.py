@@ -77,28 +77,39 @@ def matchusers(sc,user,ctx,pattern):
 	if 'quids' not in ctx:
 		ctx['quids']={}
 
-  req = requests.Session()
-  url = "http://127.0.0.1:5000/api/membersearch/"+safestr(pattern)
-  r = req.get(url, auth=(api_username,api_password))
-  if r.status_code != 200:
-    raise BaseException ("%s API failed %d" % (url,r.status_code))
-  members=r.json()
-  for x in members:
-      # Add to quid list
-			for q in range(0,99):
-				f= "{0:02d}".format(q)
-				if f not in ctx['quids']: break
-			
-      v += ("{1} {2} {0:s}\n".format(x['title'],f,x['member']))
-      inQ=False
-      for q in ctx['quids']:
-        if x['id'] == ctx['quids'][q]['id']: inQ=True
-  
-      if not inQ:
-        ctx['quids'][f]={'name':x['title'],'member':x['member'],'id':x['id']}
+  foundQuick=False
+  if 'quids' in ctx:
+    for q in ctx['quids']:
+      if q==pattern:
+        u=ctx['quids'][q]
+        matches.append(u)
+        v += ("{1} {2} {0:s}\n".format(u['name'],q,u['member']))
+        return (matches,v)
 
-			matches.append({'name':x['title'],'member':x['member'],'id':x['id']})
-  print "MATCHUSERS RETURNING",matches
+  if not foundQuick:
+    req = requests.Session()
+    url = "http://127.0.0.1:5000/api/membersearch/"+safestr(pattern)
+    r = req.get(url, auth=(api_username,api_password))
+    if r.status_code != 200:
+      raise BaseException ("%s API failed %d" % (url,r.status_code))
+    members=r.json()
+    for x in members:
+        # Add to quid list
+        for q in range(0,99):
+          f= "{0:02d}".format(q)
+          if f not in ctx['quids']: break
+        
+        inQ=False
+        for q in ctx['quids']:
+          if x['id'] == ctx['quids'][q]['id']: 
+            inQ=True
+            v += ("{1} {2} {0:s}\n".format(x['title'],q,x['member']))
+    
+        if not inQ:
+          ctx['quids'][f]={'name':x['title'],'member':x['member'],'id':x['id']}
+          v += ("{1} {2} {0:s}\n".format(x['title'],f,x['member']))
+
+        matches.append({'name':x['title'],'member':x['member'],'id':x['id']})
 	return (matches,v)
 
 def cancel_callbacks(ctx):
@@ -106,17 +117,45 @@ def cancel_callbacks(ctx):
 	if 'cancel_callback' in ctx: del ctx['cancel_callback']
 
 def authorize_confirm(sc,user,ctx):
+  req = requests.Session()
+  url = "http://127.0.0.1:5000/api/v1/authorize"
+  data={'slack_id': user['user']['profile']['display_name']}
+  data['resources']=[r['id'] for r in ctx['authorize_resources']]
+  data['members']=[m['id'] for m in ctx['authorize_users']]
+  data['level']=0
+  r = req.post(url, json=data,auth=(api_username,api_password))
+  if r.status_code == 400:
+    t=r.json()
+    return "Failed: %s" % t['reason']
+  elif r.status_code != 200:
+    raise BaseException ("%s API failed %d" % (url,r.status_code))
+
 	cancel_callbacks(ctx)
-	text = "Authorized "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist(ctx['authorize_resources'],conjunction="and")+".\n\n(Not really, but pretend that I did)."
+	text = "Authorized "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist([x['name'] for x in ctx['authorize_resources']],conjunction="and")+"."
 	return text
 
+def resources(sc,user,ctx,*s):
+  text="*Resources*:\n"
+  for r in get_resources():
+    if r['short']:
+      text += "%s or %s\n" % (r['name'],r['short'])
+    else:
+      text += "%s\n" % (r['name'])
+  return text
+    
 def on_resource(sc,user,ctx,*s):
 	if 'authorize_users' not in ctx:
 		return "Use the \"authorize\" command to say who you're trying to authorize, first"
-	if len(s) < 2:
+  allresources=get_resources()
+  resources=[]
+	for r in s[1:]:
+    for rr in allresources:
+      if (r.lower() == rr['name'].lower()) or (rr['short'] is not None  and r.lower() == rr['short'].lower()):
+        resources.append(rr)
+
+	if len(resources) == 0:
 		return "Authorize on what resource? (Type \"on <resources...>\""
-	resources = s[1:]
-	text = "Authorize "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist(resources,conjunction="and")+"? Type \"ok\" to confirm"
+	text = "Authorize "+oxfordlist([x['name'] for x in ctx['authorize_users']],conjunction="and")+" on "+oxfordlist([r['name'] for r in resources],conjunction="and")+"? Type \"ok\" to confirm"
 	ctx['confirm_callback']=authorize_confirm
 	ctx['authorize_resources']=resources
 	return text
@@ -130,41 +169,35 @@ def authorize(sc,user,ctx,*s):
 		
 	res=False
 	users=[]
-	resources=[]
+	resourcenames=[]
 	for x in s[1:]:
 		if x.lower() == "on":
 			res=True
 		elif res == False:
 			users.append(x)
 		else:
-			resources.append(x)
+			resourcenames.append(x)
 	
 	mems=[]
 	for uid in users:
-		print "Handling",uid
-    foundQuick=False
-		if 'quids' in ctx:
-			for q in ctx['quids']:
-        print "COMPARE",q,uid
-				if q==uid:
-					u=ctx['quids'][q]
-          mems.append(u)
-          foundQuick=True
 
-    if not foundQuick:
-      print "USERID",uid,"NOT IN ALLMACTHES"
-      if len(uid)>=3:
-        print "MATCHIN USERS"
-        (matches,cleartext) = matchusers(sc,user,ctx,uid)
-      else:
-        matches=[]
-        error+=uid+" is not a valid userid. "
-      if len(matches)>1:
-        error+="Did you mean one of:\n```\n"+cleartext+"\n```\n"
-        return error
-      if len(matches)==1:
-        mems.append(matches[0])
-      print "match",uid,"got",error
+    if len(uid)>=3:
+      (matches,cleartext) = matchusers(sc,user,ctx,uid)
+    else:
+      matches=[]
+      error+=uid+" is not a valid userid. "
+    if len(matches)>1:
+      error+="Did you mean one of:\n```\n"+cleartext+"\n```\n"
+      return error
+    if len(matches)==1:
+      mems.append(matches[0])
+
+  allresources=get_resources()
+  resources=[]
+	for r in resourcenames:
+    for rr in allresources:
+      if (r.lower() == rr['name'].lower()) or (rr['short'] is not None  and r.lower() == rr['short'].lower()):
+        resources.append(rr)
 	
 	if error != "":
 		return error+"\n(Correct, or select from above list and try again)"
@@ -174,7 +207,7 @@ def authorize(sc,user,ctx,*s):
 	ctx['authorize_users']=mems
 	if (len(resources)==0):
 		return "Authorize "+oxfordlist([m['name'] for m in mems],conjunction="and")+" on what resource? (Type \"on <resources...>\")"
-	text = "Authorize "+oxfordlist([m['name'] for m in mems],conjunction="and")+" on "+oxfordlist(resources,conjunction="and")+"? Type \"ok\" to confirm"
+	text = "Authorize "+oxfordlist([m['name'] for m in mems],conjunction="and")+" on "+oxfordlist([r['name'] for r in resources],conjunction="and")+"? Type \"ok\" to confirm"
 	ctx['confirm_callback']=authorize_confirm
 	ctx['authorize_resources']=resources
 	return text
@@ -193,21 +226,52 @@ def safestr(s):
   keepcharacters = r"~|!@#$%^_-+=[]{};:.,></?"
   return "".join(c for c in s if c.isalnum() or c in keepcharacters).strip()
 
+def get_resources():
+  resources=[]
+  req = requests.Session()
+  url = "http://127.0.0.1:5000/api/v1/resources"
+  r = req.get(url, auth=(api_username,api_password))
+  if r.status_code != 200:
+    raise BaseException ("%s API failed %d" % (url,r.status_code))
+  res=json.loads(r.text)
+  for x in res:
+    resources.append({'id':x['id'],'short':x['short'],'name':x['name']})
+  return resources
+
 def api_cmd(sc,user,ctx,*s):
   result="```"
   if len(s)<2:
     return "No string specified"
+	(matches,v)= matchusers(sc,user,ctx,s[1])
+  result +=v
+  result +=  "\nReturned %d match.\n" % len(matches)
+  result += "```"
+  return result
+
+
+def privileges(sc,user,ctx,*s):
+  if len(s)<2:
+    return "No user specified"
+	(matches,v)= matchusers(sc,user,ctx,s[1])
+  if (len(matches) == 0):
+    return "No valid user found"
+  if (len(matches) > 1):
+    return "```Ambiguous - chose among:\n"+v+"```"
+
   req = requests.Session()
-  url = "http://127.0.0.1:5000/api/membersearch/"+safestr(s[1])
+  url = "http://127.0.0.1:5000/api/v1/memberprivs/"+str(matches[0]['id'])
   r = req.get(url, auth=(api_username,api_password))
   if r.status_code != 200:
     raise BaseException ("%s API failed %d" % (url,r.status_code))
-  members=json.loads(r.text)
-  for x in members:
-    print x
-    result += ("{1:4d} {0:s}\n".format(x['title'],x['id']))
-  result += "```"
+  privs=r.json()
+  result =  matches[0]['name']+" has privileges on:\n"
+  for p in privs:
+    result += p['resource']
+    if p['level'] != 'User':
+      result += " (%s)" % p['level']
+    result += "\n"
   return result
+
 
 def quickids(sc,user,ctx,*s):
 	if 'quids' not in ctx:
@@ -218,13 +282,13 @@ def quickids(sc,user,ctx,*s):
       text += ("{0} {1} {2}\n".format(q,ctx['quids'][q]['member'],ctx['quids'][q]['name']))
 	return "```"+text+"```"
 		
-	
-def resources(sc,user,ctx,*s):
-	return "None yet :white_frowning_face:"
 
 def default_cancel_callback (sc,user,ctx):
 	del ctx['cancel_callback']
 	return "Canceled"
+
+def clear_cmd(sc,user,ctx,*s):
+  ctx['quids']={}
 
 def cancel(sc,user,ctx,*s):
 	if 'cancel_callback' not in ctx:
@@ -234,6 +298,7 @@ def cancel(sc,user,ctx,*s):
 def confirm(sc,user,ctx,*s):
 	if 'confirm_callback' not in ctx:
 		return "Nothing pending to confirm"
+
 	return ctx['confirm_callback'](sc,user,ctx)
 
 def userid(sc,user,ctx,*s):
@@ -374,10 +439,21 @@ verbs = [
 		'detail':"Short name/id of a tool or resource, like \"laser\" or \"lift\". Use \"resources\" command to see a list"
 	},
 	{
+		'name':"privileges", 
+		'callback':privileges,
+		"desc":"privileges {member}",
+		'detail':"See resource privileges for a user"
+	},
+	{
 		'name':"echo", 
 		'callback':echo_cmd,
 		"desc":"Echo to console",
 		'detail':"Echo string to console - for debug"
+	},
+	{
+		'name':"clear", 
+		'callback':clear_cmd,
+		"desc":"clear - Clear Quick ID Cache"
 	},
 	{'name':"help", 'callback':help_cb,'aliases':['?']}
 ]

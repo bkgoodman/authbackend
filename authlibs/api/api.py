@@ -171,9 +171,8 @@ def api_v1_authorize():
 		return json_dump({'result':'failure','reason':'Slack user unknown'}), 400, {'Content-type': 'application/json'}
 
   if len(admin)>1:
-		return json_dump({'result':'failure','reason':'Multiple slack users found'}), 400, {'Content-type': 'application/json'}
+		return json_dump({'result':'failure','reason':'Multiple slack admin ids found'}), 400, {'Content-type': 'application/json'}
 
-  print "Admin",admin[0].member
   
   for rid in data['resources']:
     r = Resource.query.filter(Resource.id==rid).one()
@@ -185,7 +184,6 @@ def api_v1_authorize():
   
     if adminlevel < AccessByMember.LEVEL_TRAINER:
       return json_dump({'result':'failure','reason':'%s has insufficient privs for %s'%(admin[0].member,r.name)}), 400, {'Content-type': 'application/json'}
-    print "Resource",rid,r.name
 
     newlevel = data['level']
     if newlevel>=adminlevel:
@@ -196,7 +194,6 @@ def api_v1_authorize():
     m = Member.query.filter(Member.id==mid).one()
     ac = AccessByMember.query.filter(AccessByMember.member_id==mid).filter(AccessByMember.resource_id == rid).one_or_none()
     if ac: oldlevel=ac.level
-    print "MEMBER",mid,m.member,oldlevel
 
     # We have the old level, the (requested) new level, and the admin's priv level -
     # Lets see if this is an escalation or deescallation, and if we have privileges to do so
@@ -298,6 +295,29 @@ def api_v1_showmember(id):
                         'lastname': m.lastname,
                         'phone': m.phone}
 		return json_dump(output), 200, {'Content-type': 'application/json'}
+
+@blueprint.route('/v1/memberprivs/<string:id>', methods=['GET'])
+@api_only
+def api_v1_memberprivs(id):
+    output=[]
+    m = Member.query.filter(Member.id==id)
+    m = m.add_column(Resource.name)
+    m = m.add_column(AccessByMember.level)
+    m = m.join(AccessByMember,AccessByMember.member_id == Member.id)
+    m = m.join(Resource,AccessByMember.resource_id == Resource.id)
+    for x in  m.all():
+      output.append({'resource':x[1],'level':accessLevelToString(x[2])})
+    return json_dump(output), 200, {'Content-type': 'application/json'}
+
+
+@blueprint.route('/v1/resources', methods=['GET'])
+@api_only
+def api_v1_get_resources():
+  result=[]
+  resources=Resource.query.all()
+  for x in resources:
+    result.append({'id':x.id,'name':x.name,'short':x.short})
+  return json_dump(result), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['GET'])
 @api_only

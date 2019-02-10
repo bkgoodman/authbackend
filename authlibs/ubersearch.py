@@ -29,6 +29,7 @@ def ubersearch(ss,only=None,membertypes=None):
             result.append({
               'title':"%s" % (x.name),
               'in':"Resource",
+              'short':x.short,
               'id':x.id,
               'url':url_for("resources.resource_show",resource=x.name)
             })

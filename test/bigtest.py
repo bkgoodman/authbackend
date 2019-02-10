@@ -9,6 +9,7 @@ skip_pages="""/api/v1/payments/update
 
 api="""
 /api/v1/members
+/api/v1/resources
 /api/v1/whoami
 /api/v3/test
 /api/v1/test
@@ -67,7 +68,8 @@ api_tests = [
 	{'url':"/api/v3/test","access":"any"},
 	{'url':"/api/membersearch/admin"},
 	{'url':"/api/v1/resources/frontdoor/acl"},
-	{'url':"/api/v0/resources/frontdoor/acl"}
+	{'url':"/api/v0/resources/frontdoor/acl"},
+	{'url':"/api/v1/memberprivs/252"}
 ]
 later="""
 /payments/fees/charge

@@ -27,6 +27,7 @@ def resource_create():
 	"""(Controller) Create a resource from an HTML form POST"""
 	r = Resource()
         r.name = (request.form['input_name'])
+        r.short = (request.form['input_short'])
         r.description = (request.form['input_description'])
         r.owneremail = (request.form['input_owneremail'])
         r.slack_chan = (request.form['input_slack_chan'])
@@ -65,6 +66,7 @@ def resource_update(resource):
                     flash("Error: Resource not found")
                     return redirect(url_for('resources.resources'))
 		r.name = (request.form['input_name'])
+		r.short = (request.form['input_short'])
 		r.description = (request.form['input_description'])
 		r.owneremail = (request.form['input_owneremail'])
 		r.slack_chan = (request.form['input_slack_chan'])
