@@ -35,8 +35,11 @@
 
 <div class="container">
   <div class="form-row">
-    <div class="form-group col-md-8">
+    <div class="form-group col-md-6">
 			{{ input('name',"Tool Name",small="Typically: \"tooltype-specifc\", like \"door-front\" or \"laser-rabbit\"") }}
+    </div>
+    <div class="form-group col-md-6">
+			{{ input('short',"short Name",small="Short name for slack use, like \"rabbit\" or \"lift\"") }}
     </div>
 	</div>
   <div class="form-row">
@@ -45,7 +48,7 @@
 			<select class="form-control" name="input_resource_id">
 				{% for r in resources %}
 					<option name="{{ r.name }}" value="{{ r.id }}"
-					{% if tool.resource_id == r.id %}selected{% endif %}
+					{% if rec.resource_id == r.id %}selected{% endif %}
 					>{{ r.name }}</option>
 				{% endfor %}
 			</select>
@@ -57,7 +60,7 @@
 			<select class="form-control" name="input_node_id">
 				{% for n in nodes %}
 					<option name="{{ n.name }}" value="{{ n.id }}"
-					{% if tool.node_id == n.id %}selected{% endif %}
+					{% if rec.node_id == n.id %}selected{% endif %}
 					>{{ n.name }}</option>
 				{% endfor %}
 			</select>

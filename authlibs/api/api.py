@@ -8,6 +8,7 @@ from authlibs.ubersearch import ubersearch
 from authlibs import membership
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
+import random,string
 
 # You must call this modules "register_pages" with main app's "create_rotues"
 blueprint = Blueprint("api", __name__, template_folder='templates', static_folder="static",url_prefix="/api")
@@ -144,12 +145,84 @@ def api_v1_nodeconfig(node):
 		#print json_dump(result,indent=2)
 		return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
-
-@blueprint.route('/membersearch/<string:ss>',methods=['GET'])
+@blueprint.route('/v1/slack/open/<string:tool>/<string:slackid>',methods=['GET'])
 @api_only
 @localhost_only
-def api_member_search_handler(ss):
-  output  = json_dump(ubersearch(ss,only=['members'],membertypes=['Active']),indent=2)
+def api_slack_open(tool,slackid):
+  r = Member.query.filter(Member.slack == slackid).all()
+  if len(r)>1:
+    output = "You could be one of several possible matching members:\n\n"
+    for x in r:
+      output += "%s\n" % x.member
+    output += "\nPlease ask an admin to help sort this out."
+    logger.error("slack id %s matching several members." % slackid)
+  elif len(r) == 0:
+    output = "I am unable to match a member record to your slack ID. lease contact an admin to sort this out."
+    logger.error("slack id %s has no matching member." % slackid)
+  else:
+    q=Tool.query.filter(((Tool.name.ilike(tool)) | (Tool.short.ilike(tool))))
+    q = q.join(Resource,Tool.resource_id == Resource.id).add_column(Resource.description)
+    q = q.join(Node,Node.id == Tool.node_id).add_column(Node.name)
+    q = q.outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == r[0].id))).add_column(AccessByMember.level)
+    q = q.one_or_none()
+
+    if q is None:
+       output = "No tool/resource by that name found"
+       return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+    (tool,resource,node,access) = q
+    if access is None and not r[0].privs('HeadRM'):
+      output = "You do not have access to %s" % resource
+    else:
+      code = ''.join(random.choice(string.digits) for _ in range(4))
+      authutil.send_tool_unlock(tool.name,r[0],node,access,code)
+      output = "Access granted -  Enter this temporary code into RATT: %s\n(Expires in 3 minutes)" % (code)
+    print tool,resource,access
+  return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+  
+
+@blueprint.route('/v1/slack/whoami/<string:slackid>',methods=['GET'])
+@api_only
+@localhost_only
+def api_slack_whoami(slackid):
+  r = Member.query.filter(Member.slack == slackid).all()
+  if len(r)>1:
+    output = "You could be one of several possible matching members:\n\n"
+    for x in r:
+      output += "%s\n" % x.member
+    output += "\nPlease ask an admin to help sort this out."
+    logger.error("slack id %s matching several members." % slackid)
+  elif len(r) == 0:
+    output = "I am unable to match a member record to your slack ID. lease contact an admin to sort this out."
+    logger.error("slack id %s has no matching member." % slackid)
+  else:
+    m = r[0]
+    output = "You are %s %s (%s)\n" % (m.firstname,m.lastname,m.member)
+    output += "Email: %s\n" % m.email
+    output += "Your membership status: %s\n" % accesslib.quickSubscriptionCheck(member_id=m.id)
+    au = AccessByMember.query.filter(AccessByMember.member_id==m.id).join(Resource,AccessByMember.resource_id == Resource.id)
+    au = au.add_column(Resource.name).all()
+
+    for a in au:
+      level = AccessByMember.LEVEL_NOACCESS
+      if m.privs('HeadRM'): level = AccessByMember.LEVEL_HEADRM
+      else: level = a[0].level
+      if level > AccessByMember.LEVEL_USER:
+        output += "You have %s access to %s\n" % (accessLevelToString(level),a[1])
+      else:
+        output += "You have access to %s\n" % a[1]
+
+    for r in UserRoles.query.filter(UserRoles.member_id == m.id).join(Role,Role.id == UserRoles.role_id).add_column(Role.name).all():
+      (ur,role) = r
+      output += "You have global \"%s\" privileges\n" % role
+    
+  return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+@blueprint.route('/membersearch/<string:searchstr>',methods=['GET'])
+@api_only
+@localhost_only
+def api_member_search_handler(searchstr):
+  output  = json_dump(ubersearch(searchstr,only=['members'],membertypes=['Active']),indent=2)
   return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
 # REQUIRE json payload with proper JSON content-type as such:
@@ -179,7 +252,7 @@ def api_v1_authorize():
     au = AccessByMember.query.filter(AccessByMember.member_id==admin[0].id).filter(AccessByMember.resource_id == rid).one_or_none()
 
     adminlevel = AccessByMember.LEVEL_NOACCESS
-    if admin[0].privs(['HeadRM']): adminlevel = AccessByMember.LEVEL_HEADRM
+    if admin[0].privs('HeadRM'): adminlevel = AccessByMember.LEVEL_HEADRM
     elif au: adminlevel = au.level
     else: adminlevel= AccessByMember.LEVEL_NOACCESS
   

@@ -2,7 +2,7 @@
 {% block body %}
 <div>
 <div class="sectionhead"><h3>Edit Tool</h3></div>
-  <form action={{ url_for('tools.tools_update',tool=tool.id) }} method="POST">
+  <form action={{ url_for('tools.tools_update',tool=rec.id) }} method="POST">
 	{% include 'tool_form.html' %}
 	{% if readonly is not defined or not readonly %}
 	<input type=submit class="btn btn-primary" value="Save changes">
@@ -29,11 +29,11 @@
         </button>
       </div>
       <div class="modal-body">
-	      Are you really sure you want to delete {{ tool.name }}??
+	      Are you really sure you want to delete {{ rec.name }}??
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
-	  <form action={{ url_for('tools.tool_delete',tool=tool.id) }} method="post">
+	  <form action={{ url_for('tools.tool_delete',tool=rec.id) }} method="post">
 		<input class="btn btn-danger" type=submit value="Delete">
 	  </form>
       </div>
@@ -42,7 +42,7 @@
 </div>
   {% endif %} <!-- We have premissions to delete -->
 	
-	{% with tool_id=tool.id %}
+	{% with tool_id=rec.id %}
 	{% include "comments.html" %}
 	{% endwith %}
 {% endblock %}

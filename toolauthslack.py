@@ -223,7 +223,7 @@ def echo_cmd(sc,user,ctx,*s):
 
 def safestr(s):
   """Sanitize input strings used in some operations"""
-  keepcharacters = r"~|!@#$%^_-+=[]{};:.,></?"
+  keepcharacters = r"~|!@#$%^_-+=[]{};:.,><?"
   return "".join(c for c in s if c.isalnum() or c in keepcharacters).strip()
 
 def get_resources():
@@ -248,6 +248,29 @@ def api_cmd(sc,user,ctx,*s):
   result += "```"
   return result
 
+
+def use_tool(sc,user,ctx,*s):
+  myid = safestr(user['user']['profile']['display_name'])
+  if (len(s)<2):
+    print "Which tool or resource?"
+  tool = s[1]
+  req = requests.Session()
+  url = "http://127.0.0.1:5000/api/v1/slack/open/"+tool+"/"+str(myid)
+  r = req.get(url, auth=(api_username,api_password))
+  if r.status_code != 200:
+    raise BaseException ("%s API failed %d" % (url,r.status_code))
+  else:
+    return r.text
+
+def whoami(sc,user,ctx,*s):
+  myid = safestr(user['user']['profile']['display_name'])
+  req = requests.Session()
+  url = "http://127.0.0.1:5000/api/v1/slack/whoami/"+str(myid)
+  r = req.get(url, auth=(api_username,api_password))
+  if r.status_code != 200:
+    raise BaseException ("%s API failed %d" % (url,r.status_code))
+  else:
+    return r.text
 
 def privileges(sc,user,ctx,*s):
   if len(s)<2:
@@ -455,6 +478,21 @@ verbs = [
 		'callback':clear_cmd,
 		"desc":"clear - Clear Quick ID Cache"
 	},
+	{
+		'name':"open", 
+		'callback':use_tool,
+		"desc":"open {resource}  - Request RFID-less access to a tool or specific resource"
+	},
+	{
+		'name':"use", 
+		'callback':use_tool,
+		"desc":"use {resource}  - Request RFID-less access to a tool or specific resource"
+	},
+	{
+		'name':"whoami", 
+		'callback':whoami,
+		"desc":"whoami - ID youself - diagnostic"
+	},
 	{'name':"help", 'callback':help_cb,'aliases':['?']}
 ]
 
@@ -547,8 +585,8 @@ while keepgoing:
 							text += oxfordlist(matches)
 							text += "?\n(`help` for more)"
 						
-					except Exception as e:
-						text = "Epic fail: ```"+str(e)+"```"
+					except BaseException as e:
+						text = ":alert: Epic fail: ```"+str(e)+"```"
 						log_event( "<Error>",str(e))
 
 					sc.rtm_send_message(msg['channel'],text)

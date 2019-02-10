@@ -4,12 +4,12 @@ from templateCommon import *
 from accesslib import addQuickAccessQuery
 
 
-def ubersearch(ss,only=None,membertypes=None):
+def ubersearch(searchstr,only=None,membertypes=None):
   result = []
-  if ss == "": return []
+  if searchstr == "": return []
 
   if not only or 'members' in only:
-          mq = 	Member.query.filter((Member.member.ilike('%'+ss+'%') | Member.alt_email.ilike('%'+ss+'%') | Member.firstname.ilike('%'+ss+'%') | Member.lastname.ilike('%'+ss+'%')))
+          mq = 	Member.query.filter((Member.member.ilike('%'+searchstr+'%') | Member.alt_email.ilike('%'+searchstr+'%') | Member.firstname.ilike('%'+searchstr+'%') | Member.lastname.ilike('%'+searchstr+'%')))
           mq = addQuickAccessQuery(mq)
 
           mq = mq.outerjoin(Subscription,Subscription.member_id == Member.id)
@@ -25,7 +25,7 @@ def ubersearch(ss,only=None,membertypes=None):
                     })
 
   if not only or 'resources' in only:
-          for x in Resource.query.filter((Resource.name.ilike('%'+ss+'%') | Resource.description.ilike('%'+ss+'%'))).all():
+          for x in Resource.query.filter((Resource.name.ilike('%'+searchstr+'%') | Resource.description.ilike('%'+searchstr+'%'))).all():
             result.append({
               'title':"%s" % (x.name),
               'in':"Resource",
@@ -35,16 +35,17 @@ def ubersearch(ss,only=None,membertypes=None):
             })
 
   if not only or 'tools' in only:
-          for x in Tool.query.filter((Tool.name.ilike('%'+ss+'%') | Resource.description.ilike('%'+ss+'%'))).all():
+          for x in Tool.query.filter((Tool.name.ilike('%'+searchstr+'%') | Resource.description.ilike('%'+searchstr+'%'))).all():
             result.append({
               'title':"%s" % (x.name),
               'in':"Tool",
+              'short':x.short,
               'id':x.id,
               'url':url_for("tools.tools_show",tool=x.name)
             })
 
   if not only or 'nodes' in only:
-          for x in Node.query.filter(Node.name.ilike('%'+ss+'%')).all():
+          for x in Node.query.filter(Node.name.ilike('%'+searchstr+'%')).all():
             result.append({
               'title':"%s" % (x.name),
               'in':"Node",

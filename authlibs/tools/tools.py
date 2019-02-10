@@ -25,11 +25,13 @@ def tools_create():
 	"""(Controller) Create a tool from an HTML form POST"""
 	r = Tool()
         r.name = (request.form['input_name'])
+        # None handling shouldn't beneeded with new global form template
         if (request.form['input_node_id'] == "None"):
           r.node_id = None
         else:
           r.node_id = (request.form['input_node_id'])
         r.resource_id = (request.form['input_resource_id'])
+        r.short = (request.form['input_short'])
 	db.session.add(r)
         db.session.commit()
 	flash("Created.")
@@ -50,7 +52,7 @@ def tools_show(tool):
 	nodes=Node.query.all()
 	nodes.append(Node(id="None",name="UNASSINGED")) # TODO BUG This "None" match will break a non-sqlite3 database
 	cc=comments.get_comments(tool_id=tool)
-	return render_template('tool_edit.html',tool=r,resources=resources,readonly=readonly,nodes=nodes,comments=cc)
+	return render_template('tool_edit.html',rec=r,resources=resources,readonly=readonly,nodes=nodes,comments=cc)
 
 @blueprint.route('/<string:tool>', methods=['POST'])
 @login_required
@@ -63,6 +65,9 @@ def tools_update(tool):
                     flash("Error: Tool not found")
                     return redirect(url_for('tools.tools'))
 		r.name = (request.form['input_name'])
+		r.short = (request.form['input_short'])
+
+		# None handling shouldn't beneeded with new global form template
 		if (request.form['input_node_id'] == "None"):
 			r.node_id = None
 		else:
@@ -90,7 +95,7 @@ def tool_showusers(tool):
 		authusers = authusers.outerjoin(Member,AccessByMember.member_id == Member.id)
 		authusers = authusers.filter(AccessByMember.tool_id == db.session.query(Tool.id).filter(Tool.name == rid))
 		authusers = authusers.all()
-		return render_template('tool_users.html',tool=rid,users=authusers)
+		return render_template('tool_users.html',rec=rid,users=authusers)
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('/<string:tool>/log', methods=['GET','POST'])

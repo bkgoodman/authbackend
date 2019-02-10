@@ -842,6 +842,8 @@ if __name__ == '__main__':
 
 
         db.session.commit()
+        print "SUCCESS! You may also want to update pay and waiver data with:"
+        print "curl http://testkey:testkey@localhost:5000/api/cron/nightly"
 
     if not args.overwrite:
         print """
