@@ -3,6 +3,8 @@
 from ..templateCommon import  *
 
 from authlibs.comments import comments
+from authlibs import accesslib
+
 blueprint = Blueprint("tools", __name__, template_folder='templates', static_folder="static",url_prefix="/tools")
 
 
@@ -45,9 +47,13 @@ def tools_show(tool):
 	if not r:
 		flash("Tool not found")
 		return redirect(url_for('tools.tools'))
+	privs = accesslib.user_privs_on_resource(member=current_user,resource=r)
 	readonly=False
 	if (not current_user.privs('RATT')):
 		readonly=True
+	if privs < AccessByMember.LEVEL_ARM:
+		flash("You don't have access to this")
+		return redirect(url_for('index'))
 	resources=Resource.query.all()
 	nodes=Node.query.all()
 	nodes.append(Node(id="None",name="UNASSINGED")) # TODO BUG This "None" match will break a non-sqlite3 database

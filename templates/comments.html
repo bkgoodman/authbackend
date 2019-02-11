@@ -29,7 +29,7 @@ include like:
 	</table>
 
 	{% endif %}
-	{% if not readonly %}
+	{% if allow_comments or not readonly %}
 		<div class="my-3 content">
 			<form method="POST" action="{{ url_for("comments.add_comment") }}">
 				<input type="hidden" name="redirect" value="{{ request.path }}" />

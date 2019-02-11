@@ -861,7 +861,6 @@ if __name__ == '__main__':
         db.session.add(AccessByMember(member_id=5001,resource_id=1,active=True))
         db.session.add(AccessByMember(member_id=5002,resource_id=1,active=True))
         db.session.add(AccessByMember(member_id=5004,resource_id=1,active=True))
-        db.session.add(AccessByMember(member_id=5000,resource_id=5000,level=4,active=True))
         db.session.add(AccessByMember(member_id=5000,resource_id=5001,active=True))
         db.session.add(AccessByMember(member_id=5001,resource_id=5000,active=True))
 

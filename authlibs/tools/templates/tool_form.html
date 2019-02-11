@@ -45,7 +45,7 @@
   <div class="form-row">
     <div class="form-group col-md-8">
       <label for="input_resource_id">Resource Group</label>
-			<select class="form-control" name="input_resource_id">
+			<select {{ ro }} class="form-control" name="input_resource_id">
 				{% for r in resources %}
 					<option name="{{ r.name }}" value="{{ r.id }}"
 					{% if rec.resource_id == r.id %}selected{% endif %}
@@ -57,7 +57,7 @@
   <div class="form-row">
     <div class="form-group col-md-8">
       <label for="input_resource_id">Node</label>
-			<select class="form-control" name="input_node_id">
+			<select {{ ro }} class="form-control" name="input_node_id">
 				{% for n in nodes %}
 					<option name="{{ n.name }}" value="{{ n.id }}"
 					{% if rec.node_id == n.id %}selected{% endif %}

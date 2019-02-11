@@ -35,7 +35,7 @@ blueprint = Blueprint("members", __name__, template_folder='templates', static_f
 @login_required
 def members():
 	members = {}
-        if not current_user.privs('Useredit'):
+        if not current_user.privs('Useredit') and not accesslib.user_is_authorizor(member=current_user,level=AccessByMember.LEVEL_ARM):
             return redirect(url_for('members.member_show',id=current_user.member))
 	return render_template('members.html',rec=members,page="all")
 

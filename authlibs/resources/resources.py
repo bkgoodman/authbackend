@@ -51,8 +51,6 @@ def resource_show(resource):
 		flash("Resource not found")
 		return redirect(url_for('resources.resources'))
 
-	readonly=True
-
 	if accesslib.user_privs_on_resource(member=current_user,resource=r) >= AccessByMember.LEVEL_ARM:
 		readonly=False
 
@@ -61,14 +59,17 @@ def resource_show(resource):
 
 @blueprint.route('/<string:resource>', methods=['POST'])
 @login_required
-@roles_required(['Admin','RATT'])
 def resource_update(resource):
 		"""(Controller) Update an existing resource from HTML form POST"""
 		rname = (resource)
 		r = Resource.query.filter(Resource.id==resource).one_or_none()
 		if not r:
-                    flash("Error: Resource not found")
-                    return redirect(url_for('resources.resources'))
+			flash("Error: Resource not found")
+			return redirect(url_for('resources.resources'))
+		if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+			flash("Error: Permission denied")
+			return redirect(url_for('resources.resources'))
+
 		r.name = (request.form['input_name'])
 		r.short = (request.form['input_short'])
 		r.description = (request.form['input_description'])
@@ -100,10 +101,12 @@ def resource_showusers(resource):
 		authusers = authusers.join(Member,AccessByMember.member_id == Member.id)
 		authusers = authusers.filter(AccessByMember.resource_id == db.session.query(Resource.id).filter(Resource.name == rid))
 		authusers = authusers.order_by(AccessByMember.level.desc())
+		print "QUERY",authusers
 		authusers = authusers.all()
 		accrec=[]
 		for x in authusers:
 			level = accessLevelToString(x[3],blanks=[0,-1])
+			print x[2]," HAS ACCESS ",x[3],level
 			accrec.append({'member_id':x[1],'member':x[2],'level':level})
 			
 		return render_template('resource_users.html',resource=rid,accrecs=accrec)

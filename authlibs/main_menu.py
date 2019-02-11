@@ -23,6 +23,7 @@ def get_raw_menu():
             },
             {
                     'checkfunc':rm_check,
+                    'privs':'RATT',
                     'url':url_for('resources.resources'),
                     'img':url_for("static",filename="building.png"),
                     'alt':"View, Create or Modify Resources Classifactions",
@@ -38,6 +39,7 @@ def get_raw_menu():
             },
             {
                     'privs':'RATT',
+                    'checkfunc':rm_check,
                     'url':url_for('tools.tools'),
                     'img':url_for("static",filename="toolcfg.png"),
                     'alt':"Configure Tools",
@@ -119,8 +121,7 @@ def rm_check(user):
 def main_menu():
   result = []
   for m in get_raw_menu():
-    if 'checkfunc' in m:
-      if m['checkfunc'](current_user):
+    if 'checkfunc' in m and m['checkfunc'](current_user):
         result.append(m)
     elif 'privs' not in m:
         result.append(m)
@@ -132,11 +133,8 @@ def main_menu():
 def index_page():
   result = []
   for m in get_raw_menu():
-    if 'checkfunc' in m:
-      if m['checkfunc'](current_user):
+    if 'checkfunc' in m and m['checkfunc'](current_user):
         result.append(m)
-      else:
-        break
     elif 'privs' not in m:
         if 'importance' not in m: m['importance']="zzz"
         result.append(m)
