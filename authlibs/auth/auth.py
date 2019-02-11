@@ -16,8 +16,11 @@ blueprint = Blueprint("authorize", __name__, template_folder='templates', static
 @blueprint.route('/', methods=['GET','POST'])
 @login_required
 def authorize():
-    """(API) Return a list of all members. either in CSV or JSON"""
-    #print request.form
+    # Before anything - see if we have any privs to do any authorization
+
+    if (not current_user.privs('HeadRM')) and (AccessByMember.query.filter(AccessByMember.member_id == current_user.id).filter(AccessByMember.level > 0).count() == 0):
+      flash("You do not have permissions to authorize people on any resources",'warning')
+      return redirect(url_for("index"))
     others={}
     if "authorize" in request.form:
       members=[]
