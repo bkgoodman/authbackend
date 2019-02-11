@@ -1,7 +1,8 @@
-# vim:shiftwidth=2:expandtab
+# vim:shiftwidth=2:noexpandtab
 
 from ..templateCommon import  *
 
+from authlibs import accesslib
 from authlibs.comments import comments
 blueprint = Blueprint("resources", __name__, template_folder='templates', static_folder="static",url_prefix="/resources")
 # ----------------------------------------------------
@@ -43,28 +44,32 @@ def resource_create():
 @blueprint.route('/<string:resource>', methods=['GET'])
 @login_required
 def resource_show(resource):
-		"""(Controller) Display information about a given resource"""
-		r = Resource.query.filter(Resource.name==resource).one_or_none()
-		tools = Tool.query.filter(Tool.resource_id==r.id).all()
-		if not r:
-                    flash("Resource not found")
-                    return redirect(url_for('resources.resources'))
-                readonly=False
-                if (not current_user.privs('RATT')):
-                    readonly=True
-		cc=comments.get_comments(resource_id=r.id)
-		return render_template('resource_edit.html',rec=r,readonly=readonly,tools=tools,comments=cc)
+	"""(Controller) Display information about a given resource"""
+	r = Resource.query.filter(Resource.name==resource).one_or_none()
+	tools = Tool.query.filter(Tool.resource_id==r.id).all()
+	if not r:
+		flash("Resource not found")
+		return redirect(url_for('resources.resources'))
+
+	if accesslib.user_privs_on_resource(member=current_user,resource=r) >= AccessByMember.LEVEL_ARM:
+		readonly=False
+
+	cc=comments.get_comments(resource_id=r.id)
+	return render_template('resource_edit.html',rec=r,readonly=readonly,tools=tools,comments=cc)
 
 @blueprint.route('/<string:resource>', methods=['POST'])
 @login_required
-@roles_required(['Admin','RATT'])
 def resource_update(resource):
 		"""(Controller) Update an existing resource from HTML form POST"""
 		rname = (resource)
 		r = Resource.query.filter(Resource.id==resource).one_or_none()
 		if not r:
-                    flash("Error: Resource not found")
-                    return redirect(url_for('resources.resources'))
+			flash("Error: Resource not found")
+			return redirect(url_for('resources.resources'))
+		if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+			flash("Error: Permission denied")
+			return redirect(url_for('resources.resources'))
+
 		r.name = (request.form['input_name'])
 		r.short = (request.form['input_short'])
 		r.description = (request.form['input_description'])
@@ -92,11 +97,19 @@ def resource_delete(resource):
 def resource_showusers(resource):
 		"""(Controller) Display users who are authorized to use this resource"""
 		rid = (resource)
-		authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member)
-		authusers = authusers.outerjoin(Member,AccessByMember.member_id == Member.id)
+		authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member,AccessByMember.level)
+		authusers = authusers.join(Member,AccessByMember.member_id == Member.id)
 		authusers = authusers.filter(AccessByMember.resource_id == db.session.query(Resource.id).filter(Resource.name == rid))
+		authusers = authusers.order_by(AccessByMember.level.desc())
+		print "QUERY",authusers
 		authusers = authusers.all()
-		return render_template('resource_users.html',resource=rid,users=authusers)
+		accrec=[]
+		for x in authusers:
+			level = accessLevelToString(x[3],blanks=[0,-1])
+			print x[2]," HAS ACCESS ",x[3],level
+			accrec.append({'member_id':x[1],'member':x[2],'level':level})
+			
+		return render_template('resource_users.html',resource=rid,accrecs=accrec)
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('/<string:resource>/log', methods=['GET','POST'])
@@ -127,7 +140,7 @@ def logging(resource):
 
 
 def _get_resources():
-	q = db.session.query(Resource.name,Resource.owneremail, Resource.description)
+	q = db.session.query(Resource.name,Resource.owneremail, Resource.description, Resource.id)
 	return q.all()
 
 def register_pages(app):

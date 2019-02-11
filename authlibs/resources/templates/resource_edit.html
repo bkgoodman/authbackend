@@ -34,6 +34,7 @@
 	  <p />
   </div>
 
+{% if current_user.privs("RATT") %} {# RATT privs - can delete #}
   <!-- Button trigger for "Delete" modal -->
 <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
   Delete Resource
@@ -61,7 +62,8 @@
     </div>
   </div>
 </div>
-  {% endif %} <!-- WE CAN EDIT -->
+  {% endif %} {# RATT PRIVS - CAN DELETE #}
+  {% endif %} {# WE CAN EDIT #}
 
 	{% with resource_id=rec.id %}
 	{% include "comments.html" %}

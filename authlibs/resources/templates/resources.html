@@ -15,7 +15,10 @@
 		<td><a href="{{ url_for('resources.resource_show',resource=resource.name) }}">{{ resource.name }}</a></td>
 		<td>{{ resource.description }}</td>
 		<td>{{ resource.owneremail }}</td>
-		<td><a href="{{ url_for('resources.resource_showusers',resource=resource.name) }}">See users</a></td>
+		<td>
+				<a class="btn btn-outline-info" href="{{ url_for('resources.resource_showusers',resource=resource.name) }}">Users</a>
+				<a class="btn btn-outline-info" href="{{ url_for('logs.logs',resourceid=resource.id) }}">Logs</a>
+		</td>
 	  </tr>
 	{% endfor %}
 	</table>

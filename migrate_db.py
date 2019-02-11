@@ -713,6 +713,26 @@ if __name__ == '__main__':
             active="true",email_confirmed_at=datetime.utcnow())
         db.session.add(member)
 
+        member = Member(member="testrm",email='testrm@makeitlabs.com',
+            password=app.user_manager.hash_password("testrm"),
+            active="true",email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+
+        member = Member(member="testarm",email='testarm@makeitlabs.com',
+            password=app.user_manager.hash_password("testarm"),
+            active="true",email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+
+        member = Member(member="testtrainer",email='testtrainer@makeitlabs.com',
+            password=app.user_manager.hash_password("testtrainer"),
+            active="true",email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+
+        member = Member(member="testuser",email='testuser@makeitlabs.com',
+            password=app.user_manager.hash_password("testuser"),
+            active="true",email_confirmed_at=datetime.utcnow())
+        db.session.add(member)
+
         member = Member(member="inactive",email='inactive@makeitlabs.com',
             password=app.user_manager.hash_password("inactive"),email_confirmed_at=datetime.utcnow())
         db.session.add(member)
@@ -808,6 +828,7 @@ if __name__ == '__main__':
         db.session.add(KVopt(id=5003,keyname="test2.Option4",options="red;green;blue;chartruse",description="Your favorite color"))
         db.session.add(KVopt(id=5004,keyname="test2.season",default="summer",options="spring;summer;winter;fall",description="A nice season"))
 
+        db.session.flush()
 
         db.session.add(NodeConfig(id=5000,node_id=5000,key_id=5000,value="val1"))
         db.session.add(NodeConfig(id=5001,node_id=5000,key_id=5001,value="val2"))
@@ -815,6 +836,8 @@ if __name__ == '__main__':
         db.session.add(NodeConfig(id=5003,node_id=5001,key_id=5000,value="val1"))
         db.session.add(NodeConfig(id=5004,node_id=5001,key_id=5001,value="val2"))
         db.session.add(NodeConfig(id=5005,node_id=5001,key_id=5004,value="winter"))
+
+        db.session.flush()
 
         res=Resource(id=5000,name="TestResource",description="Test Resource",owneremail="test@makeitlabs.com")
         db.session.add(res)
@@ -832,14 +855,26 @@ if __name__ == '__main__':
             res=Resource(name="autolift",description="Auto lift",owneremail="lift@makeitlabs.com")
             db.session.add(res)
 
+        db.session.flush()
+
         db.session.add(AccessByMember(member_id=5000,resource_id=1,active=True))
         db.session.add(AccessByMember(member_id=5001,resource_id=1,active=True))
         db.session.add(AccessByMember(member_id=5002,resource_id=1,active=True))
         db.session.add(AccessByMember(member_id=5004,resource_id=1,active=True))
-        db.session.add(AccessByMember(member_id=5000,resource_id=5000,level=4,active=True))
         db.session.add(AccessByMember(member_id=5000,resource_id=5001,active=True))
         db.session.add(AccessByMember(member_id=5001,resource_id=5000,active=True))
 
+        db.session.flush()
+
+        # Set privileges for test accounts on test resource
+        testrm = Member.query.filter(Member.member == "testrm").one().id
+        db.session.add(AccessByMember(member_id=testrm,resource_id=5000,active=True,level=3))
+        testarm = Member.query.filter(Member.member == "testarm").one().id
+        db.session.add(AccessByMember(member_id=testarm,resource_id=5000,active=True,level=2))
+        testtrainer = Member.query.filter(Member.member == "testtrainer").one().id
+        db.session.add(AccessByMember(member_id=testtrainer,resource_id=5000,active=True,level=1))
+        testuser = Member.query.filter(Member.member == "testuser").one().id
+        db.session.add(AccessByMember(member_id=testuser,resource_id=5000,active=True,level=0))
 
         db.session.commit()
         print "SUCCESS! You may also want to update pay and waiver data with:"

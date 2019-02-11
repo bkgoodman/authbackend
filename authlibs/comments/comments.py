@@ -59,9 +59,17 @@ def get_comments(**kvargs):
 					done=memc[int(c.doneby)]
 				cc.append({'when':c.time_reported,'doneby':done,'comment':c.message})
 		 return cc
+
+
+""" Permissions here get strange, becuase comments get granuar dependin on what's being commented on
+		We don't have to go crazy, though - they're just comments after all - and everything is inherently
+		tagged with the poster, anyway. For now, we'll just require the user to at least be logged-in,
+		and let the GUI do most of the filtering. 
+
+		TODO we can get more picky if we ever really care later...
+"""
 @blueprint.route('/', methods=['POST'])
 @login_required
-@roles_required(['Admin','RATT','Finance','Useredit'])
 def add_comment():
 	"""(Controller) Display Tools and controls"""
 	c = Logs(doneby=current_user.id,message=request.form['comment'],event_type = eventtypes.RATTBE_LOGEVENT_COMMENT.id)

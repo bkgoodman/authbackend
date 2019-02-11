@@ -1,17 +1,19 @@
 {% extends "layout_bootstrap.html" %}
 {% block body %}
-<div class="sectionhead">Users of '{{ resource }}': ({{ users|length }})</div>
-{% if users|length > 0 %}
+<div class="sectionhead">Users of '{{ resource }}': ({{ accrecs|length }})</div>
+{% if accrecs|length > 0 %}
 <div class="protip">Click a user's name to edit their access for any resource</div>
 <p></p>
-<table border=1 class="table table-sm">
+<table class="table table-sm" >
     <tr>
         <th>Member</th>
+        <th>Access Level</th>
         <th>Last Accessed (FUTURE)</th>
     </tr>
-    {% for user in users %}
+    {% for accrec in accrecs %}
         <tr>
-		<td><a href="{{ url_for('members.member_editaccess',id=user.member) }}">{{ user.member }}</a></td>
+						<td><a href="{{ url_for('members.member_setaccess',id=accrec.member_id) }}">{{ accrec.member }}</a></td>
+            <td>{{ accrec.level }}</td>
             <td></td>
         </tr>
     {% endfor %}

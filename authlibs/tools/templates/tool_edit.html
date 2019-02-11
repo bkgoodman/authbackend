@@ -4,9 +4,7 @@
 <div class="sectionhead"><h3>Edit Tool</h3></div>
   <form action={{ url_for('tools.tools_update',tool=rec.id) }} method="POST">
 	{% include 'tool_form.html' %}
-	{% if readonly is not defined or not readonly %}
 	<input type=submit class="btn btn-primary" value="Save changes">
-	{% endif %}
   </form>
 	{% if readonly is not defined or not readonly %}
   <div class="sectionhead">
@@ -42,7 +40,7 @@
 </div>
   {% endif %} <!-- We have premissions to delete -->
 	
-	{% with tool_id=rec.id %}
+	{% with tool_id=rec.id, allow_comments=1 %}
 	{% include "comments.html" %}
 	{% endwith %}
 {% endblock %}

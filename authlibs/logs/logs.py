@@ -1,8 +1,9 @@
-# vim:shiftwidth=2:noexpandtab
+# vim:shiftwidth=2:expandtab
 
 from ..templateCommon import  *
 
 from datetime import datetime
+from .. import accesslib
 from .. import ago
 
 # ------------------------------------------------------------
@@ -112,11 +113,44 @@ def logs():
                         q = q.filter(Logs.time_reported < dt)
 
 
-                    # Normal users can only see their own log info, but not their comments
-                    if not current_user.privs('Useredit','Finance','RATT'):
-                        q = q.filter(Logs.member_id == current_user.id)
-                        q = q.filter(Logs.event_type != eventtypes.RATTBE_LOGEVENT_COMMENT.id)
-            
+                    # Let's add additional filters, depending on who's asking...
+                    if current_user.privs('Useredit','Finance','RATT'):
+                      # Global Privs which can see everything - no additional filtering
+                      pass
+                    elif accesslib.user_is_authorizor(current_user,level=AccessByMember.LEVEL_ARM):
+                      # User is an ARM on at least one resource - let them see stuff pertianing to those resources,
+                      # their related tools, and the nodes they run on
+                      # TODO
+
+                      # Find resources I manage
+                      myres = AccessByMember.query.join(Resource,((Resource.id == AccessByMember.resource_id) & (AccessByMember.level >= AccessByMember.LEVEL_ARM)))
+                      myres = myres.filter(AccessByMember.member_id == current_user.id)
+                      myres = myres.add_columns(Resource.id,Resource.name).all()
+                      #print "START",len(myres)
+                      my_resources=[]
+                      for x in myres:
+                          print "I MANAGE",x.id,x.name,x.AccessByMember.resource_id
+                          my_resources.append(x.id)
+  
+                      # Find Tools in these resource groups
+                      my_tools=[]
+                      my_nodes=[]
+                      ndlist={}
+                      tls = Tool.query.filter(Tool.resource_id.in_(my_resources)).all()
+                      for t in tls:
+                        print "I Manage tool",t.id,t.name
+                        my_tools.append(t.id)
+                        ndlist[t.node_id] = 1
+
+                      for n in ndlist.keys(): my_nodes.append(n)
+                      print "I manage nodes ",my_nodes
+
+                      # TODO - build a filter query that wraps the resource,tool and node lists
+                    else:
+                      # This is a "normal" unprivileged user. They can only see their own records (excluding comments)
+                      q = q.filter(Logs.member_id == current_user.id)
+                      q = q.filter(Logs.event_type != eventtypes.RATTBE_LOGEVENT_COMMENT.id)
+
                     # Normal query format
 
 
@@ -180,7 +214,13 @@ def logs():
 				if not l.member_id:
 					l.member_id=""
 				elif l.member_id in members:
-						r['user'] = members[l.member_id]['last']+", "+members[l.member_id]['first']
+						r['user'] = ""
+						if members[l.member_id]['last']:
+							r['user'] = members[l.member_id]['last']
+						if members[l.member_id]['last']:
+							r['user'] +=", "+members[l.member_id]['first']
+						if r['user'] == "":
+							r['user'] = members[l.member_id]['member']
 						r['member_id']=members[l.member_id]['member']
 				else:
 						r['user']="Member #"+str(l.member_id)

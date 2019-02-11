@@ -1,5 +1,6 @@
-from flask import url_for
-from flask_user import current_user
+# vim:tabstop=2:expandtab:shiftwidth=2
+from templateCommon import *
+import accesslib
 
 ''' If "img" is missing - will not appear in index page, only menu '''
 
@@ -10,7 +11,7 @@ def get_raw_menu():
                     'url':url_for('authorize.authorize'),
                     'img':url_for("static",filename="menu_key.png"),
                     'title':"Authorize Users",
-                    'alt':"Fast method for basic tool access",
+                    'alt':"Quick method for basic tool access",
                     'importance':1000
             },
             {
@@ -21,6 +22,7 @@ def get_raw_menu():
                     'importance':1010
             },
             {
+                    'checkfunc':rm_check,
                     'privs':'RATT',
                     'url':url_for('resources.resources'),
                     'img':url_for("static",filename="building.png"),
@@ -37,6 +39,7 @@ def get_raw_menu():
             },
             {
                     'privs':'RATT',
+                    'checkfunc':rm_check,
                     'url':url_for('tools.tools'),
                     'img':url_for("static",filename="toolcfg.png"),
                     'alt':"Configure Tools",
@@ -110,24 +113,33 @@ def get_raw_menu():
             }
     ]
 
+def rm_check(user):
+  if user.privs("HeadRM"): return True
+  if accesslib.user_is_authorizor(user,level=2): return True
+  return False
+
 def main_menu():
-        result = []
-        for m in get_raw_menu():
-            if 'privs' not in m:
-                result.append(m)
-            else:
-                if current_user.privs(m['privs']):
-                    result.append(m)
-        return sorted(result,key=lambda x:x['title'])
+  result = []
+  for m in get_raw_menu():
+    if 'checkfunc' in m and m['checkfunc'](current_user):
+        result.append(m)
+    elif 'privs' not in m:
+        result.append(m)
+    else:
+        if current_user.privs(m['privs']):
+            result.append(m)
+  return sorted(result,key=lambda x:x['title'])
 
 def index_page():
-        result = []
-        for m in get_raw_menu():
-            if 'privs' not in m:
-                if 'importance' not in m: m['importance']="zzz"
-                result.append(m)
-            else:
-                if current_user.privs(m['privs']):
-                    if 'importance' not in m: m['importance']="zzz"
-                    result.append(m)
-        return sorted(result,key=lambda x:(str(x["importance"])+"-"+x['title']))
+  result = []
+  for m in get_raw_menu():
+    if 'checkfunc' in m and m['checkfunc'](current_user):
+        result.append(m)
+    elif 'privs' not in m:
+        if 'importance' not in m: m['importance']="zzz"
+        result.append(m)
+    else:
+        if current_user.privs(m['privs']):
+            if 'importance' not in m: m['importance']="zzz"
+            result.append(m)
+  return sorted(result,key=lambda x:(str(x["importance"])+"-"+x['title']))
