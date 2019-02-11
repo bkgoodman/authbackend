@@ -127,7 +127,8 @@ class AccessByMember(db.Model):
     LEVEL_HEADRM=4 # Equiv of Admin
     LEVEL_NOACCESS=-1
 
-def accessLevelToString(x):
+def accessLevelToString(x,blanks=[]):
+	if x in blanks: return ""
 	if x==AccessByMember.LEVEL_NOACCESS: return "NoAccess"
 	try:
 		return AccessByMember.ACCESS_LEVEL[x]

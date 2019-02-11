@@ -1,4 +1,4 @@
-# vim:shiftwidth=2:expandtab
+# vim:shiftwidth=2:noexpandtab
 
 from ..templateCommon import  *
 
@@ -92,11 +92,17 @@ def resource_delete(resource):
 def resource_showusers(resource):
 		"""(Controller) Display users who are authorized to use this resource"""
 		rid = (resource)
-		authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member)
-		authusers = authusers.outerjoin(Member,AccessByMember.member_id == Member.id)
+		authusers = db.session.query(AccessByMember.id,AccessByMember.member_id,Member.member,AccessByMember.level)
+		authusers = authusers.join(Member,AccessByMember.member_id == Member.id)
 		authusers = authusers.filter(AccessByMember.resource_id == db.session.query(Resource.id).filter(Resource.name == rid))
+		authusers = authusers.order_by(AccessByMember.level.desc())
 		authusers = authusers.all()
-		return render_template('resource_users.html',resource=rid,users=authusers)
+		accrec=[]
+		for x in authusers:
+			level = accessLevelToString(x[3],blanks=[0,-1])
+			accrec.append({'member_id':x[1],'member':x[2],'level':level})
+			
+		return render_template('resource_users.html',resource=rid,accrecs=accrec)
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('/<string:resource>/log', methods=['GET','POST'])
@@ -127,7 +133,7 @@ def logging(resource):
 
 
 def _get_resources():
-	q = db.session.query(Resource.name,Resource.owneremail, Resource.description)
+	q = db.session.query(Resource.name,Resource.owneremail, Resource.description, Resource.id)
 	return q.all()
 
 def register_pages(app):

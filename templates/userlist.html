@@ -78,6 +78,7 @@
 	      			{% if not add_checkboxes %}
 				<a href="{{ url_for('members.member_show',id=member.member)}}">
 				{% endif %}
+				{# WARNING! Do not add ANYTHING but cleartext member name when checkboxes are enabled! Will break checkbox form submit code #}
 				{{ member.member }}
 	      			{% if not add_checkboxes %}
 			</a>

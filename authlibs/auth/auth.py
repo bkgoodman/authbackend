@@ -45,12 +45,15 @@ def authorize():
             for r in resources:
                 mem=AccessByMember.query.join(Member,((Member.id==AccessByMember.member_id) & (Member.member==m) & (AccessByMember.resource_id == r.id))).one_or_none()
                 if mem:
+                    #print "%s already has access to %s." % (m,r.name)
                     flash("%s already has access to %s." % (m,r.name),"warning")
                 else:
                     (level,levelText)=authutil.getResourcePrivs(resource=r)
                     if (level <= 0): 
+                        #print "You don't have privileges to grant access on %s" 
                         flash("You don't have privileges to grant access on %s" % r,"danger")
                     else:
+                        #print "%s granted access to %s" % (m,r.name)
                         flash("%s granted access to %s" % (m,r.name),"success")
                         db.session.add(AccessByMember(member_id=Member.query.filter(Member.member == m).with_entities(Member.id),resource_id=r.id,level=0))
 

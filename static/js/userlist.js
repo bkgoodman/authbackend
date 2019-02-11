@@ -203,7 +203,7 @@ function authbutton() {
 
 			var el = document.createElement("input");
 			el.innerHTML = "<input type=\"hidden\" name=\"memberid_"+num+"\""+
-				"value=\""+td[1].innerHTML+"\" />";
+				"value=\""+td[1].innerHTML.trim()+"\" />";
 			document.getElementById('formdata').appendChild(el);
 			num += 1;
 		}
