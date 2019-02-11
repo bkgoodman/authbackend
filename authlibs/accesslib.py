@@ -242,3 +242,27 @@ def access_query(resource_id,member_id=None,tags=True):
 
     return q
     
+# Does this user have the ability to do ANY kind of authorization in the system?
+# Level is the minimum level allowed. So "1" = TRAINER - meaning can do any authorization
+# 2 = ARM would mean can do some RM functions
+def user_is_authorizor(member,member_id=None,level=1):
+    if member_id:
+      member=Member.query.filter(Member.id == member_id).one().id
+    return (member.privs('HeadRM')) or (AccessByMember.query.filter(AccessByMember.member_id == member.id).filter(AccessByMember.level >= level).count() > 0)
+
+# What privs do we have on this resource?
+def user_privs_on_resource(member=None,member_id=None,resource=None,resource_id=None):
+  if member_id:
+    member=Member.query.filter(Member.id == member_id).one().id
+  if resource_id:
+    resource=Resource.query.filter(Resource.id == resource_id).one().id
+
+  if (member.privs('HeadRM','RATT')):
+    return AccessByMember.LEVEL_ADMIN
+
+  q = AccessByMember.query.filter(AccessByMember.resource_id == resource.id)
+  q = q.filter(AccessByMember.member_id == member.id).one_or_none()
+  if not q:
+    return AccessByMember.LEVEL_NOACCESS
+
+  return q.level

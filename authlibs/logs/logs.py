@@ -180,7 +180,13 @@ def logs():
 				if not l.member_id:
 					l.member_id=""
 				elif l.member_id in members:
-						r['user'] = members[l.member_id]['last']+", "+members[l.member_id]['first']
+						r['user'] = ""
+						if members[l.member_id]['last']:
+							r['user'] = members[l.member_id]['last']
+						if members[l.member_id]['last']:
+							r['user'] +=", "+members[l.member_id]['first']
+						if r['user'] == "":
+							r['user'] = members[l.member_id]['member']
 						r['member_id']=members[l.member_id]['member']
 				else:
 						r['user']="Member #"+str(l.member_id)

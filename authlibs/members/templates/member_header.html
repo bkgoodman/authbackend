@@ -7,7 +7,7 @@
 		<button onclick='location.href="{{ url_for("members.member_edit",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="edit" %}outline-{% endif %}info">Edit</button>
 		<button onclick='location.href="{{ url_for("members.member_tags",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="tags" %}outline-{% endif %}info">Tags</button>
 		<button onclick='location.href="{{ url_for("members.member_setaccess",id=rec.id) }}";'  type="button" class="btn btn-{% if page!="access" %}outline-{% endif %}info">Access</button>
-		<button onclick='location.href="{{ url_for("logs.logs",memberid=rec.id) }}";'  type="button" class="btn btn-{% if page!="access" %}outline-{% endif %}info">Log</button>
+		<button onclick='location.href="{{ url_for("logs.logs",memberid=rec.id) }}";'  type="button" class="btn btn-outline-info">Log</button>
 	</div>
 	<div class="container m-0 mb-3 p-0">
 		<div class="m-0 p-0 row">
