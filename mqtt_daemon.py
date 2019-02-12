@@ -15,6 +15,7 @@ from flask import Flask, request, session, g, redirect, url_for, \
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from flask_sqlalchemy import SQLAlchemy
 from authlibs import utilities as authutil
+from slackclient import SlackClient
 import json
 import ConfigParser,sys,os
 import paho.mqtt.client as mqtt
@@ -22,8 +23,27 @@ import paho.mqtt.subscribe as sub
 from datetime import datetime
 from authlibs.init import authbackend_init, createDefaultUsers
 import requests,urllib,urllib2
+import logging, logging.handlers
 
 
+## SETUP LOGGING
+
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+logger=logging.getLogger()
+handler = logging.handlers.RotatingFileHandler(
+    "/tmp/mqtt_dameon.log", maxBytes=(1048576*5), backupCount=7)
+handler.setLevel(logging.DEBUG)
+format = logging.Formatter("%(asctime)s:%(levelname)s:%(module)s:%(message)s")
+handler.setFormatter(format)
+ch = logging.StreamHandler()
+format = logging.Formatter("%(module)s:%(levelname)s:%(message)s")
+ch.setFormatter(format)
+ch.setLevel(logging.DEBUG)
+
+logger.addHandler(ch)
+logger.addHandler(handler)
 
 
 def get_mqtt_opts(app):
@@ -49,7 +69,8 @@ def get_mqtt_opts(app):
 
   if Config.has_option("MQTT","username"):
       mqtt_opts['auth']={'username':app.globalConfig.Config.get("MQTT","username"),'password':app.globalConfig.Config.get("MQTT","password")}
-  return (mqtt_base_topic,mqtt_opts)
+  slack_token = Config.get('Slack','BOT_API_TOKEN')
+  return (mqtt_base_topic,mqtt_opts,slack_token)
 
 def seconds_to_timespan(s):
     hours, remainder = divmod(s, 3600)
@@ -63,6 +84,7 @@ def on_message(client,userdata,msg):
     tool_cache={}
     resource_cache={}
     member_cache={}
+    sc = userdata['slack_context']
     if True: #try:
         with app.app_context():
             log=Logs()
@@ -78,6 +100,7 @@ def on_message(client,userdata,msg):
             nodename=None
             nodeId=None
             resourceId=None
+            associated_resource=None
             log_event_type=None
             log_text=None
 
@@ -106,12 +129,22 @@ def on_message(client,userdata,msg):
             if toolname and toolname in tool_cache:
                 toolId = tool_cache[toolname]['id']
                 resourceId = tool_cache[toolname]['resource_id']
+                associated_resource = tool_cache[toolname]['data']
             elif toolname:
-                t = db.session.query(Tool.id,Tool.resource_id).filter(Tool.name==toolname).first()
+                t = db.session.query(Tool.id,Tool.resource_id).filter(Tool.name==toolname)
+                t = t.join(Resource,Resource.id == Tool.resource_id)
+                t = t.add_column(Resource.slack_chan)
+                t = t.add_column(Resource.slack_admin_chan)
+                t = t.add_column(Resource.slack_info_text)
+                t = t.one_or_none()
                 if t:
-                    tool_cache[toolname]={"id":t.id,"resource_id":t.resource_id}
+                    tool_cache[toolname]={"id":t.id,"resource_id":t.resource_id,"data": {
+                        'slack_chan':t.slack_chan,
+                        'slack_admin_chan':t.slack_admin_chan,
+                        'slack_info_text':t.slack_info_text}}
                     toolId = tool_cache[toolname]['id']
                     resourceId = tool_cache[toolname]['resource_id']
+                    associated_resource = tool_cache[toolname]['data']
             
             if member and member in member_cache:
                 memberId = member_cache[member]
@@ -234,7 +267,18 @@ def on_message(client,userdata,msg):
                 logevent.tool_id=toolId
                 logevent.time_reported=datetime.now()
                 logevent.event_type = log_event_type
-                logevent.message = log_text
+                logevent.message = str(toolname)+": "+log_text
+
+                # Do slack notification
+                if associated_resource and associated_resource['slack_admin_chan']:
+                  try:
+                    res = sc.api_call(
+                      "chat.postMessage",
+                      channel=associated_resource['slack_admin_chan'],
+                      text=log_text
+                    )
+                  except BaseException as e:
+                    print "ERROR",e
                 db.session.add(logevent)
                 db.session.commit()
             print member,toolname,nodeId,log_event_type,log_text
@@ -252,10 +296,21 @@ if __name__ == '__main__':
 
     with app.app_context():
       # The callback for when the client receives a CONNACK response from the server.
-      (base_topic,opts) = get_mqtt_opts(app)
+      (base_topic,opts,slack_api_token) = get_mqtt_opts(app)
+      sc = SlackClient(slack_api_token)
+      # TODO BKG BUG change channel
+      res = sc.api_call(
+        "chat.postMessage",
+        channel="#test-resource-admins",
+        text="mqtt daemon alive :tada:"
+      )
+      if res['ok'] == False:
+        logger.error("Slack MQTT test message failed: %s"%res['error'])
       while True:
+          # TODO BKG BUG re-add error-safe logic here
           if 1: #try:
-            sub.callback(on_message, "ratt/#", **opts)
+            callbackdata={'slack_context':sc}
+            sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
             sub.loop_forever()
             sub.loop_misc()
             time.sleep(1)
