@@ -58,6 +58,23 @@ def resource_show(resource):
 	cc=comments.get_comments(resource_id=r.id)
 	return render_template('resource_edit.html',rec=r,readonly=readonly,tools=tools,comments=cc)
 
+@blueprint.route('/<string:resource>/usage', methods=['GET'])
+@login_required
+def resource_usage(resource):
+	"""(Controller) Display information about a given resource"""
+	r = Resource.query.filter(Resource.name==resource).one_or_none()
+	tools = Tool.query.filter(Tool.resource_id==r.id).all()
+	if not r:
+		flash("Resource not found")
+		return redirect(url_for('resources.resources'))
+
+	readonly=True
+	if accesslib.user_privs_on_resource(member=current_user,resource=r) >= AccessByMember.LEVEL_ARM:
+		readonly=False
+
+	cc=comments.get_comments(resource_id=r.id)
+	return render_template('resource_usage.html',rec=r,readonly=readonly,tools=tools,comments=cc)
+
 @blueprint.route('/<string:resource>', methods=['POST'])
 @login_required
 def resource_update(resource):
