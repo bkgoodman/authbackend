@@ -51,6 +51,7 @@ def resource_show(resource):
 		flash("Resource not found")
 		return redirect(url_for('resources.resources'))
 
+	readonly=True
 	if accesslib.user_privs_on_resource(member=current_user,resource=r) >= AccessByMember.LEVEL_ARM:
 		readonly=False
 

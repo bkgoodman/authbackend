@@ -140,6 +140,7 @@ def api_v1_nodeconfig(node):
 			tl['resource_id']=rid
 			tl['resource']=resname
 			tl['id']=t.id
+			tl['lockout']=t.lockout
 			result['tools'].append(tl)
 
 		#print json_dump(result,indent=2)

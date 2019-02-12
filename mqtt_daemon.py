@@ -8,7 +8,7 @@ This is a daemon only used to log stuff via MQTT
 
 from authlibs.eventtypes import *
 import sqlite3, re, time
-from authlibs.db_models import db,  Role, UserRoles, Member, Resource, AccessByMember, Logs, Tool, UsageLog
+from authlibs.db_models import db,  Role, UserRoles, Member, Resource, AccessByMember, Logs, Tool, UsageLog, Node
 import argparse
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response
@@ -27,24 +27,29 @@ import requests,urllib,urllib2
 
 
 def get_mqtt_opts(app):
-    opts={}
-    ka=None
-    base_topic = app.globalConfig.Config.get("MQTT","BaseTopic")
-    host = app.globalConfig.Config.get("MQTT","BrokerHost")
-    port = app.globalConfig.Config.getint("MQTT","BrokerPort")
-    if app.globalConfig.Config.has_option("MQTT","keepalive"):
-        opts['keepalive']=app.globalConfig.Config.getint("MQTT","keepalive")
-    if app.globalConfig.Config.has_option("MQTT","SSL") and app.globalConfig.Config.getboolean("MQTT","SSL"):
-        tls={}
-        for (k,v) in app.globalConfig.Config.items("MQTT_SSL"):
-            tls[k]=v
-        opts['tls']=tls
+  Config = ConfigParser.ConfigParser({})
+  Config.read('makeit.ini')
+  mqtt_opts={}
+  mqtt_base_topic = Config.get("MQTT","BaseTopic")
+  mqtt_opts['hostname'] = Config.get("MQTT","BrokerHost")
+  mqtt_opts['port'] = Config.getint("MQTT","BrokerPort")
+  if Config.has_option("MQTT","keepalive"):
+      mqtt_opts['keepalive']=Config.getint("MQTT","keepalive")
+  if Config.has_option("MQTT","SSL") and Config.getboolean("MQTT","SSL"):
+      mqtt_opts['tls']={}
+      mqtt_opts['tls']['ca_certs'] = Config.get('MQTT_SSL', 'ca_certs')
+      mqtt_opts['tls']['certfile'] = Config.get('MQTT_SSL', 'certfile')
+      mqtt_opts['tls']['keyfile'] = Config.get('MQTT_SSL', 'keyfile')
 
-    if app.globalConfig.Config.has_option("MQTT","username"):
-        auth={'username':app.globalConfig.Config.get("MQTT","username"),'password':app.globalConfig.Config.get("MQTT","password")}
-        opts['auth']=auth
+      if Config.has_option('MQTT_SSL', 'tls_version'):
+          mqtt_opts['tls']['tls_version'] = Config.get('MQTT_SSL', 'tls_version')
 
-    return (host,port,base_topic,opts)
+      if Config.has_option('MQTT_SSL', 'ciphers'):
+          mqtt_opts['tls']['ciphers'] = Config.get('MQTT_SSL', 'ciphers')
+
+  if Config.has_option("MQTT","username"):
+      mqtt_opts['auth']={'username':app.globalConfig.Config.get("MQTT","username"),'password':app.globalConfig.Config.get("MQTT","password")}
+  return (mqtt_base_topic,mqtt_opts)
 
 def seconds_to_timespan(s):
     hours, remainder = divmod(s, 3600)
@@ -78,13 +83,12 @@ def on_message(client,userdata,msg):
 
             # base_topic+"/control/broadcast/acl/update"
             if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
-                print "CLEARING CACHE"
                 tool_cache={}
                 resource_cache={}
                 member_cache={}
             elif topic[0]=="ratt" and topic[1]=="status":
                 if topic[2]=="node":
-                    t=Tool.query.filter(Tool.frontend==topic[3]).one()
+                    t=Tool.query.join(Node,Node.id == Tool.id).one_or_none()
                     toolname=t.name
                 elif topic[2]=="tool":
                     toolname=topic[3]
@@ -92,6 +96,7 @@ def on_message(client,userdata,msg):
             subt=topic[4]
             sst=topic[5]
             member=None
+            print "GOT SUBT",subt,"SST",sst
             if 'toolId' in message: toolId=message['toolId']
             if 'nodeId' in message: toolId=message['noolId']
             if 'toolname' in message: toolname=message['toolname']
@@ -122,7 +127,7 @@ def on_message(client,userdata,msg):
                     memberId=m.id
 
 
-            print "Tool",toolname,toolId,"Node",nodename,nodeId,"Member",member,memberId
+            print "GOT DATA: Tool",toolname,toolId,"Node",nodename,nodeId,"Member",member,memberId,'=='
 
             if subt=="wifi":
                     # TODO throttle these!
@@ -222,6 +227,7 @@ def on_message(client,userdata,msg):
                     db.session.commit()
 
             if log_event_type:
+                print "Write log vent type",log_event_type
                 logevent = Logs()
                 logevent.member_id=memberId
                 logevent.resource_id=resourceId
@@ -246,19 +252,21 @@ if __name__ == '__main__':
 
     with app.app_context():
       # The callback for when the client receives a CONNACK response from the server.
-      (host,port,base_topic,opts) = get_mqtt_opts(app)
+      (base_topic,opts) = get_mqtt_opts(app)
       while True:
-          try:
-            sub.callback(on_message, "ratt/#", hostname=host, port=port,**opts)
+          if 1: #try:
+            sub.callback(on_message, "ratt/#", **opts)
             sub.loop_forever()
             sub.loop_misc()
             time.sleep(1)
             msg = sub.simple("ratt/#", hostname=host,port=port,**opts)
             print("%s %s" % (msg.topic, msg.payload))
+            """
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
           except:
             print "EXCEPT"
             time.sleep(1)
+            """
 
 

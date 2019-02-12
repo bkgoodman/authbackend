@@ -129,7 +129,6 @@ def logs():
                       #print "START",len(myres)
                       my_resources=[]
                       for x in myres:
-                          print "I MANAGE",x.id,x.name,x.AccessByMember.resource_id
                           my_resources.append(x.id)
   
                       # Find Tools in these resource groups
@@ -138,12 +137,10 @@ def logs():
                       ndlist={}
                       tls = Tool.query.filter(Tool.resource_id.in_(my_resources)).all()
                       for t in tls:
-                        print "I Manage tool",t.id,t.name
                         my_tools.append(t.id)
                         ndlist[t.node_id] = 1
 
                       for n in ndlist.keys(): my_nodes.append(n)
-                      print "I manage nodes ",my_nodes
 
                       # I can see my own records (but not comments), too
                       my_filter = and_(Logs.member_id.__eq__(current_user.id), Logs.event_type.__ne__(eventtypes.RATTBE_LOGEVENT_COMMENT.id))
