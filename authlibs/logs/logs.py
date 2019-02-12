@@ -145,7 +145,10 @@ def logs():
                       for n in ndlist.keys(): my_nodes.append(n)
                       print "I manage nodes ",my_nodes
 
-                      # TODO - build a filter query that wraps the resource,tool and node lists
+                      # I can see my own records (but not comments), too
+                      my_filter = and_(Logs.member_id.__eq__(current_user.id), Logs.event_type.__ne__(eventtypes.RATTBE_LOGEVENT_COMMENT.id))
+                      filter_group = (Logs.node_id.in_(my_nodes),Logs.resource_id.in_(my_resources),Logs.tool_id.in_(my_tools),my_filter)
+                      q = q.filter(or_(*filter_group))
                     else:
                       # This is a "normal" unprivileged user. They can only see their own records (excluding comments)
                       q = q.filter(Logs.member_id == current_user.id)

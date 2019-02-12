@@ -156,7 +156,6 @@ def api_slack_tools(slackid):
 
   result=""
   for x in t.all():
-    print x.name,x.short
     if x.short:
       result += "`%s` (or `%s`)\n" % (x.name,x.short)
     else:
@@ -195,7 +194,6 @@ def api_slack_open(tool,slackid):
       code = ''.join(random.choice(string.digits) for _ in range(4))
       authutil.send_tool_unlock(tool.name,r[0],node,access,code)
       output = "Access granted -  Enter this temporary code into RATT: %s\n(Expires in 3 minutes)" % (code)
-    print tool,resource,access
   return output, 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
   
 

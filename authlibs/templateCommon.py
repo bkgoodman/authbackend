@@ -25,7 +25,7 @@ from utilities import _safestr as safestr
 from json import loads as json_load
 from json import dumps as json_dump
 import utilities as authutil
-from sqlalchemy import or_, func, case
+from sqlalchemy import and_, or_, func, case
 
 
 # Set-up actual database logging
