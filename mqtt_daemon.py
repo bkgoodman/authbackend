@@ -24,6 +24,7 @@ from datetime import datetime
 from authlibs.init import authbackend_init, createDefaultUsers
 import requests,urllib,urllib2
 import logging, logging.handlers
+from  authlibs import eventtypes
 
 
 ## SETUP LOGGING
@@ -109,6 +110,7 @@ def on_message(client,userdata,msg):
                 tool_cache={}
                 resource_cache={}
                 member_cache={}
+                userdata['events']=eventtypes.get_events()
             elif topic[0]=="ratt" and topic[1]=="status":
                 if topic[2]=="node":
                     t=Tool.query.join(Node,Node.id == Tool.id).one_or_none()
@@ -119,7 +121,6 @@ def on_message(client,userdata,msg):
             subt=topic[4]
             sst=topic[5]
             member=None
-            print "GOT SUBT",subt,"SST",sst
             if 'toolId' in message: toolId=message['toolId']
             if 'nodeId' in message: toolId=message['noolId']
             if 'toolname' in message: toolname=message['toolname']
@@ -148,19 +149,19 @@ def on_message(client,userdata,msg):
             
             if member and member in member_cache:
                 memberId = member_cache[member]
-                print "CACHE",memberId,"FROM",member
+                #print "CACHE",memberId,"FROM",member
             elif member:
                 q = db.session.query(Member.id).filter(Member.member==member)
                 m = q.first()
-                print "QUERY MEMBER",q
-                print "RETURNED",m.id
+                #print "QUERY MEMBER",q
+                #print "RETURNED",m.id
                 if m:
-                    print "CACHE",member,"=",m.id
+                    #print "CACHE",member,"=",m.id
                     member_cache[member]=m.id
                     memberId=m.id
 
 
-            print "GOT DATA: Tool",toolname,toolId,"Node",nodename,nodeId,"Member",member,memberId,'=='
+            #print "GOT DATA: Tool",toolname,toolId,"Node",nodename,nodeId,"Member",member,memberId,'=='
 
             if subt=="wifi":
                     # TODO throttle these!
@@ -260,29 +261,34 @@ def on_message(client,userdata,msg):
                     db.session.commit()
 
             if log_event_type:
-                print "Write log vent type",log_event_type
                 logevent = Logs()
                 logevent.member_id=memberId
                 logevent.resource_id=resourceId
                 logevent.tool_id=toolId
                 logevent.time_reported=datetime.now()
+                logevent.time_logged=datetime.now()
                 logevent.event_type = log_event_type
-                logevent.message = str(toolname)+": "+log_text
+                logevent.message = log_text
 
                 # Do slack notification
-                if associated_resource and associated_resource['slack_admin_chan']:
+                if log_event_type and toolname and associated_resource and associated_resource['slack_admin_chan']:
                   try:
+                    slacktext="" 
+                    if log_event_type in userdata['events']:
+                      slacktext="%s: %s "%  (str(toolname),userdata['events'][log_event_type])
+                    else:
+                      slacktext="%s: Event #%s" % (str(toolname),log_event_type)
+                    if member: slacktext += " "+member
+                    if log_text: slacktext += " "+log_text
                     res = sc.api_call(
                       "chat.postMessage",
                       channel=associated_resource['slack_admin_chan'],
-                      text=log_text
+                      text=slacktext
                     )
-                  except BaseException as e:
+                  except BaseExcepton as e:
                     print "ERROR",e
                 db.session.add(logevent)
                 db.session.commit()
-            print member,toolname,nodeId,log_event_type,log_text
-            print
     else: # except BaseException as e:
         print "LOG ERROR",e,"PAYLOAD",msg.payload
         print "NOW4"
@@ -310,6 +316,7 @@ if __name__ == '__main__':
           # TODO BKG BUG re-add error-safe logic here
           if 1: #try:
             callbackdata={'slack_context':sc}
+            callbackdata['events']=eventtypes.get_events()
             sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
             sub.loop_forever()
             sub.loop_misc()
