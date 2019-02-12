@@ -140,7 +140,7 @@ def getResourcePrivs(resource=None,member=None,resourcename=None,memberid=None):
 # (Default)  "commit=1" to log and commit immediatley. THis will use a separate DB context as to
 # not interfere with anything else.
 # Use  "commit=0" will NOT commit. User MUST commit the default db.session to commit.
-def log(eventtype=0,message=None,member=None,member_id=None,resource_id=None,text=None,doneby=None,commit=1):
+def log(eventtype=0,message=None,member=None,tool_id=None,member_id=None,resource_id=None,text=None,doneby=None,commit=1):
     logsess = db.session
     if commit:
         logsess = db.create_scoped_session(
@@ -148,7 +148,7 @@ def log(eventtype=0,message=None,member=None,member_id=None,resource_id=None,tex
                      binds={}))
     if not member_id and member:
       member_id = member.id
-    logsess.add(Logs(member_id=member_id,resource_id=resource_id,event_type=eventtype,doneby=doneby,message=message))
+    logsess.add(Logs(member_id=member_id,resource_id=resource_id,tool_id=tool_id,event_type=eventtype,doneby=doneby,message=message))
     if commit:
         logsess.commit()
 
@@ -163,11 +163,32 @@ def kick_backend():
     except BaseException as e:
         logging.debug("MQTT acl/update failed to publish: "+str(e))
 
+# This is the one to allow a user temporary accces
 def send_tool_unlock(toolname,member,node,level,code):
     try:
       gc= current_app.config['globalConfig']
-      topic= gc.mqtt_base_topic+"/control/%s/allow" % (node)
+      topic= gc.mqtt_base_topic+"/control/node/%s/allow" % (node)
       data = {'member':member.member,'member_id':member.id,'level':level,'code':code,'node':node,'tool':toolname}
+      mqtt_pub.single(topic, json.dumps(data), hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
+    except BaseException as e:
+        logging.warning("MQTT acl/update failed to send tool open message: "+str(e))
+
+# Send a "lockout" to a tool
+def send_tool_lockout(toolname,node,reason):
+    try:
+      gc= current_app.config['globalConfig']
+      topic= gc.mqtt_base_topic+"/control/node/%s/personality/lock" % (node)
+      data = {'reason':reason,'tool':toolname}
+      mqtt_pub.single(topic, json.dumps(data), hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
+    except BaseException as e:
+        logging.warning("MQTT acl/update failed to send tool open message: "+str(e))
+
+# Send a "removelockout" to a tool
+def send_tool_remove_lockout(toolname,node):
+    try:
+      gc= current_app.config['globalConfig']
+      topic= gc.mqtt_base_topic+"/control/node/%s/personality/unlock" % (node)
+      data = {'tool':toolname}
       mqtt_pub.single(topic, json.dumps(data), hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
     except BaseException as e:
         logging.warning("MQTT acl/update failed to send tool open message: "+str(e))

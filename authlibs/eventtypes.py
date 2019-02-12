@@ -105,15 +105,15 @@ class RATTBE_LOGEVENT_TOOL_INACTIVE:
 
 class RATTBE_LOGEVENT_TOOL_LOCKOUT_PENDING:
     id=3005
-    desc='Lockout Pending'
+    desc='Tool Lockout Pending'
 
 class RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED:
     id=3006
-    desc='Locked-out'
+    desc='Tool Locked-out'
 
 class RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED:
     id=3007
-    desc='Lockout removed'
+    desc='Tool Unlocked'
 
 class RATTBE_LOGEVENT_TOOL_LOCKOUT_OTHER:
     id=3008

@@ -97,6 +97,7 @@ class Tool(db.Model):
     __bind_key__ = 'main'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True)
+    lockout = db.Column(db.String(100), nullable=True)
     short = db.Column(db.String(20), unique=True, nullable=True)
     node_id = db.Column(db.Integer(), db.ForeignKey('nodes.id', ondelete='CASCADE'))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))

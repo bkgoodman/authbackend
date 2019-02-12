@@ -34,7 +34,7 @@ def tools_create():
           r.node_id = (request.form['input_node_id'])
         r.resource_id = (request.form['input_resource_id'])
         r.short = (request.form['input_short'])
-	db.session.add(r)
+        db.session.add(r)
         db.session.commit()
 	flash("Created.")
 	return redirect(url_for('tools.tools'))
@@ -58,7 +58,50 @@ def tools_show(tool):
 	nodes=Node.query.all()
 	nodes.append(Node(id="None",name="UNASSINGED")) # TODO BUG This "None" match will break a non-sqlite3 database
 	cc=comments.get_comments(tool_id=tool)
-	return render_template('tool_edit.html',rec=r,resources=resources,readonly=readonly,nodes=nodes,comments=cc)
+
+	tool_locked =  r.lockout is not None
+
+	return render_template('tool_edit.html',rec=r,resources=resources,readonly=readonly,nodes=nodes,comments=cc,tool_locked=tool_locked)
+
+@blueprint.route('/<string:tool>/lock', methods=['POST'])
+@login_required
+def tool_lock(tool):
+	r = Tool.query.filter(Tool.id==tool).one_or_none()
+	if not r:
+		flash("Tool not found")
+		return redirect(url_for('tools.tools'))
+	if (not current_user.privs('RATT','HeadRM')) and (accesslib.user_privs_on_resource(resource=r,member=current_user)<AccessByMember.LEVEL_ARM):
+		flash("You do not have privileges to lock out this tool")
+		return redirect(url_for('tools.tools'))
+		
+	r.lockout=request.form['lockout_reason']
+	authutil.log(eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id,tool_id=r.id,message=r.lockout,doneby=current_user.id,commit=0)
+	node = Node.query.filter(Node.id == r.node_id).one()
+	authutil.send_tool_lockout(r.name,node.name,r.lockout)
+	db.session.commit()
+	flash("Tool is locked",'info')
+	return redirect(url_for('tools.tools_show',tool=r.id))
+
+@blueprint.route('/<string:tool>/unlock', methods=['POST'])
+@login_required
+def tool_unlock(tool):
+	r = Tool.query.filter(Tool.id==tool).one_or_none()
+	if not r:
+		flash("Tool not found")
+		return redirect(url_for('tools.tools'))
+
+	if (not current_user.privs('RATT','HeadRM')) and (accesslib.user_privs_on_resource(resource=r,member=current_user)<AccessByMember.LEVEL_ARM):
+		flash("You do not have privileges to unlock this tool")
+		return redirect(url_for('tools.tools'))
+		
+	r.lockout=None
+	authutil.log(eventtypes.RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id,tool_id=r.id,doneby=current_user.id,commit=0)
+
+	node = Node.query.filter(Node.id == r.node_id).one()
+	authutil.send_tool_remove_lockout(r.name,node.name)
+	flash("Tool is unlocked",'success')
+	db.session.commit()
+	return redirect(url_for('tools.tools_show',tool=r.id))
 
 @blueprint.route('/<string:tool>', methods=['POST'])
 @login_required
