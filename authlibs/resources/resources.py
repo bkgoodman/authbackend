@@ -4,6 +4,8 @@ from ..templateCommon import  *
 
 from authlibs import accesslib
 from authlibs.comments import comments
+import graph
+
 blueprint = Blueprint("resources", __name__, template_folder='templates', static_folder="static",url_prefix="/resources")
 # ----------------------------------------------------
 # Resource management (not including member access)
@@ -162,4 +164,5 @@ def _get_resources():
 	return q.all()
 
 def register_pages(app):
+	graph.register_pages(app)
 	app.register_blueprint(blueprint)
