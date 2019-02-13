@@ -18,6 +18,9 @@ def daynum(dt):
 @blueprint.route('/v1/weekly/<string:id>', methods=['GET'])
 @login_required
 def weekly(id):
+	return graph_by_day(id,7)
+
+def graph_by_day(id,days):
 	"""(Controller) Display information about a given resource"""
 	tools = Tool.query.filter(Tool.resource_id==id).all()
 	r = Resource.query.filter(Resource.id==id).one()
@@ -28,7 +31,7 @@ def weekly(id):
 	now = datetime.datetime.now()
 	enddate = now
 	enddate.replace(hour=0,minute=0,second=0,microsecond=0)
-	startdate = enddate-datetime.timedelta(days=7)
+	startdate = enddate-datetime.timedelta(days=days)
 	
 	q = UsageLog.query.filter(UsageLog.time_logged>=startdate)
 	q = q.filter(UsageLog.time_logged<enddate)
@@ -37,35 +40,48 @@ def weekly(id):
 	q = q.all()
 
 	dow=['Mon','Tues','Wed','Thurs','Fri','Sat','Sun']
+	short_dow=['M','Tu','W','Th','F','Sa','Su']
 	data=[['Day','Enabled','Active','Idle']]
 	nowday = daynum(now)
 	daydata=[]
-	for _ in range (0,7):
-		daydata.append({'dow':"??",'enabled':0,'active':0,'idle':0})
+	for _ in range (0,days):
+		daydata.append({'enabled':0,'active':0,'idle':0})
 
 	for x in q:
 		t = x.time_logged
 		dn = daynum(t)
 		daydelta = nowday-dn
-		if ((daydelta <=7) and (daydelta >= 1)):
+		print "Daydelta",daydelta,"Usage",x.enabledSecs
+		if ((daydelta <=days) and (daydelta >= 1)):
 			daydata[daydelta-1]['enabled'] += x.enabledSecs
 			daydata[daydelta-1]['idle'] += x.idleSecs
 			daydata[daydelta-1]['active'] += x.activeSecs
 
-	for i in range(0,7):
-		daydata[i]['dow'] = dow[(i+now.weekday())%7]
-	for x in daydata:
-		data.append([x['dow'],x['enabled'],x['active'],x['idle']])
+	# Write this backwards - i.e. LAST entry is YESTERDAY
+	for i in range(days-1,-1,-1):
+		x = daydata[i]
+		if days==7:
+			x['label'] = dow[(now.weekday()-(i+1))%7]
+		else:
+			dy = startdate-datetime.timedelta(days=i)
+			x['label'] = short_dow[dy.weekday()%7] + " "
+			x['label'] += str(dy.day)
+		print "OUT",i,x['label'],x['enabled']
+		data.append([x['label'],x['enabled'],x['active'],x['idle']])
+
 	out={'data':data,'type':'area','opts':{
-		'title':"Weekly stuff",
+		'title':"%d day usage"%days,
 		'hAxis':{'title': 'Day',  'titleTextStyle': {'color': '#333'}},
 		'vAxis': {'minValue': 0}
 		}}
-	return json_dumps(out)
+	return json_dumps(out,indent=2)
 
 @blueprint.route('/v1/monthly/<string:id>', methods=['GET'])
 @login_required
 def monthly(id):
+	return graph_by_day(id,31)
+
+def unused(id):
 	"""(Controller) Display information about a given resource"""
 	tools = Tool.query.filter(Tool.resource_id==id).all()
 	r = Resource.query.filter(Resource.id==id).one()
@@ -139,7 +155,6 @@ def weekUsers(id):
 	data=[]
 	totalenabled=0
 	for x in q:
-		print x
 		data.append({'member_id':x.memberid,'enabled':x.enabled})
 		totalenabled += x.enabled
 

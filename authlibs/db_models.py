@@ -22,7 +22,7 @@ class AnonymousMember(AnonymousUserMixin):
     email=None
 
     # Anonymous users have no roles
-    def privs(self,roles):
+    def privs(self,*roles):
         return False
 
     def effective_roles(self):
