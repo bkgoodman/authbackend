@@ -2,7 +2,8 @@
 {% block body %}
 <div>
 <div class="sectionhead"><h3>Edit Resource</h3></div>
-	<a href="{{ url_for("resources.resource_usage",resource=rec.name) }}" class="btn btn-outline-secondary">Usage</a>
+	<a href="{{ url_for("resources.resource_usage",resource=rec.name) }}" class="btn btn-link">Usage Graphs</a>
+	<a href="{{ url_for("resources.resource_usage_reports",resource=rec.name) }}" class="btn btn-link">Usage Reports</a>
   <form action={{ url_for('resources.resource_update',resource=rec.id) }} method="POST">
 	{% include 'form.html' %}
 	{% if readonly is not defined or not readonly %}

@@ -77,6 +77,42 @@ def resource_usage(resource):
 	cc=comments.get_comments(resource_id=r.id)
 	return render_template('resource_usage.html',rec=r,readonly=readonly,tools=tools,comments=cc)
 
+@blueprint.route('/<string:resource>/usagereports', methods=['GET'])
+@login_required
+def resource_usage_reports(resource):
+	"""(Controller) Display information about a given resource"""
+	r = Resource.query.filter(Resource.name==resource).one_or_none()
+	tools = Tool.query.filter(Tool.resource_id==r.id).all()
+	if not r:
+		flash("Resource not found")
+		return redirect(url_for('resources.resources'))
+
+	readonly=True
+	if accesslib.user_privs_on_resource(member=current_user,resource=r) >= AccessByMember.LEVEL_ARM:
+		readonly=False
+
+	q = UsageLog.query.filter(UsageLog.resource_id==r.id)
+
+	q = q.add_column(func.sum(UsageLog.enabledSecs).label('enabled'))
+	q = q.add_column(func.sum(UsageLog.activeSecs).label('active'))
+	q = q.add_column(func.sum(UsageLog.idleSecs).label('idle'))
+
+	fields=['enabled','active','idle']
+	if 'by_user' in request.values:
+		q = q.group_by(UsageLog.member_id).add_column(UsageLog.member_id.label("member_id"))
+		fields.append("member_id")
+	if 'by_tool' in request.values:
+		q = q.group_by(UsageLog.tool_id).add_column(UsageLog.tool_id.label("tool_id"))
+		fields.append("tool_id")
+	if 'by_day' in request.values:
+		q = q.group_by(func.date(UsageLog.time_logged)).add_column(func.date(UsageLog.time_logged).label("date"))
+		q = q.order_by(func.date(UsageLog.time_logged))
+		fields.append("date")
+
+	records = q.all()
+
+	return render_template('resource_usage_reports.html',rec=r,readonly=readonly,tools=tools,records=records,fields=fields)
+
 @blueprint.route('/<string:resource>', methods=['POST'])
 @login_required
 def resource_update(resource):
