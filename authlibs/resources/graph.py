@@ -9,6 +9,9 @@ import datetime
 
 blueprint = Blueprint("graphs", __name__, template_folder='templates', static_folder="static",url_prefix="/resource/graphs/api")
 
+# We do some weird stuff here to be able to to determine the "day" - each day gets assigned
+# a consecutive inteiger
+
 def daynum(dt):
 	return (dt - datetime.datetime(2000,1,1)).days
 
@@ -22,15 +25,19 @@ def weekly(id):
 	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
 		return "NOAccess",403
 
-	q = UsageLog.query.filter(UsageLog.time_logged>=datetime.datetime.now()-datetime.timedelta(days=9))
-	q = q.filter(UsageLog.time_logged<=datetime.datetime.now()+datetime.timedelta(days=1))
+	now = datetime.datetime.now()
+	enddate = now
+	enddate.replace(hour=0,minute=0,second=0,microsecond=0)
+	startdate = enddate-datetime.timedelta(days=7)
+	
+	q = UsageLog.query.filter(UsageLog.time_logged>=startdate)
+	q = q.filter(UsageLog.time_logged<enddate)
 	q = q.order_by(UsageLog.time_logged)
 	q = q.filter(UsageLog.resource_id == r.id)
 	q = q.all()
 
 	dow=['Mon','Tues','Wed','Thurs','Fri','Sat','Sun']
 	data=[['Day','Enabled','Active','Idle']]
-	now = datetime.datetime.now()
 	nowday = daynum(now)
 	daydata=[]
 	for _ in range (0,7):
@@ -66,8 +73,12 @@ def monthly(id):
 	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
 		return "NOAccess",403
 
-	q = UsageLog.query.filter(UsageLog.time_logged>=datetime.datetime.now()-datetime.timedelta(days=32))
-	q = q.filter(UsageLog.time_logged<=datetime.datetime.now()+datetime.timedelta(days=1))
+	now = datetime.datetime.now()
+	enddate = now
+	enddate.replace(hour=0,minute=0,second=0,microsecond=0)
+	startdate = enddate-datetime.timedelta(days=31)
+	q = UsageLog.query.filter(UsageLog.time_logged>=startdate)
+	q = q.filter(UsageLog.time_logged<enddate)
 	q = q.order_by(UsageLog.time_logged)
 	q = q.filter(UsageLog.resource_id == r.id)
 	q = q.all()
@@ -110,8 +121,13 @@ def weekUsers(id):
 	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
 		return "NOAccess",403
 
-	q = UsageLog.query.filter(UsageLog.time_logged>=datetime.datetime.now()-datetime.timedelta(days=8))
-	q = q.filter(UsageLog.time_logged<=datetime.datetime.now()+datetime.timedelta(days=1))
+	now = datetime.datetime.now()
+	enddate = now
+	enddate.replace(hour=0,minute=0,second=0,microsecond=0)
+	startdate = enddate-datetime.timedelta(days=7)
+	
+	q = UsageLog.query.filter(UsageLog.time_logged>=startdate)
+	q = q.filter(UsageLog.time_logged<enddate)
 	q = q.group_by(UsageLog.member_id)
 	q = q.filter(UsageLog.resource_id == r.id)
 	q = q.add_column(func.sum(UsageLog.enabledSecs).label('enabled'))
