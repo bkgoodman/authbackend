@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# vim:tabstop=2:shiftwidth=2:expandtab
 
 
 from authlibs.templateCommon import *
@@ -9,17 +10,21 @@ import random
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()
-    parser.add_argument("--createdb",help="Create new db if none exists",action="store_true")
-    parser.add_argument("--command",help="Special command",action="store_true")
-    (args,extras) = parser.parse_known_args(sys.argv[1:])
+		parser.add_argument("--days","-d",help="days",default=7,type=int)
+		parser.add_argument("--minidle","-i",help="Min idle minutes",default=2,type=int)
+		parser.add_argument("--maxidle","-I",help="Max idle minutes",default=20,type=int)
+		parser.add_argument("--minactive","-a",help="Min active minutes",default=5,type=int)
+		parser.add_argument("--maxactive","-A",help="Max active minutes",default=60,type=int)
+		parser.add_argument("--minbetween","-b",help="Min active minutes",default=5,type=int)
+		parser.add_argument("--maxbetween","-B",help="Max active minutes",default=4*60,type=int)
+		(args,extras) = parser.parse_known_args(sys.argv[1:])
 
+    print args
     app=authbackend_init(__name__)
 
     with app.app_context():
-			#print Resource.query.all()
-
 			now=datetime.datetime.now()
-			dt=datetime.datetime.now()-datetime.timedelta(days=35)
+			dt=datetime.datetime.now()-datetime.timedelta(days=args.days)
 
 
 			uids=[]
@@ -28,10 +33,10 @@ if __name__ == '__main__':
 
 			(tid,rid) = db.session.query(Tool.id,Tool.resource_id).filter(Tool.name=="TestTool").one()
 
-			print "UIDs",uids,"TID",tid,"RID",rid
+			#print "UIDs",uids,"TID",tid,"RID",rid
 			while (dt < datetime.datetime.now()):
-				idle = random.randint(1,30)
-				active = random.randint(1,30)
+				idle = random.randint(args.minidle,args.maxidle)
+				active = random.randint(args.minactive,args.maxactive)
 				enabled = idle+active
 				dt += datetime.timedelta(minutes=enabled)
 
@@ -44,7 +49,7 @@ if __name__ == '__main__':
 								activeSecs = active,
 								enabledSecs = enabled))
 
-				unused  = random.randint(5,60*4)
+				unused  = random.randint(args.minbetween,args.maxbetween)
 				dt += datetime.timedelta(minutes=unused)
 			db.session.commit()
 

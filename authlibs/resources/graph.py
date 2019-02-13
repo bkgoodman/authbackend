@@ -30,7 +30,7 @@ def graph_by_day(id,days):
 
 	now = datetime.datetime.now()
 	enddate = now
-	enddate.replace(hour=0,minute=0,second=0,microsecond=0)
+	enddate = enddate.replace(hour=0,minute=0,second=0,microsecond=0)
 	startdate = enddate-datetime.timedelta(days=days)
 	
 	q = UsageLog.query.filter(UsageLog.time_logged>=startdate)
@@ -51,7 +51,6 @@ def graph_by_day(id,days):
 		t = x.time_logged
 		dn = daynum(t)
 		daydelta = nowday-dn
-		print "Daydelta",daydelta,"Usage",x.enabledSecs
 		if ((daydelta <=days) and (daydelta >= 1)):
 			daydata[daydelta-1]['enabled'] += x.enabledSecs
 			daydata[daydelta-1]['idle'] += x.idleSecs
@@ -66,7 +65,6 @@ def graph_by_day(id,days):
 			dy = startdate-datetime.timedelta(days=i)
 			x['label'] = short_dow[dy.weekday()%7] + " "
 			x['label'] += str(dy.day)
-		print "OUT",i,x['label'],x['enabled']
 		data.append([x['label'],x['enabled'],x['active'],x['idle']])
 
 	out={'data':data,'type':'area','opts':{
@@ -139,7 +137,7 @@ def weekUsers(id):
 
 	now = datetime.datetime.now()
 	enddate = now
-	enddate.replace(hour=0,minute=0,second=0,microsecond=0)
+	enddate = enddate.replace(hour=0,minute=0,second=0,microsecond=0)
 	startdate = enddate-datetime.timedelta(days=7)
 	
 	q = UsageLog.query.filter(UsageLog.time_logged>=startdate)
@@ -188,6 +186,41 @@ def weekUsers(id):
 		}}
 	out = json_dumps(out)
 	return out,200
+
+@blueprint.route('/v1/weekCalendar/<int:id>', methods=['GET'])
+@login_required
+def weekCalendar(id):
+	r = Resource.query.filter(Resource.id==id).one()
+	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+		return "NOAccess",403
+
+	days=7
+	now = datetime.datetime.now()
+	enddate = now
+	enddate = enddate.replace(hour=0,minute=0,second=0,microsecond=0)
+	startdate = enddate-datetime.timedelta(days=days)
+	q = UsageLog.query
+	q = q.filter(UsageLog.time_logged>=startdate)
+	q = q.filter(UsageLog.time_logged<enddate)
+	q = q.filter(UsageLog.resource_id == id)
+	q = q.add_column(UsageLog.time_logged.label('time'))
+	q = q.add_column(UsageLog.enabledSecs.label('enabled'))
+	q = q.add_column(UsageLog.member_id.label('memberid'))
+	usage=[]
+
+	# We'll take the heavy lifting off the JavaScript here
+	# by giving it a complete list it just needs to render.
+	print "START",startdate
+	print "END",enddate
+	print "MIN SPAN",(enddate-startdate).total_seconds()
+	for x in q.all():
+		startmin = int(((x.time-startdate).total_seconds())/60)
+		endmin = startmin +x.enabled
+		print x.time,startmin
+		usage.append({'member':x.memberid,'startmin':startmin,'endmin':endmin})
+	fd = open(blueprint.static_folder+"/WeekUsage.svg")
+	result = json_dumps({"data":fd.read(),"usage":usage})
+	return	result,200
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
