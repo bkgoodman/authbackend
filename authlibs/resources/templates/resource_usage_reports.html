@@ -2,33 +2,8 @@
 #}
 {% extends "layout_bootstrap.html" %}
 {% block head %}
-    {# <script type="text/javascript" src="{{ url_for('graphs.static',filename='graphs.js') }}"></script> #}
-    <script type="text/javascript">
-      google.charts.load('current', {'packages':['corechart']});
-      google.charts.setOnLoadCallback(drawChart);
-
-      function drawChart() {
-        var data = google.visualization.arrayToDataTable([
-          ['Day', 'Active', 'Idle'],
-          ['Monday',  1000,      400],
-          ['Tuesday',  1170,      460],
-          ['Wednesday',  660,       1120],
-          ['Thursday',  1030,      540],
-          ['Friday',  660,       1120],
-          ['Saturday',  660,       1120],
-          ['Sunday',  660,       1120]
-        ]);
-
-        var options = {
-          title: 'Weekly Resource Utilization',
-          hAxis: {title: 'Day',  titleTextStyle: {color: '#333'}},
-          vAxis: {minValue: 0}
-        };
-
-        var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
-        chart.draw(data, options);
-      }
-		</script>
+  <link href="{{ url_for('static', filename='css/bootstrap-datepicker3.min.css') }}" rel="stylesheet">
+	<script type="text/javascript" src="{{ url_for("static",filename="js/bootstrap-datepicker.min.js") }}"></script>
 {% endblock %}
 {% block body %}
 <div class="body"><h3>{{ rec.name }} Usage Reports</h3></div>
@@ -36,6 +11,14 @@
 <div class="container">
   <form method="GET">
     <div class="btn-group" role="group" aria-label="Basic example">
+      <div class="form-group mx-2">
+        <div class="input-daterange input-group" id="datepicker">
+            <span class="input-group-addon">From</span>
+            <input type="text" class="input-sm form-control" name="input_date_start" autocomplete="off" />
+            <span class="input-group-addon">to</span>
+            <input type="text" class="input-sm form-control" name="input_date_end" autocomplete="off" />
+        </div>
+      </div>
       <div class="form-group mx-2">
         <input type="checkbox" class="btn btn-outline-secondary" name="by_tool" />
         <label>By Tool</label>
@@ -49,7 +32,7 @@
         <label>By Day</label>
       </div>
       <div class="form-group mx-2">
-        <input type="submit" class="btn btn-outline-secondary" name="Report" />
+        <input type="submit" class="btn btn-outline-secondary" value="Report" name="Report" />
       </div>
     </div>
   </form>
@@ -61,13 +44,17 @@
       <table class="table table-sm">
         <tr>
           {% for f in fields %}
-            <th>{{ f }}</th>
+            <th
+                {% if f['type'] == 'num' %}style="text-align:right"{% endif %}
+            >{{ f['name'] }}</th>
           {% endfor %} {# fields #}
         </tr>
         {% for r in records %}
           <tr>
             {% for f in fields %}
-              <td>{{ r[f] }}</td>
+              <td
+                {% if f['type'] == 'num' %}style="text-align:right"{% endif %}
+              >{{ r[f['name']] }}</td>
             {% endfor %} {# fields #}
           </tr>
         {% endfor %} {# records #}
@@ -78,4 +65,15 @@
 
 </div> {# Body #}
 
+<script type="text/javascript">
+	/* Init date picker */
+	$(document).ready(function () {
+		$('#datepicker').datepicker({
+				maxViewMode: 2,
+				todayBtn: true,
+				clearBtn: true,
+				todayHighlight: true
+		});
+	});
+</script>
 {% endblock %}

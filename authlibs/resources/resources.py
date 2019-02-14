@@ -4,6 +4,7 @@ from ..templateCommon import  *
 
 from authlibs import accesslib
 from authlibs.comments import comments
+import datetime
 import graph
 
 blueprint = Blueprint("resources", __name__, template_folder='templates', static_folder="static",url_prefix="/resources")
@@ -81,6 +82,7 @@ def resource_usage(resource):
 @login_required
 def resource_usage_reports(resource):
 	"""(Controller) Display information about a given resource"""
+
 	r = Resource.query.filter(Resource.name==resource).one_or_none()
 	tools = Tool.query.filter(Tool.resource_id==r.id).all()
 	if not r:
@@ -92,25 +94,56 @@ def resource_usage_reports(resource):
 		readonly=False
 
 	q = UsageLog.query.filter(UsageLog.resource_id==r.id)
+	if 'input_date_start' in request.values and request.values['input_date_start'] != "":
+			dt = datetime.datetime.strptime(request.values['input_date_start'],"%m/%d/%Y")
+			q = q.filter(UsageLog.time_reported >= dt)
+	if 'input_date_end' in request.values and request.values['input_date_end'] != "":
+			dt = datetime.datetime.strptime(request.values['input_date_end'],"%m/%d/%Y")+datetime.timedelta(days=1)
+			q = q.filter(UsageLog.time_reported < dt)
 
 	q = q.add_column(func.sum(UsageLog.enabledSecs).label('enabled'))
 	q = q.add_column(func.sum(UsageLog.activeSecs).label('active'))
 	q = q.add_column(func.sum(UsageLog.idleSecs).label('idle'))
 
-	fields=['enabled','active','idle']
+	fields=[]
 	if 'by_user' in request.values:
 		q = q.group_by(UsageLog.member_id).add_column(UsageLog.member_id.label("member_id"))
-		fields.append("member_id")
+		fields.append({'name':"member"})
 	if 'by_tool' in request.values:
 		q = q.group_by(UsageLog.tool_id).add_column(UsageLog.tool_id.label("tool_id"))
-		fields.append("tool_id")
+		fields.append({'name':"tool"})
 	if 'by_day' in request.values:
 		q = q.group_by(func.date(UsageLog.time_logged)).add_column(func.date(UsageLog.time_logged).label("date"))
 		q = q.order_by(func.date(UsageLog.time_logged))
-		fields.append("date")
+		fields.append({'name':"date"})
+	fields +=[{'name':'enabled','type':'num'},{'name':'active','type':'num'},{'name':'idle','type':'num'}]
 
-	records = q.all()
-
+	d = q.all()
+	toolcache={}
+	usercache={}
+	records=[]
+	for r in d:
+		rec={'enabled':r.enabled,'active':r.active,'idle':r.idle}
+		if 'by_user' in request.values:
+			if r.member_id not in usercache:
+				mm = Member.query.filter(Member.id==r.member_id).one_or_none()
+				if mm:
+					usercache[r.member_id] = mm.member
+				else:
+					usercache[r.member_id] = "Member #"+str(r.member_id)
+			rec['member'] = usercache[r.member_id]
+		if 'by_tool' in request.values:
+			if r.tool_id not in toolcache:
+				mm = Tool.query.filter(Tool.id==r.tool_id).one_or_none()
+				if mm:
+					toolcache[r.tool_id] = mm.name
+				else:
+					toolcache[r.tool_id] = "Tool #"+str(r.tool_id)
+			rec['tool'] = toolcache[r.tool_id]
+		if 'by_day' in request.values:
+			rec['date'] = r.date
+		records.append(rec)
+		
 	return render_template('resource_usage_reports.html',rec=r,readonly=readonly,tools=tools,records=records,fields=fields)
 
 @blueprint.route('/<string:resource>', methods=['POST'])
