@@ -78,6 +78,10 @@ def resource_usage(resource):
 	cc=comments.get_comments(resource_id=r.id)
 	return render_template('resource_usage.html',rec=r,readonly=readonly,tools=tools,comments=cc)
 
+def generate_report(fields,records):
+	for r in records:
+			yield ",".join(["\"%s\"" % r[f['name']] for f in fields]) + "\n"
+
 @blueprint.route('/<string:resource>/usagereports', methods=['GET'])
 @login_required
 def resource_usage_reports(resource):
@@ -144,7 +148,16 @@ def resource_usage_reports(resource):
 			rec['date'] = r.date
 		records.append(rec)
 		
-	return render_template('resource_usage_reports.html',rec=r,readonly=readonly,tools=tools,records=records,fields=fields)
+	meta={}
+	meta['csvurl']=request.url+"&format=csv"
+
+	if 'format' in request.values and request.values['format']=='csv':
+		resp=Response(generate_report(fields,records),mimetype='text/csv')
+		resp.headers['Content-Disposition']='attachment'
+		resp.headers['filename']='log.csv'
+		return resp
+
+	return render_template('resource_usage_reports.html',rec=r,readonly=readonly,tools=tools,records=records,fields=fields,meta=meta)
 
 @blueprint.route('/<string:resource>', methods=['POST'])
 @login_required

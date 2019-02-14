@@ -41,6 +41,7 @@
   {# Dynamically generate any report #}
 	<div class="container">
     {% if records %}
+			<button class="btn btn-lg btn-light glyphicon glyphicon-download"  onclick="location.href='{{ meta.csvurl }}'"></button>
       <table class="table table-sm">
         <tr>
           {% for f in fields %}
