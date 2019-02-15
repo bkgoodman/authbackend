@@ -42,18 +42,24 @@ function calendarButton(button,url) {
 				chart.innerHTML = indata['data'];
 				box = chart.querySelector("#bkgdraw");
 				console.log(box);
+				for (var i=0;i<7;i++) {
+								daylab = chart.querySelector("#label_day"+String(i+1));
+								console.log(daylab);
+								console.log(indata['weekdays']);
+								daylab.innerHTML=indata['weekdays'][i];
+				}
 				for (x in indata['usage']) {
 					var u = indata['usage'][x];
 					console.log(u);
 					// TODO BUG BKG Scale and offsets are totally off. Graph is inaccurate
-					var xoffset=22
+					var xoffset=22.5
 					var width=17.37;
 					var xscale=2;
-					var yscale=10; //??/
-					var yoffset=3;
+					var yscale=15.5; //??/
+					var yoffset=56;
 					var h= (u['endmin']-u['startmin'])/yscale;
 					var x = xoffset+((Math.floor(u['startmin']/1440))*width);
-					var y = (u['startmin'] % 1440)/yscale;
+					var y = ((u['startmin'] % 1440)/yscale)+yoffset;
 					itm = `
     <rect
        style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:none"

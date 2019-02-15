@@ -190,6 +190,7 @@ def weekUsers(id):
 @blueprint.route('/v1/weekCalendar/<int:id>', methods=['GET'])
 @login_required
 def weekCalendar(id):
+	dow=['Mon','Tues','Wed','Thurs','Fri','Sat','Sun']
 	r = Resource.query.filter(Resource.id==id).one()
 	if not current_user.privs('HeadRM','RATT') and accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
 		return "NOAccess",403
@@ -197,29 +198,29 @@ def weekCalendar(id):
 	days=7
 	now = datetime.datetime.now()
 	enddate = now
-	enddate = enddate.replace(hour=0,minute=0,second=0,microsecond=0)
+	enddate = enddate.replace(hour=0,minute=0,second=0,microsecond=0)-datetime.timedelta(seconds=1)
 	startdate = enddate-datetime.timedelta(days=days)
 	q = UsageLog.query
-	q = q.filter(UsageLog.time_logged>=startdate)
+	q = q.filter(UsageLog.time_logged>startdate)
 	q = q.filter(UsageLog.time_logged<enddate)
 	q = q.filter(UsageLog.resource_id == id)
 	q = q.add_column(UsageLog.time_logged.label('time'))
 	q = q.add_column(UsageLog.enabledSecs.label('enabled'))
 	q = q.add_column(UsageLog.member_id.label('memberid'))
 	usage=[]
+	weekdays=[]
+	for r in range(0,7):	
+		weekdays.append(dow[(startdate.weekday()+r)%7])
 
-	# We'll take the heavy lifting off the JavaScript here
-	# by giving it a complete list it just needs to render.
-	print "START",startdate
-	print "END",enddate
-	print "MIN SPAN",(enddate-startdate).total_seconds()
+	# print "START",startdate
+	# print "END",enddate
+	# print "MIN SPAN",(enddate-startdate).total_seconds()
 	for x in q.all():
 		startmin = int(((x.time-startdate).total_seconds())/60)
 		endmin = startmin +x.enabled
-		print x.time,startmin
 		usage.append({'member':x.memberid,'startmin':startmin,'endmin':endmin})
 	fd = open(blueprint.static_folder+"/WeekUsage.svg")
-	result = json_dumps({"data":fd.read(),"usage":usage})
+	result = json_dumps({"data":fd.read(),"usage":usage,"weekdays":weekdays})
 	return	result,200
 
 def register_pages(app):
