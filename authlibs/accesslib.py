@@ -49,9 +49,10 @@ def accessQueryToDict(y):
             'expires_soon':x[8],
             'level':x[9],
             'member':x[10],
-            'member_id':x[11],
-            'membership':x[12],
-            'expires_date':x[13],
+            'lockout_reason':x[11],
+            'member_id':x[12],
+            'membership':x[13],
+            'expires_date':x[14],
             'last_accessed':"" # We may never want to report this for many reasons
             }
 
@@ -110,6 +111,9 @@ def determineAccess(u,resource_text):
                 warning = "This account has been disabled for a specific reason: %s. %s" % (u['reason'],c['board'])
             else:
                 warning = "This account is not enabled. It may be newly added and not have a waiver on file. %s" % c['board']
+            allowed = 'false'
+        elif u['lockout_reason'] is not None:
+            warning = u['lockout_reason']
             allowed = 'false'
         elif u['allowed'] == 'denied':
                 warning = c['resource']
@@ -207,6 +211,7 @@ def access_query(resource_id,member_id=None,tags=True):
     q = q.add_column(case([(Subscription.expires_date < db.func.DateTime('now','+2 days'), 'true')], else_ = 'false').label('expires_soon'))
     q = q.add_column(case([(AccessByMember.level != None , AccessByMember.level )], else_ = 0).label('level'))
     q = q.add_column(Member.member)
+    q = q.add_column(AccessByMember.lockout_reason)
 
     # BKG DEBUG LINES 
     if (tags):

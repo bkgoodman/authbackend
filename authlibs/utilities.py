@@ -111,9 +111,11 @@ def accessLevelString(level,noaccess=None,user=None):
         except:
             return "#"+str(level)
 # resource is a DB model resource
-def getResourcePrivs(resource=None,member=None,resourcename=None,memberid=None):
+def getResourcePrivs(resource=None,resourceid=None,member=None,resourcename=None,memberid=None):
     if resourcename:
         resource=Resource.query.filter(Resource.name==resourcename).one()
+    elif resourceid:
+        resource=Resource.query.filter(Resource.id==resourceid).one()
     if not member and not memberid:
         member=current_user
     p = AccessByMember.query.join(Resource,((Resource.id == resource.id) & (Resource.id == AccessByMember.resource_id))).join(Member,((AccessByMember.member_id == member.id) & (Member.id == member.id))).one_or_none()

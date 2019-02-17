@@ -112,7 +112,8 @@ class AccessByMember(db.Model):
     time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
     comment = db.Column(db.String(255), nullable=True, server_default='')
-    lockouts = db.Column(db.String(255), nullable=True, server_default='')
+    lockout_reason = db.Column(db.String(255), nullable=True) # If non-null, user locked-out of resource
+    lockouts = db.Column(db.String(255), nullable=True, server_default='') # If non-null, user locked-out of resource (UNIMPLEMENTED)
     permissions = db.Column(db.String(255), nullable=True, server_default='')
     created_by = db.Column(db.String(25), nullable=False, server_default='admin')
     level = db.Column(db.Integer(),default=0)

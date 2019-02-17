@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<!-- vim:tabstop=2:expandtab -->
+<!-- 
+  vim:tabstop=2:expandtab 
+-->
 <!-- For help https://getbootstrap.com/docs/4.1/getting-started/introduction/ -->
 <html lang="en">
   <head>
@@ -58,12 +60,10 @@
 
 
 <!-- NAVBAR -->
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-  <span class="navbar-brand">
-	      <a style="padding:0px" class="nav-link" href="{{ url_for("index") }}">
-	<img height="30px" src="{{ url_for('static',filename='authit.png') }}"/>
-		</a>
-  </span>
+<nav class="navbar navbar-expand-sm navbar-light bg-light">
+  <a class="navbar-brand" href="#">
+    <img src="{{ url_for('static',filename='authit.png') }}"  height="30" class="d-inline-block align-top" alt="">
+  </a>
 {% if current_user.is_authenticated %}
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>

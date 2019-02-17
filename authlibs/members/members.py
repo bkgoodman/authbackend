@@ -223,7 +223,7 @@ def member_editaccess(id):
 		tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
 
 		q = db.session.query(Resource).outerjoin(AccessByMember,((AccessByMember.resource_id == Resource.id) & (AccessByMember.member_id == member.id)))
-		q = q.add_columns(AccessByMember.active,AccessByMember.level)
+		q = q.add_columns(AccessByMember.active,AccessByMember.level,AccessByMember.lockout_reason)
 
 		roles=[]
 		for r in db.session.query(Role.name).outerjoin(UserRoles,((UserRoles.role_id==Role.id) & (UserRoles.member_id == member.id))).add_column(UserRoles.id).all():
@@ -232,7 +232,7 @@ def member_editaccess(id):
 
 		# Put all the records together for renderer
 		access = []
-		for (r,active,level) in q.all():
+		for (r,active,level,lockout_reason) in q.all():
 				(myPerms,levelTxt)=authutil.getResourcePrivs(resource=r)
 				if not active: 
 						level=0
@@ -244,7 +244,7 @@ def member_editaccess(id):
 				levelText=AccessByMember.ACCESS_LEVEL[level]
 				if level ==0:
 						levelText=""
-				access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms,'levelText':levelText})
+				access.append({'resource':r,'active':active,'level':level,'myPerms':myPerms,'levelText':levelText,'lockout_reason':lockout_reason})
 		allowsave=False
 		if (current_user.privs('Useredit')): allowsave=True
 		elif (accesslib.user_is_authorizor(current_user)): allowsave=True
@@ -270,6 +270,31 @@ def member_setaccess(id):
 								flash("Password Changed")
 						else:
 								flash("Password Mismatch")
+
+		if 'lockout_op' in request.form:
+			rid = request.form['lockout_resource_id']
+			reason = request.form['lockout_reason']
+			(myPerms,alstr) = authutil.getResourcePrivs(resourceid=rid)
+			acl = AccessByMember.query.filter(AccessByMember.member_id == mid,AccessByMember.resource_id==rid).one()
+			if myPerms <= acl.level:
+				flash("Insufficient privileges to change that user's access on that resource","warning")
+				return redirect(url_for('members.member_editaccess',id=mid))
+
+			if  request.form['lockout_op'] == "Lock":
+				if reason.strip() == "":
+					flash("Must specify a reason for lockout","warning")
+				else:
+					acl.lockout_reason=reason
+					db.session.commit()
+					flash("Lockout set","success")
+					authutil.kick_backend()
+					return redirect(url_for('members.member_editaccess',id=mid))
+			elif  request.form['lockout_op'] == "Unlock":
+				acl.lockout_reason=None
+				db.session.commit()
+				flash("Lockout removed","success")
+				authutil.kick_backend()
+				return redirect(url_for('members.member_editaccess',id=mid))
 
 		for key in request.form:
 				if key.startswith("orgrole_") and current_user.privs('Admin'):
