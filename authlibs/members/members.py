@@ -174,6 +174,8 @@ def member_show(id):
 	 res = member.one_or_none()
 
 	 if (not current_user.privs('Useredit')) and res[0].member != current_user.member:
+			 if current_user.is_arm():
+				 return redirect(url_for('members.member_editaccess',id=res[0].id))
 			 flash("You cannot view that user",'warning')
 			 return redirect(url_for('members.members'))
  

@@ -386,6 +386,10 @@ def create_routes():
        """Main page, redirects to login if needed"""
        return render_template('index.html',menu=index_page())
 
+    #@app.before_request
+    #def prerequest():
+    #  print "HANDLE REQUEST",request.url
+
     @app.route('/search',methods=['GET','POST'])
     @login_required
     def search_members():
@@ -431,6 +435,7 @@ def site_map(app):
         # Filter out rules we can't navigate to in a browser
         print rule
         # and rules that require parameters
+
         
 # Start development web server
 if __name__ == '__main__':

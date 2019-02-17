@@ -92,7 +92,7 @@
       </li>
 
     </ul>
-	{% if current_user.privs("Useredit") %}
+	{% if current_user.privs("Useredit") or current_user.is_arm() %}
     <p class="navbar-text navbar-right">
     <div class="dropdown">
       <input id="layout_search_text" xxclass="form-control" autocomplete="off" type="search"  xx-data-toggle="dropdown" placeholder="Search" aria-label="Search">

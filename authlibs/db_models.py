@@ -27,6 +27,10 @@ class AnonymousMember(AnonymousUserMixin):
 
     def effective_roles(self):
         return []
+	
+		def is_arm(self):
+				return False
+
 # Members and their data
 class Member(db.Model,UserMixin):
     __tablename__ = 'members'
@@ -80,6 +84,9 @@ class Member(db.Model,UserMixin):
     def get_id(self):
         """Return the email address to satisfy Flask-Login's requirements."""
         return self.member+"@makeitlabs.com"
+
+    def is_arm(self):
+				return AccessByMember.query.filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).count() >= 1
 
 
 class ApiKey(db.Model):

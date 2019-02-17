@@ -130,11 +130,15 @@ vim:tabstop=2:expandtab:shiftwidth=2
           </button>
         </div>
         <div class="modal-body">
-          <span id="lockmodaltext">test</span>
-          <input type="text" id="lockout_reason" name="lockout_reason" />
-          <input type="hidden" id="lockout_op" name="lockout_op" value=""/>
-          <input type="hidden" id="lockout_resource_id" name="lockout_resource_id" value=""/>
-          <input type="hidden" id="lockout_member_id" name="resource_id" value=""/>
+          <div class="form-row-">
+            <span id="lockmodaltext">test</span>
+          </div>
+          <div class="form-row-">
+            <input type="text" id="lockout_reason" class="col-lg-12" name="lockout_reason" />
+          </div>
+            <input type="hidden" id="lockout_op" name="lockout_op" value=""/>
+            <input type="hidden" id="lockout_resource_id" name="lockout_resource_id" value=""/>
+            <input type="hidden" id="lockout_member_id" name="resource_id" value=""/>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
