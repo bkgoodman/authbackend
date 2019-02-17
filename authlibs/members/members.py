@@ -287,12 +287,14 @@ def member_setaccess(id):
 					flash("Must specify a reason for lockout","warning")
 				else:
 					acl.lockout_reason=reason
+					authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_RESOURCE_LOCKOUT.id,resource_id=rid,member_id=member.id,doneby=current_user.id,commit=0)
 					db.session.commit()
 					flash("Lockout set","success")
 					authutil.kick_backend()
 					return redirect(url_for('members.member_editaccess',id=mid))
 			elif  request.form['lockout_op'] == "Unlock":
 				acl.lockout_reason=None
+				authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_RESOURCE_UNLOCKED.id,resource_id=rid,member_id=member.id,doneby=current_user.id,commit=0)
 				db.session.commit()
 				flash("Lockout removed","success")
 				authutil.kick_backend()

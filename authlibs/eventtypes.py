@@ -57,6 +57,15 @@ class RATTBE_LOGEVENT_MEMBER_PRIVILEGE_GRANTED:
 class RATTBE_LOGEVENT_MEMBER_PRIVILEGE_REVOKED:
     id=1012
     desc='Member Privilege Revoked'
+
+class RATTBE_LOGEVENT_MEMBER_RESOURCE_LOCKOUT:
+    id=1013
+    desc='Member temporarily locked out of resource'
+
+class RATTBE_LOGEVENT_MEMBER_RESOURCE_UNLOCKED:
+    id=1014
+    desc='Member Resource temp lockout removed'
+
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000
     desc='Other System Event'
