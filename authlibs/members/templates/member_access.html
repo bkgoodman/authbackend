@@ -24,7 +24,8 @@ vim:tabstop=2:expandtab:shiftwidth=2
 			<td>
 				{% if a.myPerms >= 1 %}
 				<input type="checkbox" 
-					name="access_{{ a.resource.name }}" {{ 'checked' if (a.active == 1) else '' }} 
+          id="checkbox_{{ a.resource.name }}"
+					onchange="javascript:doAllowCheckbox('{{ a.resource.name }}');" name="access_{{ a.resource.name }}" {{ 'checked' if (a.active == 1) else '' }} 
 				/>
 				<input type="hidden" 
 					name="orgaccess_{{ a.resource.name }}" value="{{ 'on' if (a.active == 1) else 'off' }}"
@@ -35,7 +36,7 @@ vim:tabstop=2:expandtab:shiftwidth=2
 			</td>			
 			{% if a.myPerms >= 2 %}
 			<td>
-			<select name="privs_{{ a.resource.name }}">
+			<select id="privs_{{ a.resource.name }}" style="display:{% if a.active == 1 %}inline{% else %}none{% endif %}" name="privs_{{ a.resource.name }}">
 				<option name="User" value="0" 
 				{{ 'selected' if (a.level == 0) else '' }}
 				/>User</option>
@@ -165,6 +166,17 @@ vim:tabstop=2:expandtab:shiftwidth=2
       tb.style.display='none';
     }
     $('#lockoutModal').modal();
+  }
+
+  function doAllowCheckbox(resource) {
+    cb = $('#checkbox_'+resource)[0];
+    privs = $('#privs_'+resource)[0];
+    if (cb.checked) 
+      privs.style.display="inline";
+    else {
+      privs.style.display="none";
+    }
+      
   }
 </script>
 

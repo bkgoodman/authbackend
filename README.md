@@ -60,6 +60,27 @@ python authserver.py --command updatepayments
 python authserver.py --command memberpaysync --test
 ```
 
+After you migrate - you may want to manually run the nightly cron job
+to synchronize payment and waiver data by doing:
+
+`curl http://testkey:testkey@localhost:5000/api/cron/nightly`
+
+## More test stuff
+
+You can also optionally add fake usage data for the test resource
+by running:
+
+`./popusagedata.py`
+
+This will add a week's worth of data - add more like:
+
+`./popusagedata.py --days=30`
+
+If you have added the `--testdata` flag to the migrate, you can run
+a quick regression/sanity check with:
+
+`test/bigtest.py`
+
 ## OAuth Stuff
 
 On the machine(s) you are connecting to a test deployment with,
