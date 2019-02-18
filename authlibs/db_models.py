@@ -27,6 +27,9 @@ class AnonymousMember(AnonymousUserMixin):
 
     def effective_roles(self):
         return []
+
+    def resource_roles(self):
+        return []
 	
 		def is_arm(self):
 				return False
@@ -87,6 +90,9 @@ class Member(db.Model,UserMixin):
 
     def is_arm(self):
 				return AccessByMember.query.filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).count() >= 1
+
+    def resource_roles(self):
+        return [x[0] for x in db.session.query(Resource.name).join(AccessByMember,AccessByMember.resource_id == Resource.id).filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).all()]
 
 
 class ApiKey(db.Model):

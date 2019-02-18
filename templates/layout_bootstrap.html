@@ -193,6 +193,9 @@ $( "#layout_search_text" ).on('focusout', function() {
 									{% for r in  current_user.effective_roles() %}
 									<span class="badge badge-primary">{{ r }}</span> 
 									{% endfor %}
+									{% for r in  current_user.resource_roles() %}
+									<span class="badge badge-info">{{ r }}</span> 
+									{% endfor %}
 									</div>
 								</div>
 							</div>
