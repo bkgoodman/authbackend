@@ -171,10 +171,12 @@ vim:tabstop=2:expandtab:shiftwidth=2
   function doAllowCheckbox(resource) {
     cb = $('#checkbox_'+resource)[0];
     privs = $('#privs_'+resource)[0];
-    if (cb.checked) 
-      privs.style.display="inline";
-    else {
-      privs.style.display="none";
+    if (cb) { 
+      if (cb.checked) 
+        privs.style.display="inline";
+      else {
+        privs.style.display="none";
+      }
     }
       
   }
