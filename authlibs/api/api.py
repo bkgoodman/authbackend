@@ -412,7 +412,7 @@ def api_v1_get_resources():
   result=[]
   resources=Resource.query.all()
   for x in resources:
-    result.append({'id':x.id,'name':x.name,'short':x.short})
+    result.append({'id':x.id,'name':x.name,'short':x.short,'slack_admin_chan':x.slack_admin_chan,'slack_chan':x.slack_chan})
   return json_dump(result), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['GET'])
