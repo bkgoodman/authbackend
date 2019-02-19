@@ -105,9 +105,9 @@ def process_source_table(table,columns):
 
         print table, coldata,"Total Rows",len(rows)
 
-def get_slack_users():
+def get_slack_users(args=()):
         try:
-          slackdata=json.load(open("../allusers.txt"))
+          slackdata=json.load(open(args.allusers))
         except:
             print """
     ***
@@ -185,6 +185,7 @@ if __name__ == '__main__':
     parser.add_argument("--testdata",help="Add test data to database",action="store_true")
     parser.add_argument("--noslack",help="Do not handle slack users",action="store_true")
     parser.add_argument("--nomigrate",help="Don't migrate data. Just create DB (and optionally add test data)",action="store_true")
+    parser.add_argument("--allusers",help="Specify location of allusers.txt file",default="../allusers.txt")
     #(args,extras) = parser.parse_known_args(sys.argv[1:])
     args = parser.parse_args(sys.argv[1:])
 
@@ -295,7 +296,7 @@ if __name__ == '__main__':
 
           # Find odd slack users
           if not args.noslack:
-              (su,slack_email_to_users) = get_slack_users()
+              (su,slack_email_to_users) = get_slack_users(args)
               """
               for x in su:
                   vv=x.split(".")
