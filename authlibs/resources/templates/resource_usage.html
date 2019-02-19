@@ -1,4 +1,5 @@
-{# vim:tabstop=2:expandtab:shiftwidth=2 #}
+{# vim:tabstop=2:expandtab:shiftwidth=2 
+#}
 {% extends "layout_bootstrap.html" %}
 {% block head %}
     <script type="text/javascript" src="{{ url_for('graphs.static',filename='graphs.js') }}"></script>
@@ -25,8 +26,9 @@
           vAxis: {minValue: 0}
         };
 
-        var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
-        chart.draw(data, options);
+        //var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
+        //chart.draw(data, options);
+        graphButton("",'{{ url_for("graphs.weekly",id=rec.id) }}');
       }
 		</script>
 {% endblock %}
