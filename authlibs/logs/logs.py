@@ -248,7 +248,6 @@ def logs():
 				elif l.resource_id in resources:
 						r['resource'] = resources[l.resource_id]
 				else:
-						print "Wanted %d got RESOURCES %s" %(keys(l.resource_id,resources))
 						r['resource']="Resource #"+str(l.resource_id)
 
 				if (l.event_type in evt):

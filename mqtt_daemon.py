@@ -86,7 +86,7 @@ def on_message(client,userdata,msg):
     resource_cache={}
     member_cache={}
     sc = userdata['slack_context']
-    if True: #try:
+    try:
         with app.app_context():
             log=Logs()
             print "FROM WIRE",msg.topic,msg.payload
@@ -113,7 +113,7 @@ def on_message(client,userdata,msg):
                 userdata['events']=eventtypes.get_events()
             elif topic[0]=="ratt" and topic[1]=="status":
                 if topic[2]=="node":
-                    t=Tool.query.join(Node,Node.id == Tool.id).one_or_none()
+                    t=Tool.query.join(Node,((Node.id == Tool.node_id) & (Node.mac == topic[3]))).one_or_none()
                     toolname=t.name
                 elif topic[2]=="tool":
                     toolname=topic[3]
@@ -161,7 +161,7 @@ def on_message(client,userdata,msg):
                     memberId=m.id
 
 
-            #print "GOT DATA: Tool",toolname,toolId,"Node",nodename,nodeId,"Member",member,memberId,'=='
+            print "GOT DATA: Tool",toolname,toolId,"Node",nodename,nodeId,"Member",member,memberId,'=='
 
             if subt=="wifi":
                     # TODO throttle these!
@@ -175,7 +175,7 @@ def on_message(client,userdata,msg):
                     elif state == "shutdown": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN.id
                     else: 
                         log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_OTHER.id
-                        log_tet = state
+                        log_text = state
                         
                 elif sst=="issue":
                     issue = message['issue'] # Text
@@ -289,7 +289,7 @@ def on_message(client,userdata,msg):
                     print "ERROR",e
                 db.session.add(logevent)
                 db.session.commit()
-    else: # except BaseException as e:
+    except BaseException as e:
         print "LOG ERROR",e,"PAYLOAD",msg.payload
         print "NOW4"
 
