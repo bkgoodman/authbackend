@@ -66,3 +66,10 @@ keyfile=/data/certs/client.key
 BOT_API_TOKEN=<slackbot api token>
 SLACKBOT_API_USERNAME=slackbot
 SLACKBOT_API_PASSWORD=somethinglongandrandom
+
+[aclbackup]
+api_username=aclbackup
+api_password=createapassword
+BOT_API_TOKEN=<Probably same as the one for "slack">
+backup_directory=<Local filesystem directory>
+localurl=http://127.0.0.1:5000

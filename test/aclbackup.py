@@ -6,8 +6,6 @@ import json
 import ConfigParser
 from slackclient import SlackClient
 
-BASE="http://127.0.0.1:5000"
-ACL_STORAGE="/tmp/acls"
 
 now = datetime.now()
 yesterday = now-timedelta(days=1)
@@ -16,9 +14,11 @@ yesterdaystr = yesterday.strftime("%Y-%m-%d")
 
 Config = ConfigParser.ConfigParser({})
 Config.read('makeit.ini')
-slack_token = Config.get('Slack','BOT_API_TOKEN')
-api_username = Config.get("Slack","SLACKBOT_API_USERNAME")
-api_password = Config.get("Slack","SLACKBOT_API_PASSWORD")
+slack_token = Config.get('aclbackup','BOT_API_TOKEN')
+api_username = Config.get("aclbackup","api_username")
+api_password = Config.get("aclbackup","api_password")
+ACL_STORAGE = Config.get("aclbackup","backup_directory")
+BASE= Config.get("aclbackup","localurl")
 api_creds = (api_username,api_password)
 sc = SlackClient(slack_token)
 

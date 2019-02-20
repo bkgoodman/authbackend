@@ -142,3 +142,10 @@ Give member admin privileges
 There are lots more - for info do:
 
 `python ./authserver.py --command help`
+
+## Other Housekeeping
+
+1. `test/aclbackup.py` should be run nightly. Backs up ACL lists for disaseter-mode
+2. `curl http://testkey:testkey@localhost:5000/api/cron/nightly` should be run nightly (pay and waiver import)
+3. We should snapshot databases
+4. We should copy logs, databases and ACL lists offsite
