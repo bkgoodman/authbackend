@@ -73,3 +73,9 @@ api_password=createapassword
 BOT_API_TOKEN=<Probably same as the one for "slack">
 backup_directory=<Local filesystem directory>
 localurl=http://127.0.0.1:5000
+
+[backups]
+directory=/tmp/backups
+aws_token=aaaa
+aws_secret_key=bbbb
+aws_bucket=ccc

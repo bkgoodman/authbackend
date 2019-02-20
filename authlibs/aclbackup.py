@@ -74,23 +74,24 @@ def get_v1_acl(resource):
 	fn = "%s/%s-%s-v1.txt" % (ACL_STORAGE,todaystr,resource)
 	open(fn,"w").write(r.text)
 
-# Do API tests - WITH login
-req = requests.Session()
-url = BASE+"/api/v1/resources"
-r = req.get(url, auth=api_creds)
-if r.status_code != 200:
-	raise BaseException ("%s API failed %d" % (url,r.status_code))
+def do_update():
+	req = requests.Session()
+	url = BASE+"/api/v1/resources"
+	r = req.get(url, auth=api_creds)
+	if r.status_code != 200:
+		raise BaseException ("%s API failed %d" % (url,r.status_code))
 
-for x in r.json():
-	get_v0_acl(x['name'])
-	get_v1_acl(x['name'])
-	str= compare_v1(yesterdaystr,todaystr,x['name'])
-	if x['slack_admin_chan']:
-		print "CHAN",x['slack_admin_chan']
-		print str
-		sc.api_call(
-			"chat.postMessage",
-			channel=x['slack_admin_chan'],
-			text=str
-			)
+	for x in r.json():
+		get_v0_acl(x['name'])
+		get_v1_acl(x['name'])
+		str= compare_v1(yesterdaystr,todaystr,x['name'])
+		if x['slack_admin_chan']:
+			sc.api_call(
+				"chat.postMessage",
+				channel=x['slack_admin_chan'],
+				text=str
+				)
+
+if __name__ == "__main__":
+	do_update()
 

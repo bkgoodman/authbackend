@@ -17,6 +17,7 @@ Some rough documentation as of December 2018.
 `pip install --upgrade google-api-python-client`
 `pip install paho-mqtt`
 `pip install pytz`
+`pip install boto3`
 `pip install --upgrade oauth2client`
 `pip install google-oauth`
 `sudo pip install sqlalchemy_utils`
