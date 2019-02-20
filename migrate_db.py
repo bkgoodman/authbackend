@@ -673,214 +673,213 @@ if __name__ == '__main__':
 
 
           print """ END DB MIGRATION """
+
     if args.testdata:
-        print """
-***
-*** ADDED TEST DATA
-***
-"""
+      print """***\n***Adding Test Data\n***\n"""
         #os.system("sqlite3 "+args.overwrite+" < test/testdata.sql")
-    with app.app_context():
-        # Extensions like Flask-SQLAlchemy now know what the "current" app
-        # is while within this block. Therefore, you can now run........
+      with app.app_context():
+          # Extensions like Flask-SQLAlchemy now know what the "current" app
+          # is while within this block. Therefore, you can now run........
 
-        # Create default admin role and user if not present
-        member = Member(member="admin", email='admin@makeitlabs.com',
-            password=app.user_manager.hash_password("admin"),
-            active="true",email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
-        member.roles.append(Role.query.filter(Role.name=='Admin').one())
+          # Create default admin role and user if not present
+          member = Member(member="admin", email='admin@makeitlabs.com',
+              password=app.user_manager.hash_password("admin"),
+              active="true",email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
+          member.roles.append(Role.query.filter(Role.name=='Admin').one())
 
-        member = Member(member="finance", email='finance@makeitlabs.com',
-            password=app.user_manager.hash_password("finance"),
-            active="true",email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
-        member.roles.append(Role.query.filter(Role.name=='Finance').one())
+          member = Member(member="finance", email='finance@makeitlabs.com',
+              password=app.user_manager.hash_password("finance"),
+              active="true",email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
+          member.roles.append(Role.query.filter(Role.name=='Finance').one())
 
-        member = Member(member="ratt", email='ratt@makeitlabs.com',
-            password=app.user_manager.hash_password("ratt"),
-            active="true",email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
-        member.roles.append(Role.query.filter(Role.name=='RATT').one())
+          member = Member(member="ratt", email='ratt@makeitlabs.com',
+              password=app.user_manager.hash_password("ratt"),
+              active="true",email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
+          member.roles.append(Role.query.filter(Role.name=='RATT').one())
 
-        member = Member(member="useredit", email='useredit@makeitlabs.com',
-            password=app.user_manager.hash_password("useredit"),
-            active="true",email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
-        member.roles.append(Role.query.filter(Role.name=='Useredit').one())
+          member = Member(member="useredit", email='useredit@makeitlabs.com',
+              password=app.user_manager.hash_password("useredit"),
+              active="true",email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
+          member.roles.append(Role.query.filter(Role.name=='Useredit').one())
 
-        member = Member(member="noprivs",email='noprivs@makeitlabs.com',
-            password=app.user_manager.hash_password("noprivs"),
-            active="true",email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
+          member = Member(member="noprivs",email='noprivs@makeitlabs.com',
+              password=app.user_manager.hash_password("noprivs"),
+              active="true",email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
 
-        member = Member(member="testrm",email='testrm@makeitlabs.com',
-            password=app.user_manager.hash_password("testrm"),
-            active="true",email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
+          member = Member(member="testrm",email='testrm@makeitlabs.com',
+              password=app.user_manager.hash_password("testrm"),
+              active="true",email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
 
-        member = Member(member="testarm",email='testarm@makeitlabs.com',
-            password=app.user_manager.hash_password("testarm"),
-            active="true",email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
+          member = Member(member="testarm",email='testarm@makeitlabs.com',
+              password=app.user_manager.hash_password("testarm"),
+              active="true",email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
 
-        member = Member(member="testtrainer",email='testtrainer@makeitlabs.com',
-            password=app.user_manager.hash_password("testtrainer"),
-            active="true",email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
+          member = Member(member="testtrainer",email='testtrainer@makeitlabs.com',
+              password=app.user_manager.hash_password("testtrainer"),
+              active="true",email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
 
-        member = Member(member="testuser",email='testuser@makeitlabs.com',
-            password=app.user_manager.hash_password("testuser"),
-            active="true",email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
+          member = Member(member="testuser",email='testuser@makeitlabs.com',
+              password=app.user_manager.hash_password("testuser"),
+              active="true",email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
 
-        member = Member(member="inactive",email='inactive@makeitlabs.com',
-            password=app.user_manager.hash_password("inactive"),email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
+          member = Member(member="inactive",email='inactive@makeitlabs.com',
+              password=app.user_manager.hash_password("inactive"),email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
 
-        member = Member(member="unconfirmed",email='unconfirmed@makeitlabs.com',
-            active="true",email_confirmed_at=datetime.utcnow(),
-            password=app.user_manager.hash_password("unconfirmed"))
-        db.session.add(member)
+          member = Member(member="unconfirmed",email='unconfirmed@makeitlabs.com',
+              active="true",email_confirmed_at=datetime.utcnow(),
+              password=app.user_manager.hash_password("unconfirmed"))
+          db.session.add(member)
 
-        member = Member(id=5000,member="Testy.Testerson",email='Testy.Testerson@makeitlabs.com',
-            alt_email="testy@example.com",firstname="Testy",lastname="Testerson",slack="testy.testerson",
-            access_enabled=1,active=1,
-            email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
+          member = Member(id=5000,member="Testy.Testerson",email='Testy.Testerson@makeitlabs.com',
+              alt_email="testy@example.com",firstname="Testy",lastname="Testerson",slack="testy.testerson",
+              access_enabled=1,active=1,
+              email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
 
-        member = Member(id=5001,member="First.User",email='First.User@makeitlabs.com',
-            alt_email="fu@example.com",firstname="First",lastname="User",slack="first.user",
-            access_enabled=1,active=1,
-            email_confirmed_at=datetime.utcnow())
-        db.session.add(member)
+          member = Member(id=5001,member="First.User",email='First.User@makeitlabs.com',
+              alt_email="fu@example.com",firstname="First",lastname="User",slack="first.user",
+              access_enabled=1,active=1,
+              email_confirmed_at=datetime.utcnow())
+          db.session.add(member)
 
-        member = Member(id=5002,member="bill.tester",email='bill.tester@makeitlabs.com',
-            alt_email="billy@example.com",firstname="Bill",lastname="Tester",slack="bill.tester",
-            access_enabled=1,active=1,
-            email_confirmed_at=datetime.utcnow(),
-            password=app.user_manager.hash_password("password"))
-        db.session.add(member)
+          member = Member(id=5002,member="bill.tester",email='bill.tester@makeitlabs.com',
+              alt_email="billy@example.com",firstname="Bill",lastname="Tester",slack="bill.tester",
+              access_enabled=1,active=1,
+              email_confirmed_at=datetime.utcnow(),
+              password=app.user_manager.hash_password("password"))
+          db.session.add(member)
 
-        member = Member(id=5003,member="Example.McTester",email='Example.McTester@makeitlabs.com',
-            alt_email="emt@example.com",firstname="Example",lastname="McTester",slack="emtester",
-            access_enabled=1,active=1,
-            email_confirmed_at=datetime.utcnow(),
-            password=app.user_manager.hash_password("password"))
-        db.session.add(member)
+          member = Member(id=5003,member="Example.McTester",email='Example.McTester@makeitlabs.com',
+              alt_email="emt@example.com",firstname="Example",lastname="McTester",slack="emtester",
+              access_enabled=1,active=1,
+              email_confirmed_at=datetime.utcnow(),
+              password=app.user_manager.hash_password("password"))
+          db.session.add(member)
 
-        member = Member(id=5004,member="Oldy.McOldold",email='old.old@makeitlabs.com',
-            alt_email="oldguy@example.com",firstname="Oldy",lastname="McOldOld",slack="oldy",
-            access_enabled=1,active=1,
-            email_confirmed_at=datetime.utcnow(),
-            password=app.user_manager.hash_password("password"))
-        db.session.add(member)
+          member = Member(id=5004,member="Oldy.McOldold",email='old.old@makeitlabs.com',
+              alt_email="oldguy@example.com",firstname="Oldy",lastname="McOldOld",slack="oldy",
+              access_enabled=1,active=1,
+              email_confirmed_at=datetime.utcnow(),
+              password=app.user_manager.hash_password("password"))
+          db.session.add(member)
 
-        db.session.add(MemberTag(id=5900,tag_ident="1110001111",tag_name="testfob",tag_type="rfid",member_id=5000))
-        db.session.add(MemberTag(id=5901,tag_ident="1111111122",tag_name="testfob",tag_type="rfid",member_id=5001))
-        db.session.add(MemberTag(id=5902,tag_ident="2222222222",tag_name="testfob",tag_type="rfid",member_id=5002))
-        db.session.add(MemberTag(id=5903,tag_ident="1212121212",tag_name="testfob",tag_type="rfid",member_id=5003))
-        db.session.add(MemberTag(id=5904,tag_ident="4545454545",tag_name="testfob",tag_type="rfid",member_id=5004))
+          db.session.add(MemberTag(id=5900,tag_ident="1110001111",tag_name="testfob",tag_type="rfid",member_id=5000))
+          db.session.add(MemberTag(id=5901,tag_ident="1111111122",tag_name="testfob",tag_type="rfid",member_id=5001))
+          db.session.add(MemberTag(id=5902,tag_ident="2222222222",tag_name="testfob",tag_type="rfid",member_id=5002))
+          db.session.add(MemberTag(id=5903,tag_ident="1212121212",tag_name="testfob",tag_type="rfid",member_id=5003))
+          db.session.add(MemberTag(id=5904,tag_ident="4545454545",tag_name="testfob",tag_type="rfid",member_id=5004))
 
-        db.session.add(Waiver(firstname="Testy",lastname="Testerson",email="testy@example.com",member_id=5000))
-        db.session.add(Waiver(firstname="First",lastname="User",email="fu@example.com"))
-        db.session.add(Waiver(firstname="Mc",lastname="Gyber",email="mcg@example.com"))
+          db.session.add(Waiver(firstname="Testy",lastname="Testerson",email="testy@example.com",member_id=5000))
+          db.session.add(Waiver(firstname="First",lastname="User",email="fu@example.com"))
+          db.session.add(Waiver(firstname="Mc",lastname="Gyber",email="mcg@example.com"))
 
 
-        apikey = ApiKey(name="testkey",username="testkey",
-            password=app.user_manager.hash_password("testkey"))
-        db.session.add(apikey)
+          apikey = ApiKey(name="testkey",username="testkey",
+              password=app.user_manager.hash_password("testkey"))
+          db.session.add(apikey)
 
-        ## Fake Payment Data
-        # Will expire soon
-        sub = Subscription(paysystem="stripe", subid="test_5000", customerid="cus_test", name="Testy Testerson",
-                email="test@example.com", plan="pro",expires_date=datetime.now()-timedelta(days=8),member_id=5000,active=1,membership="stripe:test:5000")
-        db.session.add(sub)
+          ## Fake Payment Data
+          # Will expire soon
+          sub = Subscription(paysystem="stripe", subid="test_5000", customerid="cus_test", name="Testy Testerson",
+                  email="test@example.com", plan="pro",expires_date=datetime.now()-timedelta(days=8),member_id=5000,active=1,membership="stripe:test:5000")
+          db.session.add(sub)
 
-        # Expired
-        sub = Subscription(paysystem="stripe", subid="test_5002", customerid="cus_test2", name="William Tester",
-                email="tester@foo.com", plan="pro",expires_date=datetime.now()-timedelta(days=30),member_id=5002,active=1,membership="stripe:test:5002")
-        db.session.add(sub)
+          # Expired
+          sub = Subscription(paysystem="stripe", subid="test_5002", customerid="cus_test2", name="William Tester",
+                  email="tester@foo.com", plan="pro",expires_date=datetime.now()-timedelta(days=30),member_id=5002,active=1,membership="stripe:test:5002")
+          db.session.add(sub)
 
-        # Current (No expiration)
-        sub = Subscription(paysystem="stripe", subid="test_5003", customerid="cus_test3", name="William Tester",
-                email="tester@foo.com", plan="pro",member_id=5003,active=1,membership="stripe:test:5003")
-        db.session.add(sub)
+          # Current (No expiration)
+          sub = Subscription(paysystem="stripe", subid="test_5003", customerid="cus_test3", name="William Tester",
+                  email="tester@foo.com", plan="pro",member_id=5003,active=1,membership="stripe:test:5003")
+          db.session.add(sub)
 
-        # 5003 - Example McTester has no sub data at all
+          # 5003 - Example McTester has no sub data at all
 
-        # Expires Soon
-        sub = Subscription(paysystem="stripe", subid="test_5004", customerid="cus_test4", name="O Mcooldold",
-                email="oldy.mcold@foo.com", plan="pro",expires_date=datetime.now()+timedelta(days=6),member_id=5004,active=1,membership="stripe:test:5004")
-        db.session.add(sub)
+          # Expires Soon
+          sub = Subscription(paysystem="stripe", subid="test_5004", customerid="cus_test4", name="O Mcooldold",
+                  email="oldy.mcold@foo.com", plan="pro",expires_date=datetime.now()+timedelta(days=6),member_id=5004,active=1,membership="stripe:test:5004")
+          db.session.add(sub)
 
-        node = Node(id=5000,name="node1",mac="001122334455")
-        db.session.add(node)
-        node = Node(id=5001,name="node2",mac="111111111111")
-        db.session.add(node)
+          node = Node(id=5000,name="node1",mac="001122334455")
+          db.session.add(node)
+          node = Node(id=5001,name="node2",mac="111111111111")
+          db.session.add(node)
 
-        db.session.add(Tool(id=5000,name="TestTool",node_id=5000,resource_id=5000))
+          db.session.add(Tool(id=5000,name="TestTool",node_id=5000,resource_id=5000))
 
-        db.session.add(KVopt(id=5000,keyname="test1.Option1",description="Anything"))
-        db.session.add(KVopt(id=5001,keyname="test1.Option2",kind="integer",description="Integer only"))
-        db.session.add(KVopt(id=5002,keyname="test1.Option3.first"))
-        db.session.add(KVopt(id=5005,keyname="test1.Option3.second"))
-        db.session.add(KVopt(id=5006,keyname="test1.Option3.third"))
-        db.session.add(KVopt(id=5003,keyname="test2.Option4",options="red;green;blue;chartruse",description="Your favorite color"))
-        db.session.add(KVopt(id=5004,keyname="test2.season",default="summer",options="spring;summer;winter;fall",description="A nice season"))
+          db.session.add(KVopt(id=5000,keyname="test1.Option1",description="Anything"))
+          db.session.add(KVopt(id=5001,keyname="test1.Option2",kind="integer",description="Integer only"))
+          db.session.add(KVopt(id=5002,keyname="test1.Option3.first"))
+          db.session.add(KVopt(id=5005,keyname="test1.Option3.second"))
+          db.session.add(KVopt(id=5006,keyname="test1.Option3.third"))
+          db.session.add(KVopt(id=5003,keyname="test2.Option4",options="red;green;blue;chartruse",description="Your favorite color"))
+          db.session.add(KVopt(id=5004,keyname="test2.season",default="summer",options="spring;summer;winter;fall",description="A nice season"))
 
-        db.session.flush()
+          db.session.flush()
 
-        db.session.add(NodeConfig(id=5000,node_id=5000,key_id=5000,value="val1"))
-        db.session.add(NodeConfig(id=5001,node_id=5000,key_id=5001,value="val2"))
-        db.session.add(NodeConfig(id=5002,node_id=5000,key_id=5003,value="green"))
-        db.session.add(NodeConfig(id=5003,node_id=5001,key_id=5000,value="val1"))
-        db.session.add(NodeConfig(id=5004,node_id=5001,key_id=5001,value="val2"))
-        db.session.add(NodeConfig(id=5005,node_id=5001,key_id=5004,value="winter"))
+          db.session.add(NodeConfig(id=5000,node_id=5000,key_id=5000,value="val1"))
+          db.session.add(NodeConfig(id=5001,node_id=5000,key_id=5001,value="val2"))
+          db.session.add(NodeConfig(id=5002,node_id=5000,key_id=5003,value="green"))
+          db.session.add(NodeConfig(id=5003,node_id=5001,key_id=5000,value="val1"))
+          db.session.add(NodeConfig(id=5004,node_id=5001,key_id=5001,value="val2"))
+          db.session.add(NodeConfig(id=5005,node_id=5001,key_id=5004,value="winter"))
 
-        db.session.flush()
+          db.session.flush()
 
-        res=Resource(id=5000,name="TestResource",description="Test Resource",
-          slack_chan="#test-resource",slack_admin_chan="#test-resource_admin",owneremail="test@makeitlabs.com")
-        db.session.add(res)
-        res=Resource(id=5001,name="OtherTest",description="Another Test Resource",owneremail="test@makeitlabs.com")
-        db.session.add(res)
+          res=Resource(id=5000,name="TestResource",description="Test Resource",
+            slack_chan="#test-resource",slack_admin_chan="#test-resource_admin",owneremail="test@makeitlabs.com")
+          db.session.add(res)
+          res=Resource(id=5001,name="OtherTest",description="Another Test Resource",owneremail="test@makeitlabs.com")
+          db.session.add(res)
 
-        if args.nomigrate:
-            # Since we don't have any other data in here - create a "frontdoor" entry
-            res=Resource(id=1,name="frontfoor",description="Building Access",owneremail="board@makeitlabs.com")
-            db.session.add(res)
-            res=Resource(name="laser",description="Rabbit 80-watt",owneremail="laser@makeitlabs.com")
-            db.session.add(res)
-            res=Resource(name="fullspectrum",description="Full Spectrum 80-watt laser",owneremail="laser@makeitlabs.com")
-            db.session.add(res)
-            res=Resource(name="autolift",description="Auto lift",owneremail="lift@makeitlabs.com")
-            db.session.add(res)
+          if args.nomigrate:
+              # Since we don't have any other data in here - create a "frontdoor" entry
+              res=Resource(id=1,name="frontfoor",description="Building Access",owneremail="board@makeitlabs.com")
+              db.session.add(res)
+              res=Resource(name="laser",description="Rabbit 80-watt",owneremail="laser@makeitlabs.com")
+              db.session.add(res)
+              res=Resource(name="fullspectrum",description="Full Spectrum 80-watt laser",owneremail="laser@makeitlabs.com")
+              db.session.add(res)
+              res=Resource(name="autolift",description="Auto lift",owneremail="lift@makeitlabs.com")
+              db.session.add(res)
 
-        db.session.flush()
+          db.session.flush()
 
-        db.session.add(AccessByMember(member_id=5000,resource_id=1,active=True))
-        db.session.add(AccessByMember(member_id=5001,resource_id=1,active=True))
-        db.session.add(AccessByMember(member_id=5002,resource_id=1,active=True))
-        db.session.add(AccessByMember(member_id=5004,resource_id=1,active=True))
-        db.session.add(AccessByMember(member_id=5000,resource_id=5001,active=True))
-        db.session.add(AccessByMember(member_id=5001,resource_id=5000,active=True))
+          db.session.add(AccessByMember(member_id=5000,resource_id=1,active=True))
+          db.session.add(AccessByMember(member_id=5001,resource_id=1,active=True))
+          db.session.add(AccessByMember(member_id=5002,resource_id=1,active=True))
+          db.session.add(AccessByMember(member_id=5004,resource_id=1,active=True))
+          db.session.add(AccessByMember(member_id=5000,resource_id=5001,active=True))
+          db.session.add(AccessByMember(member_id=5001,resource_id=5000,active=True))
 
-        db.session.flush()
+          db.session.flush()
 
-        # Set privileges for test accounts on test resource
-        testrm = Member.query.filter(Member.member == "testrm").one().id
-        db.session.add(AccessByMember(member_id=testrm,resource_id=5000,active=True,level=3))
-        testarm = Member.query.filter(Member.member == "testarm").one().id
-        db.session.add(AccessByMember(member_id=testarm,resource_id=5000,active=True,level=2))
-        testtrainer = Member.query.filter(Member.member == "testtrainer").one().id
-        db.session.add(AccessByMember(member_id=testtrainer,resource_id=5000,active=True,level=1))
-        testuser = Member.query.filter(Member.member == "testuser").one().id
-        db.session.add(AccessByMember(member_id=testuser,resource_id=5000,active=True,level=0))
+          # Set privileges for test accounts on test resource
+          testrm = Member.query.filter(Member.member == "testrm").one().id
+          db.session.add(AccessByMember(member_id=testrm,resource_id=5000,active=True,level=3))
+          testarm = Member.query.filter(Member.member == "testarm").one().id
+          db.session.add(AccessByMember(member_id=testarm,resource_id=5000,active=True,level=2))
+          testtrainer = Member.query.filter(Member.member == "testtrainer").one().id
+          db.session.add(AccessByMember(member_id=testtrainer,resource_id=5000,active=True,level=1))
+          testuser = Member.query.filter(Member.member == "testuser").one().id
+          db.session.add(AccessByMember(member_id=testuser,resource_id=5000,active=True,level=0))
 
-        db.session.commit()
-        print "SUCCESS! You may also want to update pay and waiver data with:"
-        print "curl http://testkey:testkey@localhost:5000/api/cron/nightly"
+          db.session.commit()
+          print """***\n***Test Data Added\n***\n"""
+
+    print "SUCCESS! You may also want to update pay and waiver data with:"
+    print "curl http://testkey:testkey@localhost:5000/api/cron/nightly"
 
     if not args.overwrite:
         print """
