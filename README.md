@@ -127,6 +127,18 @@ from flask_login import LoginManager, UserMixin, login_required,  current_user, 
 
 ## Using the CLI: 
 
-Get info like:
+CLI is needed for some zero-start conditions - like assigning privilieges, or (non-oauth-login) passwords
+before any admins or access is set up on the system.
 
-python ./authserver --command help
+Some important commands are:
+
+`python authserver.py --command passwd Member.Name  myPassword`
+Adds a password to an account for non-oauth access.
+
+`python authserver.py --command grant Member.Name Admin`
+Give member admin privileges
+
+
+There are lots more - for info do:
+
+`python ./authserver.py --command help`
