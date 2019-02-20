@@ -43,8 +43,8 @@ if __name__ == '__main__':
 
     # Take Snapshot of databases
     if args.verbose: print "* Snapshotting databases"
-    os.system("sqlite3 %s .dump > %s/%s-db.sql" % (dbfile,backup_dir,today))
-    os.system("sqlite3 %s .dump > %s/%s-logdb.sql" % (logdbfile,backup_dir,today))
+    os.system("sqlite3 %s '.backup %s/%s-db.sq3'" % (dbfile,backup_dir,today))
+    os.system("sqlite3 %s '.backup %s/%s-logdb.sq3'" % (logdbfile,backup_dir,today))
 
     # Run nightly payment/waiver update
     if not args.nopayment:
