@@ -146,7 +146,10 @@ There are lots more - for info do:
 
 ## Other Housekeeping
 
-1. `test/aclbackup.py` should be run nightly. Backs up ACL lists for disaseter-mode
-2. `curl http://testkey:testkey@localhost:5000/api/cron/nightly` should be run nightly (pay and waiver import)
-3. We should snapshot databases
-4. We should copy logs, databases and ACL lists offsite
+You will want to run `nightly.py` on some nightly cron job. It will:
+
+* Snapshot the database
+* Handle payment and waiver updates
+* Get snapshots of ACL lists - send messages to slack groups of changes since prior run
+* Back all snaps up to Amazon
+
