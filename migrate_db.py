@@ -839,7 +839,8 @@ if __name__ == '__main__':
 
         db.session.flush()
 
-        res=Resource(id=5000,name="TestResource",description="Test Resource",owneremail="test@makeitlabs.com")
+        res=Resource(id=5000,name="TestResource",description="Test Resource",
+          slack_chan="#test-resource",slack_admin_chan="#test-resource_admin",owneremail="test@makeitlabs.com")
         db.session.add(res)
         res=Resource(id=5001,name="OtherTest",description="Another Test Resource",owneremail="test@makeitlabs.com")
         db.session.add(res)
