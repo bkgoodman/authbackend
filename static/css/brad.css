@@ -106,3 +106,20 @@ background: -webkit-linear-gradient(left, rgba(125,185,232,0) 0%,rgba(97,156,208
 background: linear-gradient(to right, rgba(125,185,232,0) 0%,rgba(97,156,208,0) 30%,rgba(55,113,173,1) 74%,rgba(30,87,153,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#007db9e8', endColorstr='#1e5799',GradientType=1 ); /* IE6-9 */
 }
+
+
+.hvr-grow-shadow {
+    display: inline-block;
+    vertical-align: middle;
+    -webkit-transform: perspective(1px) translateZ(0);
+    transform: perspective(1px) translateZ(0);
+    -webkit-transition-duration: 0.3s;
+    transition-duration: 0.3s;
+    -webkit-transition-property:  transform;
+    transition-property:  transform;
+}
+.hvr-grow-shadow:hover, .hvr-grow-shadow:focus, .hvr-grow-shadow:active {
+    -webkit-transform: scale(1.1);
+    transform: scale(1.1);
+}
+
