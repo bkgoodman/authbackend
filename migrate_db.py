@@ -183,6 +183,7 @@ if __name__ == '__main__':
     parser.add_argument("--overwrite",help="Overwrite entire database with migrated data")
     parser.add_argument("--testdt",help="Only test datetime functions",action="store_true")
     parser.add_argument("--testdata",help="Add test data to database",action="store_true")
+    parser.add_argument("--newdata",help="Add new data to database",action="store_true")
     parser.add_argument("--noslack",help="Do not handle slack users",action="store_true")
     parser.add_argument("--nomigrate",help="Don't migrate data. Just create DB (and optionally add test data)",action="store_true")
     parser.add_argument("--allusers",help="Specify location of allusers.txt file",default="../allusers.txt")
@@ -674,6 +675,12 @@ if __name__ == '__main__':
 
           print """ END DB MIGRATION """
 
+    if args.newdata:
+          res=Resource(name="laser-rabbit",description="80-Watt Rabbit laser", owneremail="laser@makeitlabs.com")
+          db.session.add(res)
+          db.session.flush() # Need to get ID from created thing
+          db.session.add(Tool(name="laser-rabbit",resource_id=res.id))
+
     if args.testdata:
       print """***\n***Adding Test Data\n***\n"""
         #os.system("sqlite3 "+args.overwrite+" < test/testdata.sql")
@@ -838,7 +845,7 @@ if __name__ == '__main__':
           db.session.flush()
 
           res=Resource(id=5000,name="TestResource",description="Test Resource",
-            slack_chan="#test-resource",slack_admin_chan="#test-resource_admin",owneremail="test@makeitlabs.com")
+            slack_chan="#test-resource",slack_admin_chan="#test-resource-admins",owneremail="test@makeitlabs.com")
           db.session.add(res)
           res=Resource(id=5001,name="OtherTest",description="Another Test Resource",owneremail="test@makeitlabs.com")
           db.session.add(res)

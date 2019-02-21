@@ -110,11 +110,13 @@ def on_message(client,userdata,msg):
                 tool_cache={}
                 resource_cache={}
                 member_cache={}
-                userdata['events']=eventtypes.get_events()
             elif topic[0]=="ratt" and topic[1]=="status":
                 if topic[2]=="node":
                     t=Tool.query.join(Node,((Node.id == Tool.node_id) & (Node.mac == topic[3]))).one_or_none()
-                    toolname=t.name
+                    if t is None:
+                      toolname="Node #"+str(topic[3])
+                    else:
+                      toolname=t.name
                 elif topic[2]=="tool":
                     toolname=topic[3]
 
@@ -274,18 +276,20 @@ def on_message(client,userdata,msg):
                 if log_event_type and toolname and associated_resource and associated_resource['slack_admin_chan']:
                   try:
                     slacktext="" 
+                    if log_event_type in userdata['icons']: 
+                      slacktext += userdata['icons'][log_event_type]+" "
+                    if member: slacktext += "*"+member+"* "
                     if log_event_type in userdata['events']:
-                      slacktext="%s: %s "%  (str(toolname),userdata['events'][log_event_type])
+                      slacktext += "%s: %s "%  (str(toolname),userdata['events'][log_event_type])
                     else:
-                      slacktext="%s: Event #%s" % (str(toolname),log_event_type)
-                    if member: slacktext += " "+member
+                      slacktext += "%s: Event #%s" % (str(toolname),log_event_type)
                     if log_text: slacktext += " "+log_text
                     res = sc.api_call(
                       "chat.postMessage",
                       channel=associated_resource['slack_admin_chan'],
                       text=slacktext
                     )
-                  except BaseExcepton as e:
+                  except BaseException as e:
                     print "ERROR",e
                 db.session.add(logevent)
                 db.session.commit()
@@ -314,9 +318,10 @@ if __name__ == '__main__':
         logger.error("Slack MQTT test message failed: %s"%res['error'])
       while True:
           # TODO BKG BUG re-add error-safe logic here
-          if 1: #try:
+          #try:
             callbackdata={'slack_context':sc}
             callbackdata['events']=eventtypes.get_events()
+            callbackdata['icons']=eventtypes.get_event_slack_icons()
             sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
             sub.loop_forever()
             sub.loop_misc()
@@ -330,5 +335,3 @@ if __name__ == '__main__':
             print "EXCEPT"
             time.sleep(1)
             """
-
-

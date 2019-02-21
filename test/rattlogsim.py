@@ -96,7 +96,7 @@ if __name__ == "__main__":
 	(base_topic,mqtt_opts) = get_mqtt_config()
 	print mqtt_opts,base_topic
 
-  test_node = 'node1'
+  test_node = '001122334455'
   test_tool = 'TestTool'
   test_user = 'testuser'
   send_poweron(test_node,base_topic,mqtt_opts)
