@@ -181,7 +181,7 @@ def send_tool_lockout(toolname,node,reason):
       gc= current_app.config['globalConfig']
       topic= gc.mqtt_base_topic+"/control/node/%s/personality/lock" % (node)
       data = {'reason':reason,'tool':toolname}
-      mqtt_pub.single(topic, json.dumps(data), hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
+      mqtt_pub.single(topic, json.dumps(data), retain=True, hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
     except BaseException as e:
         logging.warning("MQTT acl/update failed to send tool open message: "+str(e))
 
@@ -189,6 +189,12 @@ def send_tool_lockout(toolname,node,reason):
 def send_tool_remove_lockout(toolname,node):
     try:
       gc= current_app.config['globalConfig']
+
+			# Remove the persistant "lock" messsage (retain=False)
+      topic= gc.mqtt_base_topic+"/control/node/%s/personality/lock" % (node)
+      mqtt_pub.single(topic,None, retain=False,hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
+
+			# Send the unlock message
       topic= gc.mqtt_base_topic+"/control/node/%s/personality/unlock" % (node)
       data = {'tool':toolname}
       mqtt_pub.single(topic, json.dumps(data), hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)

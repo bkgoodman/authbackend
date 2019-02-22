@@ -8,6 +8,7 @@ from authlibs.ubersearch import ubersearch
 from authlibs import membership
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
+import slackapi
 import random,string
 
 # You must call this modules "register_pages" with main app's "create_rotues"
@@ -145,6 +146,25 @@ def api_v1_nodeconfig(node):
 
 		#print json_dump(result,indent=2)
 		return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+
+@blueprint.route('/v1/slack/admin/<string:slackid>',methods=['POST'])
+@api_only
+@localhost_only
+def api_slack_admin(slackid):
+  r = Member.query.filter(Member.slack == slackid).all()
+  if len(r)>1:
+    output = "You could be one of several possible matching members:\n\n"
+    for x in r:
+      output += "%s\n" % x.member
+    output += "\nPlease ask an admin to help sort this out."
+    logger.error("slack id %s matching several members." % slackid)
+    return output
+  elif len(r) == 0:
+    output = "I am unable to match a member record to your slack ID. lease contact an admin to sort this out."
+    logger.error("slack id %s has no matching member." % slackid)
+    return output
+  data=request.get_json()
+  return slackapi.slack_admin_api(data['command'],r[0]) , 200, {'Content-Type': 'text/plain', 'Content-Language': 'en'}
 
 # See which tools a user can request access to
 @blueprint.route('/v1/slack/tools/<string:slackid>',methods=['GET'])

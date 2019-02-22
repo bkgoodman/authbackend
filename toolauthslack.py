@@ -281,6 +281,17 @@ def whoami(sc,user,ctx,*s):
   else:
     return r.text
 
+def admin_commands(sc,user,ctx,*s):
+  myid = safestr(user['user']['profile']['display_name'])
+  req = requests.Session()
+  url = "http://127.0.0.1:5000/api/v1/slack/admin/"+str(myid)
+  data= {'command':s[1:]}
+  r = req.post(url, json=data,auth=(api_username,api_password))
+  if r.status_code != 200:
+    raise BaseException ("%s API failed %d" % (url,r.status_code))
+  else:
+    return r.text
+
 def privileges(sc,user,ctx,*s):
   if len(s)<2:
     return "No user specified"
@@ -371,7 +382,7 @@ def help_cb(sc,user,ctx,*s):
 		text= "Enter one of the following, or `help {command}` for more detail:\n```"
 
 		for x in sorted(verbs,key=lambda x:x['name']):
-			if 'callback' in x:
+			if 'callback' in x and 'hidden' not in x:
 				if 'usage' in x:
 					text += x['usage']+ "  -- "+x['desc']+"\n"
 				elif 'desc' in x:
@@ -381,7 +392,7 @@ def help_cb(sc,user,ctx,*s):
 
 		text+= "\nOther help topics:\n"
 		for x in sorted(verbs,key=lambda x:x['name']):
-			if 'callback' not in x:
+			if 'callback' not in x and 'hidden' not in x:
 				if 'desc' in x:
 					text += x['name'] + " - "+x['desc']+"\n"
 				else:
@@ -505,6 +516,11 @@ verbs = [
 		'name':"whoami", 
 		'callback':whoami,
 		"desc":"whoami - ID youself - diagnostic"
+	},
+	{
+		'name':"admin", 
+		'callback':admin_commands,
+		"hidden":True
 	},
 	{'name':"help", 'callback':help_cb,'aliases':['?']}
 ]
