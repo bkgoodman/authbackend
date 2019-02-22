@@ -153,7 +153,7 @@ def addQuickAccessQuery(query):
   query = query.add_column(case([
           ((Subscription.expires_date  == None), 'No Subscription'),
           ((Member.access_enabled ==0) , 'Access Disabled'),
-          ((Subscription.expires_date > db.func.DateTime('now')), 'Active'),
+          ((Subscription.expires_date > db.func.DateTime('now',"-1 day")), 'Active'),
           ((Subscription.expires_date > db.func.DateTime('now','-14 days')), 'Grace Period'),
           ((Subscription.expires_date > db.func.DateTime('now','-45 days')), 'Recent Expire'),
           ], else_ = 'Expired').label('active'))

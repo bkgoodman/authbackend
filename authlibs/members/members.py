@@ -193,7 +193,7 @@ def member_show(id):
                      cc=comments.get_comments(member_id=member.id)
                  else:
                      cc={}
-		 waiver = Waiver.query.filter(Waiver.member_id == member.id).one_or_none()
+		 waiver = Waiver.query.filter(Waiver.member_id == member.id).first()
 
 		 if waiver:
 			 meta['waiver']=waiver.created_date
