@@ -216,22 +216,35 @@ def api_slack_whoami(slackid):
     m = r[0]
     output = "You are %s %s (%s)\n" % (m.firstname,m.lastname,m.member)
     output += "Email: %s\n" % m.email
-    output += "Your membership status: %s\n" % accesslib.quickSubscriptionCheck(member_id=m.id)
+    output += "Your membership status: *%s*\n" % accesslib.quickSubscriptionCheck(member_id=m.id)
     au = AccessByMember.query.filter(AccessByMember.member_id==m.id).join(Resource,AccessByMember.resource_id == Resource.id)
     au = au.add_column(Resource.name).all()
 
+    if m.access_enabled == 0:
+      if not m.access_reason:
+        output += "\n:no_access:Your lab access is on hold, pending acceptance of the Waiver\n\n";
+      else:
+        output += "\n:warning: Your lab access is suspended because: %s \n\n" % m.access_reason;
+    has_frontdoor=False
+    output +="\n"
     for a in au:
       level = AccessByMember.LEVEL_NOACCESS
       if m.privs('HeadRM'): level = AccessByMember.LEVEL_HEADRM
       else: level = a[0].level
       if level > AccessByMember.LEVEL_USER:
-        output += "You have %s access to %s\n" % (accessLevelToString(level),a[1])
+        output += ":ballot_box_with_check: You have %s access to %s\n" % (accessLevelToString(level),a[1])
       else:
-        output += "You have access to %s\n" % a[1]
+        output += ":ballot_box_with_check: You have access to %s\n" % a[1]
+      if a[1] == "frontdoor": has_frontdoor = True
+
+    output +="\n"
+
+    if not has_frontdoor:
+      output += "\n:lock: You need to complete orientation before being granted door access\n"
 
     for r in UserRoles.query.filter(UserRoles.member_id == m.id).join(Role,Role.id == UserRoles.role_id).add_column(Role.name).all():
       (ur,role) = r
-      output += "You have global \"%s\" privileges\n" % role
+      output += ":star: You have global \"%s\" privileges\n" % role
     
   return output, 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 

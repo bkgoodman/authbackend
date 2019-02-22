@@ -5,18 +5,25 @@
 	<table class="table table-sm">
     <tr>
         <td><div class="menubox">
-        <a href="{{ url_for('payments.test_payments') }}"><img class="menuimg" src="static/data-analytics.png" alt="Test Payment System Connection"></a>
+        <a class="btn btn-primary" href="{{ url_for('payments.test_payments') }}">Test Pay System</a>
         <br>
         Test Connection<br>(10-15 seconds)</div>
         </td>
-        <td><div class="menubox"><a href="{{ url_for('payments.update_payments') }}"><img class="menuimg" src="static/refresh2.png" alt="Update paysystem information"></a>
+        <td><div class="menubox"><a class="btn btn-primary" href="{{ url_for('payments.update_payments') }}">Update paysystem information</a>
         <br>
         Update Payment Data<br>(10-30 Seconds)</div>
         </td>
+
+        <td><div class="menubox"><a class="btn btn-primary" href="{{ url_for('payments.payments_missing') }}">Fix Broken Payments</a>
+        <br>
+        Connect members &amp; payments</div>
+        </td>
+				{#
         <td><div class="menubox"><a href="{{ url_for('payments.payments_fees') }}"><img class="menuimg" src="static/currency-symbol.png" alt="Schedule payment"></a>
         <br>
         Add Fee<br>(Manual entry)</div>
         </td>
+				#}
     </tr>
 	</table>
 	<div class="sectionhead">Payment system configuration</div>
@@ -38,9 +45,6 @@
 	<div class="sectionhead">Fees</div>
 	View previously charged fees, create one-time fee or schedule recurring fees.
 	<div class="sectionhead">Troublsheooting</div>
-{% if current_user.privs('Finance') %}
-  <a href="{{ url_for('payments.payments_missing') }}">Zombie Subscriptions</a>
-{% endif %}
 	
   </div>
 
