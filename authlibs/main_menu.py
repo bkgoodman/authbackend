@@ -10,7 +10,7 @@ def get_raw_menu():
             {
                     'url':url_for('authorize.authorize'),
                     'img':url_for("static",filename="menu_key.png"),
-                    'title':"Authorize Users",
+                    'title':"Authorize Members",
                     'alt':"Quick method for basic tool access",
                     'importance':1000
             },
