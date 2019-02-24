@@ -187,10 +187,30 @@ if __name__ == '__main__':
     parser.add_argument("--noslack",help="Do not handle slack users",action="store_true")
     parser.add_argument("--nomigrate",help="Don't migrate data. Just create DB (and optionally add test data)",action="store_true")
     parser.add_argument("--allusers",help="Specify location of allusers.txt file",default="../allusers.txt")
+    parser.add_argument("--explicit-slack-ids",help="Specify location of explicit_slack_ids.txt file",default="../explicit_slack_ids.txt")
+    parser.add_argument("--unhashed-tags-all",help="Specify location of unhashed-tags-all.txt file",default="../unhashed-tags-all.txt")
     #(args,extras) = parser.parse_known_args(sys.argv[1:])
     args = parser.parse_args(sys.argv[1:])
 
+    any_missing = False
+    
+    if not os.path.isfile(args.allusers):
+        print(">>> WARNING: can't find allusers.txt file at %s" % args.allusers)
+        any_missing = True
 
+    if not os.path.isfile(args.explicit_slack_ids):
+        print(">>> WARNING: can't find explicit_slack_ids.txt file at %s" % args.explicit_slack_ids)
+        any_missing = True
+
+    if not os.path.isfile(args.unhashed_tags_all):
+        print(">>> WARNING: can't find unhashed_tags_all.txt file at %s" % args.unhashed_tags_all)
+        any_missing = True
+
+    if any_missing:
+        print
+        print(">>> PRESS CTRL-C NOW IF WANT TO RECTIFY THIS BEFORE IMPORT")
+        time.sleep(5)
+    
     if args.testdt:
         dttest()
         sys.exit(0)
@@ -309,7 +329,7 @@ if __name__ == '__main__':
 
               slack_explicit_matches={}
               try:
-                for x in open("../explicit_slack_ids.txt").readlines():
+                for x in open(args.explicit_slack_ids).readlines():
                     (a,b,c)=x.split()
                     slack_explicit_matches[b]=c
               except:
@@ -510,7 +530,7 @@ if __name__ == '__main__':
           # Read decoded hashes
           byencoded={}
           try:
-            for x in open("../unhashed_tags_all.txt").readlines():
+            for x in open(args.unhashed_tags_all).readlines():
                 sp=x.strip().split()
                 uid=sp[3]
                 enc=sp[2]
