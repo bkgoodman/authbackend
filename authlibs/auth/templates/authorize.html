@@ -22,7 +22,7 @@
   {{ error }}
 </div>
 {% endif %}
-<h2>Authorize Users</h2>
+<h2>Authorize Members</h2>
 <form class="bs-example bs-example-form" action="{{ url_for('authorize.authorize') }}" method="post">
 
 {% with add_checkboxes='1', member_url=url_for("members.member_show",id="") %}
@@ -31,12 +31,12 @@
 
 <hr />
 
-<h3>Resource</h3>
+<h3>Resource Groups</h3>
 <table class="table table-striped compacttable">
   <thead>
     <tr>
-      <th></th>
-      <th>Machine</th>
+      <th>Authorize</th>
+      <th>Resource Group</th>
     </tr>
   </thead>
   <tbody id="resourcerows">
@@ -47,7 +47,8 @@
 		disabled
 	{% endif %}
 	class="auth_resource_cb"/></td>
-	<td>{{ i.resource.name }}</td>
+
+	<td><a href="{{ url_for('resources.resource_showusers',resource=i.resource.name) }}">{{ i.resource.name }}</a></td>
 	<!-- 
 	<td>{{ i.levelText }}
 	
