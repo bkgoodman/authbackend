@@ -436,57 +436,61 @@ def site_map(app):
         print rule
         # and rules that require parameters
 
+
+####
         
-# Start development web server
-if __name__ == '__main__':
-    parser=argparse.ArgumentParser()
-    parser.add_argument("--createdb",help="Create new db if none exists",action="store_true")
-    parser.add_argument("--command",help="Special command",action="store_true")
-    (args,extras) = parser.parse_known_args(sys.argv[1:])
+parser=argparse.ArgumentParser()
+parser.add_argument("--createdb",help="Create new db if none exists",action="store_true")
+parser.add_argument("--command",help="Special command",action="store_true")
+(args,extras) = parser.parse_known_args(sys.argv[1:])
 
-    app=authbackend_init(__name__)
+app=authbackend_init(__name__)
 
 
-    with app.app_context():
-        # Extensions like Flask-SQLAlchemy now know what the "current" app
-        # is while within this block. Therefore, you can now run........
-        if (args.createdb):
-          db.create_all()
-          createDefaultUsers(app)
-        try:
-          db.session.query("* from test_database").all()
-          app.jinja_env.globals['TESTDB'] = "YES"
-        except:
-            pass
-        if app.config['globalConfig'].DeployType.lower() != "production":
-          app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
-        if  args.command:
-            cli.cli_command(extras,app=app,um=app.user_manager)
-            sys.exit(0)
+with app.app_context():
+    # Extensions like Flask-SQLAlchemy now know what the "current" app
+    # is while within this block. Therefore, you can now run........
+    if (args.createdb):
+        db.create_all()
+        createDefaultUsers(app)
+    try:
+        db.session.query("* from test_database").all()
+        app.jinja_env.globals['TESTDB'] = "YES"
+    except:
+        pass
 
-				# Register Pages
+    if app.config['globalConfig'].DeployType.lower() != "production":
+        app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
+    if  args.command:
+        cli.cli_command(extras,app=app,um=app.user_manager)
+        sys.exit(0)
 
-        authutil.kick_backend()
-        create_routes()
-        auth.register_pages(app)
-        members.register_pages(app)
-        resource_pages.register_pages(app)
-        log_pages.register_pages(app)
-        waivers.register_pages(app)
-        api.register_pages(app)
-        paylib.register_pages(app)
-        reports.register_pages(app)
-        nodes.register_pages(app)
-        tools.register_pages(app)
-        kvopts.register_pages(app)
-        comments.register_pages(app)
-        apikeys.register_pages(app)
-        belog.register_pages(app)
-        slackutils.create_routes(app)
-        g.main_menu = main_menu
-        app.config['main_menu'] = main_menu
-        #print site_map(app)
+    # Register Pages
+    
+    authutil.kick_backend()
+    create_routes()
+    auth.register_pages(app)
+    members.register_pages(app)
+    resource_pages.register_pages(app)
+    log_pages.register_pages(app)
+    waivers.register_pages(app)
+    api.register_pages(app)
+    paylib.register_pages(app)
+    reports.register_pages(app)
+    nodes.register_pages(app)
+    tools.register_pages(app)
+    kvopts.register_pages(app)
+    comments.register_pages(app)
+    apikeys.register_pages(app)
+    belog.register_pages(app)
+    slackutils.create_routes(app)
+    g.main_menu = main_menu
+    app.config['main_menu'] = main_menu
+    #print site_map(app)
     #app.login_manager.login_view="test"
     #print app.login_manager.login_view
     logger.info("STARTING")
+    
+# Start development web server
+if __name__ == '__main__':
     app.run(host=app.config['globalConfig'].ServerHost, port=app.config['globalConfig'].ServerPort, debug=app.config['globalConfig'].Debug)
