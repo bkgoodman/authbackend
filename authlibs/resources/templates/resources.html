@@ -7,8 +7,8 @@
         <tr>
             <th>Name</th>
             <th>Description</th>
-            <th>Owner email</th>
-			<th>Actions</th>
+            <th>Owner Email</th>
+	    <th>View</th>
         </tr>
 	{% for resource in resources %}
 	  <tr>
@@ -16,8 +16,11 @@
 		<td>{{ resource.description }}</td>
 		<td>{{ resource.owneremail }}</td>
 		<td>
-				<a class="btn btn-outline-info" href="{{ url_for('resources.resource_showusers',resource=resource.name) }}">Users</a>
-				<a class="btn btn-outline-info" href="{{ url_for('logs.logs',resourceid=resource.id) }}">Logs</a>
+		  <a class="btn btn-outline-info" href="{{ url_for('resources.resource_showusers',resource=resource.name) }}">MEMBERS</a>
+		  <a class="btn btn-outline-info" href="{{ url_for('logs.logs',resourceid=resource.id) }}">LOGS</a>
+		  
+		  <a class="btn btn-outline-info" href="{{ url_for('resources.resource_usage',resource=resource.name) }}" class="btn btn-link">GRAPHS</a>
+		  <a class="btn btn-outline-info" href="{{ url_for('resources.resource_usage_reports',resource=resource.name) }}" class="btn btn-link">REPORTS</a>
 		</td>
 	  </tr>
 	{% endfor %}
