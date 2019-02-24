@@ -37,6 +37,7 @@
     <tr>
       <th>Authorize</th>
       <th>Resource Group</th>
+      <th>Members</th>
     </tr>
   </thead>
   <tbody id="resourcerows">
@@ -48,7 +49,8 @@
 	{% endif %}
 	class="auth_resource_cb"/></td>
 
-	<td><a href="{{ url_for('resources.resource_showusers',resource=i.resource.name) }}">{{ i.resource.name }}</a></td>
+	<td>{{ i.resource.name }}</td>
+	<td><a href="{{ url_for('resources.resource_showusers',resource=i.resource.name) }}">see members</a></td>
 	<!-- 
 	<td>{{ i.levelText }}
 	
