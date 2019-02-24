@@ -2,7 +2,7 @@
 <h2>Resources</h2>
 {% block body %}
 <div class="resourcelist">
-	<h2>Resources:  {{ resources |length }} available</h2>
+	<h2>Resource Groups:  {{ resources |length }} available</h2>
 	<table class="table table-sm">
         <tr>
             <th>Name</th>
@@ -30,7 +30,7 @@
 
 	{% if current_user.privs("RATT") %}
   <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#resource-add-collapse" aria-expanded="false" aria-controls="resource-add-collapse">
-    Add New Resource
+    Add New Resource Group
   </button>
   <div class="collapse" id="resource-add-collapse">
 	<hr />
