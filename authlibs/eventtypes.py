@@ -60,11 +60,11 @@ class RATTBE_LOGEVENT_MEMBER_PRIVILEGE_REVOKED:
 
 class RATTBE_LOGEVENT_MEMBER_RESOURCE_LOCKOUT:
     id=1013
-    desc='Member temporarily locked out of resource'
+    desc='Member temporarily suspended from resource'
 
 class RATTBE_LOGEVENT_MEMBER_RESOURCE_UNLOCKED:
     id=1014
-    desc='Member Resource temp lockout removed'
+    desc='Member Resource suspension removed'
 
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
     id=2000

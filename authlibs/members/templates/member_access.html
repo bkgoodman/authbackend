@@ -63,9 +63,9 @@ vim:tabstop=2:expandtab:shiftwidth=2
         <td>
           {% if ((a.myPerms >= 2) and (a.active==1)) %}
             {% if  (a.lockout_reason) %}
-              <a  href="javascript:dolockbutton('Unlock','{{ a.resource.name }}','{{ a.lockout_reason }}',{{ a.resource.id }});" class="btn btn-success">Unlock</a>
+              <a  href="javascript:dolockbutton('Unlock','{{ a.resource.name }}','{{ a.lockout_reason }}',{{ a.resource.id }});" class="btn btn-success">RESTORE</a>
             {% else %}
-              <a href="javascript:dolockbutton('Lock','{{ a.resource.name }}','',{{ a.resource.id }});" class="btn btn-outline-info">Lockout</a>
+              <a href="javascript:dolockbutton('Lock','{{ a.resource.name }}','',{{ a.resource.id }});" class="btn btn-outline-info">SUSPEND</a>
             {% endif %}
           {% endif %}
         </td>
@@ -125,7 +125,7 @@ vim:tabstop=2:expandtab:shiftwidth=2
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">{{ rec.member }} lockout</h5>
+          <h5 class="modal-title" id="exampleModalLabel">{{ rec.member }} Resource Suspension</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -159,10 +159,10 @@ vim:tabstop=2:expandtab:shiftwidth=2
     $('#lockout_resource_id')[0].value=id;;
     $('#lockout_member_id')[0].value={{ rec.id }};;
     if (action=="Lock") {
-      x.textContent="Specify reason you are locking out user:";
+      x.textContent="Specify reason you are suspending the member from this resource:";
       tb.style.display='inline';
     } else {
-      x.textContent="Unlock this resource for user?";
+      x.textContent="Restore this member's access to this resource?";
       tb.style.display='none';
     }
     $('#lockoutModal').modal();
