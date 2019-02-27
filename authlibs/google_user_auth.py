@@ -120,7 +120,7 @@ def authinit(app):
                 else:
                   flash("Login Denied - "+sub,'danger')
                   print "CASE 5"
-                  return redirect(url_for('index'))
+                return redirect(url_for('index'))
             except NoResultFound:
                 print "CASE 6"
                 flash("Email adddress "+str(email)+" not found in member database")
