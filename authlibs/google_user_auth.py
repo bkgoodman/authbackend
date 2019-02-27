@@ -1,3 +1,4 @@
+# vim:tabstop=2:shiftwidth=2:expandtab
 from flask import Blueprint, redirect, url_for, session, flash, g
 from flask_dance.contrib.google import make_google_blueprint, google
 from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
@@ -5,7 +6,7 @@ from flask_login import current_user, login_user, logout_user
 from flask_dance.consumer import oauth_authorized
 from sqlalchemy.orm.exc import NoResultFound
 from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
-from db_models import db, Member, OAuth, AnonymousMember
+from db_models import db, Member, OAuth, AnonymousMember, Role, UserRoles, AccessByMember
 from flask_login import LoginManager
 from flask_user import UserManager
 from accesslib import quickSubscriptionCheck
@@ -99,11 +100,23 @@ def authinit(app):
                 sub = quickSubscriptionCheck(member_id=user.id)
                 print "GOT SUB",sub
                 if sub == "Active":
-                        flash("Welcome!")
-                        login_user(user, remember=True)
+                  logintype= app.config['globalConfig'].Config.get('General','Logins')
+                  if logintype == "resource":
+                    if  (AccessByMember.query.filter(AccessByMember.member_id == user.id,AccessByMember.level >= AccessByMember.LEVEL_TRAINER).count() ==0):
+                      flash("Only resource managers may log in")
+                    else:
+                      login_user(user, remember=True)
+                  elif logintype == "global":
+                    if (UserRoles.query.filter(UserRoles.member_id == user.id).count() == 0):
+                      flash("Only administrators may log in")
+                    else:
+                      login_user(user, remember=True)
+                  else:
+                    flash("Welcome!")
+                    login_user(user, remember=True)
                 else:
-                        flash("Login Denied - "+sub,'danger')
-                return redirect(url_for('index'))
+                  flash("Login Denied - "+sub,'danger')
+                  return redirect(url_for('index'))
             except NoResultFound:
                 flash("Email adddress "+str(email)+" not found in member database")
                 return redirect(url_for('index'))

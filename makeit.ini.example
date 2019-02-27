@@ -9,6 +9,9 @@ ServerHost: 0.0.0.0
 ServerPort: 5000
 ; Deployment should be "Production" for real use - something different for test/devel servers
 Deployment: Production
+Logins: all
+; all - global - resource
+; "all" means all can login - "global" requires some global privs - "resource" requires trainer privs on a resource
 
 [Payments]
 Modules: stripe
