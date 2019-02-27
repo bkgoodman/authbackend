@@ -68,12 +68,19 @@
 	<div class="col-sm-2">
 			Affined to membership
 	</div>
-	<div class="col-sm-5">
+	<div class="col-sm-4">
 			{{ rec.membership }}
 	</div>
 	<div class="col-sm-5">
 			<a href="{{ url_for("payments.payment_membership",membership=subscription.membership) }}">{{ subscription.membership }}</a>
 	</div>
+	{% if current_user.privs("Finance") %}
+	<div class="col-sm-1">
+				<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#unassociateModal">
+					Unlink Subscription
+				</button>
+	</div>
+	{% endif %}
 </div>
 		
 <div class="compact form-row row">
@@ -148,6 +155,40 @@
 
 	</div> {# Outer container #}
   </div> <!-- BASE container -->
+		{# DISASSOCIATE MODAL #}
+
+				<button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
+					Delete Member
+				</button>
+
+				<!-- Modal -->
+				<div class="modal fade" id="unassociateModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+					<div class="modal-dialog" role="document">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="exampleModalLabel">Unassociate payment for {{ rec.member }}</h5>
+								<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+									<span aria-hidden="true">&times;</span>
+								</button>
+							</div>
+							<div class="modal-body">
+								<p> This will remove the associaiton between this member and a payment, rendering this membership inactive.
+									This is typically only done if you are planning on going into the "Payments" window and linking this
+									payment to another, correct membership.</p>
+								<p> If you are <i>positive</i> that this is the correct thing to do, please confirm.</p>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+								<form method="POST" action="{{ url_for("members.unassociate") }}">
+								<input type="hidden" name="memberid" value="{{ rec.id }}" />
+								<input class='btn btn-danger' type="submit" name="UnassociateMember" value="Unassociate Membership" />
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+
+		{# DISASSOCIATE MODAL #}
   	{% if current_user.privs("Useredit") %}
 	{% with readonly=1,member_id=rec.id %}
 	{% include "comments.html" %}

@@ -417,6 +417,19 @@ def add_member_tag(mid,ntag,tag_type,tag_name):
     else:
         return False
 
+@blueprint.route('/unassociate', methods = ['POST'])
+@login_required
+@roles_required(['Admin','Finance'])
+def unassociate():
+		mid = request.form['memberid']
+		mem=Member.query.filter(Member.id==mid).one()
+		mem.membership=None
+		sub=Subscription.query.filter(Subscription.member_id==mid).one()
+		sub.member_id=None
+		db.session.commit()
+		flash ("Subscription unassociated","success")
+		return redirect(url_for('members.member_show',id=mem.member))
+
 @blueprint.route('/<string:id>/tags', methods = ['POST'])
 @login_required
 @roles_required(['Admin','Finance','Useredit'])
