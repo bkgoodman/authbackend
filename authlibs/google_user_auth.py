@@ -100,15 +100,14 @@ def authinit(app):
                 sub = quickSubscriptionCheck(member_id=user.id)
                 print "GOT SUB",sub
                 if sub == "Active":
+                  if (UserRoles.query.filter(UserRoles.member_id == user.id).count() >= 1):
+                    login_user(user, remember=True)
+                    flash("Welcome!")
+                    return redirect(url_for('index'))
                   logintype= app.config['globalConfig'].Config.get('General','Logins')
                   if logintype == "resource":
                     if  (AccessByMember.query.filter(AccessByMember.member_id == user.id,AccessByMember.level >= AccessByMember.LEVEL_TRAINER).count() ==0):
                       flash("Only resource managers may log in")
-                    else:
-                      login_user(user, remember=True)
-                  elif logintype == "global":
-                    if (UserRoles.query.filter(UserRoles.member_id == user.id).count() == 0):
-                      flash("Only administrators may log in")
                     else:
                       login_user(user, remember=True)
                   else:
