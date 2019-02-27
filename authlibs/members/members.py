@@ -507,6 +507,40 @@ def lookup_tag():
 #
 #------------
 
+@blueprint.route('/revokeadmin', methods=['GET'])
+@login_required
+def revokeadmin():
+    if current_user.member in ("Adam.Shrey","Brad.Goodman","Bradley.Goodman","Steve.Richardson","Bill.Schongar"):
+			r = UserRoles.query.filter(UserRoles.member_id == current_user.id)
+			r = r.join(Role,(UserRoles.role_id == Role.id) & (Role.name == "Admin"))
+			r = r.one_or_none()
+			if r is None:
+				flash ("You are not admin","warning")
+			else:
+				db.session.delete(r)
+				db.session.commit()
+				flash ("Admin revoked")
+
+    return redirect(url_for('index'))
+
+@blueprint.route('/grantadmin', methods=['GET'])
+@login_required
+def grantadmin():
+    if current_user.member in ("Adam.Shrey","Brad.Goodman","Bradley.Goodman","Steve.Richardson","Bill.Schongar"):
+			r = UserRoles.query.filter(UserRoles.member_id == current_user.id)
+			r = r.join(Role,(UserRoles.role_id == Role.id) & (Role.name == "Admin"))
+			r = r.one_or_none()
+			if r is not None:
+				flash ("You are already admin","warning")
+			else:
+				flash ("Admin granted")
+				r = UserRoles()
+				r.member_id=current_user.id
+				r.role_id=Role.query.filter(Role.name=="Admin").one().id
+				db.session.add(r)
+				db.session.commit()
+    return redirect(url_for('index'))
+
 @blueprint.route('/test', methods=['GET'])
 def bkgtest():
     names=['frontdoor','woodshop','laser']
