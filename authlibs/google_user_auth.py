@@ -102,21 +102,27 @@ def authinit(app):
                 if sub == "Active":
                   if (UserRoles.query.filter(UserRoles.member_id == user.id).count() >= 1):
                     login_user(user, remember=True)
+                    print "CASE 1"
                     flash("Welcome!")
                     return redirect(url_for('index'))
                   logintype= app.config['globalConfig'].Config.get('General','Logins')
                   if logintype == "resource":
                     if  (AccessByMember.query.filter(AccessByMember.member_id == user.id,AccessByMember.level >= AccessByMember.LEVEL_TRAINER).count() ==0):
+                      print "CASE 2"
                       flash("Only resource managers may log in")
                     else:
+                      print "CASE 3"
                       login_user(user, remember=True)
                   else:
                     flash("Welcome!")
+                    print "CASE 4"
                     login_user(user, remember=True)
                 else:
                   flash("Login Denied - "+sub,'danger')
+                  print "CASE 5"
                   return redirect(url_for('index'))
             except NoResultFound:
+                print "CASE 6"
                 flash("Email adddress "+str(email)+" not found in member database")
                 return redirect(url_for('index'))
 
