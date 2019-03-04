@@ -300,16 +300,22 @@ def logs():
                     if re.search("[\?\&]offset=(\d+)",request.url):
                         nextoffset = re.sub(r"([\?\&])offset=(\d+)",r"\1offset="+str(nextoffset),request.url)
                     else:
-                        nextoffset = request.url+"&offset="+str(nextoffset)
+                        if request.url.find("?")  == -1:
+                          nextoffset = request.url+"?offset="+str(nextoffset)
+                        else:
+                          nextoffset = request.url+"&offset="+str(nextoffset)
 
                 prevoffset = offset-limit
                 if (prevoffset < 0): prevoffset=0
-                if (offset == 0):
-                    prevoffset=None
+                if offset <= 0:
+                  prevoffset = None
                 else:
-                    if re.search("[\?\&]offset=(\d+)",request.url):
-                        prevoffset = re.sub(r"([\?\&])offset=(\d+)",r"\1offset="+str(prevoffset),request.url)
-                    else:
+                  if re.search("[\?\&]offset=(\d+)",request.url):
+                      prevoffset = re.sub(r"([\?\&])offset=(\d+)",r"\1offset="+str(prevoffset),request.url)
+                  else:
+                      if request.url.find("?")  == -1:
+                        prevoffset = request.url+"?offset="+str(prevoffset)
+                      else:
                         prevoffset = request.url+"&offset="+str(prevoffset)
 
                 if re.search("[\?\&]offset=(\d+)",request.url):
@@ -344,7 +350,7 @@ def logs():
                         'offset':offset,
                         'limit':limit,
                         'first':firstoffset,
-                        'back':prevoffset,
+                        'prev':prevoffset,
                         'next':nextoffset,
                         'last':lastoffset,
                         'count':count,
