@@ -99,12 +99,13 @@ def membersearch(search):
   result=[]
   counted=0
   for x in res:
-    if x[5] == "No Subscription" and 'filter_nosub' not in filters: continue
-    if x[5] == "Grace Period"  and 'filter_grace' not in filters: continue
-    if x[5] == "Access Disabled"  and 'filter_noaccess' not in filters: continue
-    if x[5] == "Active"  and 'filter_active' not in filters: continue
-    if x[5] == "Expired"  and 'filter_expired' not in filters: continue
-    if x[5] == "Recent Expire"  and 'filter_recentexpire' not in filters: continue
+    if len(filters) > 0:
+      if x[5] == "No Subscription" and 'filter_nosub' not in filters: continue
+      if x[5] == "Grace Period"  and 'filter_grace' not in filters: continue
+      if x[5] == "Access Disabled"  and 'filter_noaccess' not in filters: continue
+      if x[5] == "Active"  and 'filter_active' not in filters: continue
+      if x[5] == "Expired"  and 'filter_expired' not in filters: continue
+      if x[5] == "Recent Expire"  and 'filter_recentexpire' not in filters: continue
     if (offset > 0): 
       offset -= 1
       continue
