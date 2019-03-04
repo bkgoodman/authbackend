@@ -12,6 +12,8 @@ Deployment: Production
 Logins: all
 ; all - global - resource
 ; "all" means all can login - "global" requires some global privs - "resource" requires trainer privs on a resource
+DefaultLogin: oauth
+; "oauth" or "local"
 
 [Payments]
 Modules: stripe

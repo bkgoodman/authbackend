@@ -104,6 +104,7 @@ class GlobalConfig(object):
   AdminUser = Config.get('General','AdminUser')
   AdminPasswd = Config.get('General','AdminPassword')
   DeployType = Config.get('General','Deployment')
+  DefaultLogin = Config.get('General','DefaultLogin')
   Debug = Config.getboolean('General','Debug')
 
   """ Extract MQTT settings here (So we don't have to do every time we kick """

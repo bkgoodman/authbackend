@@ -352,6 +352,13 @@ def create_routes():
     # Flask login uses /user/sign-in
     @app.route('/login')
     def login():
+       if current_app.config['globalConfig'].DefaultLogin.lower() == "oauth":
+         return redirect(url_for("google.login"))
+       else:
+         return render_template('login.html')
+
+    @app.route('/locallogin')
+    def locallogin():
        return render_template('login.html')
 
     # BKG LOGIN CHECK - when do we use thigs?
