@@ -267,8 +267,9 @@ def on_message(client,userdata,msg):
                 logevent.member_id=memberId
                 logevent.resource_id=resourceId
                 logevent.tool_id=toolId
-                logevent.time_reported=datetime.now()
-                logevent.time_logged=datetime.now()
+                # DB will default to current UTC datetime
+                #logevent.time_reported=datetime.now()
+                #logevent.time_logged=datetime.now() 
                 logevent.event_type = log_event_type
                 logevent.message = log_text
 
