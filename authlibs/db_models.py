@@ -7,7 +7,11 @@ import hashlib,zlib
 from flask_login.mixins import AnonymousUserMixin
 import random, string
 import sqlalchemy
-from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
+try:
+	from flask_dance.consumer.backend.sqla import SQLAlchemyBackend, OAuthConsumerMixin
+except:
+	from flask_dance.consumer.storage.sqla import SQLAlchemyStorage as SQLAlchemyBackend
+	from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 
 
 

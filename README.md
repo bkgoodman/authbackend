@@ -23,6 +23,7 @@ Consult pip.freeze file to see a dump of pip dependecies from a working system
 `pip install --upgrade oauth2client`
 `pip install google-oauth`
 `sudo pip install sqlalchemy_utils`
+`sudo pip install sqlalchemy==1.3`
 
 For Covid-19 video kiosk compliance reporting script
 `sudo apt install ffmpeg`
