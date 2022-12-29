@@ -89,10 +89,15 @@ def send_slack_message(towho,message):
   sc = SlackClient(slack_token)
   if sc.rtm_connect():
     print ("SLACK-SEND",towho,message)
-    res = sc.chat_postMessage(
-        channel=towho,
-        text=message
-        )
+  res = sc.api_call(
+    "chat.postMessage",
+    json = {
+        'channel':towho,
+        'text':message
+    }
+  )
+  if res['ok'] == False:
+    logger.error("Slack MQTT test message failed: %s"%res['error'])
 
 def convert_into_uppercase(a):
     return a.group(1) + a.group(2).upper()
@@ -450,11 +455,20 @@ def on_message(client,userdata,msg):
                     # TODO FIEME This should be "send_slack_admin" - but Ham wanted only "public" messagse on their "admin" channel??
                     if send_slack_public and associated_resource['slack_admin_chan']:
                         #res = sc.api_call(
-                        res = sc.chat_postMessage(
-                            'chat.postMessage',
-                            channel=associated_resource['slack_admin_chan'],
-                            blocks=json.dumps(blocks),
-                            as_user=True
+                        #res = sc.chat_postMessage(
+                        #    'chat.postMessage',
+                        #    channel=associated_resource['slack_admin_chan'],
+                        #    blocks=json.dumps(blocks),
+                        #    as_user=True
+                        #)
+                        res = sc.api_call(
+                          "chat.postMessage",
+                          json = {
+                              'channel':associated_resource['slack_admin_chan'],
+                              'blocks': blocks,
+                              #'text': icon + " " + time + " " + slacktext,
+                              'as_user':True
+                          }
                         )
                         
                         if not res['ok']:
@@ -500,9 +514,12 @@ if __name__ == '__main__':
       sc = SlackClient(slack_api_token)
       # TODO BKG BUG change channel
       try:
-              res = sc.chat_postMessage(
-                channel="#team-authit-devs",
-                text="AuthIt Slack/MQTT daemon is on the air... :tada:"
+              res = sc.api_call(
+                "chat.postMessage",
+                json = {
+                    'channel':"#team-authit-devs",
+                    'text':"AuthIt Slack/MQTT daemon is on the air... :tada:"
+                }
               )
               if res['ok'] == False:
                 logger.error("Slack MQTT test message failed: %s"%res['error'])
@@ -514,8 +531,8 @@ if __name__ == '__main__':
               #)
               #if res['ok'] == False:
               #  logger.error("Slack MQTT test message failed: %s"%res['error'])
-      except:
-        pass
+      except BaseException as e:
+        print ("TRY POST MESSAGE EXCEPT",e)
       while True:
           # TODO BKG BUG re-add error-safe logic here
           try:
@@ -533,6 +550,6 @@ if __name__ == '__main__':
             print("%s %s" % (msg.topic, msg.payload))
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
-          #except BaseException as e:
-          #  print ("EXCEPT",e)
+          except BaseException as e:
+            print ("EXCEPT",e)
             time.sleep(1)
