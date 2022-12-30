@@ -311,15 +311,20 @@ def add_user_to_channel(channel,member):
     if slack_disabled:
         logger.warning("SLack is Disabled")
     else:
-      res = api_call_ratelimit(
-            sc,
-            "conversations.invite",
-            channel=cid,
-            users=member.slack
-            )
-      if not res['ok']:
-        logger.error("Error Inviting {0} to slack channel {1}  {2}".format(member.member,channel,res['error']))
-      return False
+      try:
+        res = api_call_ratelimit(
+              sc,
+              "conversations.invite",
+              channel=cid,
+              users=member.slack
+              )
+        if not res['ok']:
+          logger.error("Error Inviting {0} to slack channel {1}  {2}".format(member.member,channel,res['error']))
+        return False
+      except BaseException as e:
+          logger.error("Error Inviting {0} to slack channel {1}  {2}".format(member.member,channel,e))
+          return False
+
     
   return True
 

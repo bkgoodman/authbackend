@@ -460,7 +460,7 @@ def quiz(quizid):
           authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=train.resource_id,message="Self-Auth",member_id=current_user.id,commit=0)
           
         if res.slack_chan and res.slack_chan.strip() != "":
-          add_user_to_channel(r.slack_chan,current_user)
+          add_user_to_channel(res.slack_chan,current_user)
 
 
       # Add Endorsements (if we need to)
