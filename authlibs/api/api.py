@@ -1200,10 +1200,15 @@ def vendig_api_chargeAccount(member):
     result = {'status':'error','description':'Please Try Again'}
     return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
-  if m.Member.balance != data['prevBalance']:
-    logger.error("Balance did not match previous")
-    result = {'status':'error','description':'Please try again'}
-    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  if (m.Member.balance is None):
+    if data['prevBalance'] != 0:
+      logger.error(f"NULL Balance did not match previous {data['prevBalance']}")
+      result = {'status':'error','description':'Please try again'}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  elif (m.Member.balance != data['prevBalance']):
+      logger.error(f"XXX Balance {m.Member.balance} did not match previous {data['prevBalance']}")
+      result = {'status':'error','description':'Please try again'}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
   # Amount in CENTS!
@@ -1289,10 +1294,15 @@ def vendig_api_ReupBalance(member):
     logger.error("Reup newBalance was incorrect")
     return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
-  if m.Member.balance != data['prevBalance']:
-    logger.error("Balance did not match previous")
-    result = {'status':'error','description':'Please try again'}
-    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  if (m.Member.balance is None):
+    if data['prevBalance'] != 0:
+      logger.error(f"ZZZ  Balance did not match previous {data['prevBalance']}")
+      result = {'status':'error','description':'Please try again'}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  elif (m.Member.balance != data['prevBalance']):
+      logger.error(f"YYY Balance {m.Member.balance} did not match previous {data['prevBalance']}")
+      result = {'status':'error','description':'Please try again'}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   # Amount in CENTS!
   if not m:
