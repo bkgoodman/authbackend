@@ -604,7 +604,7 @@ def api_v1_macconfig(mac):
     if not n:
       result['status']='error'
       result['message']='Node not found'
-      return json_dump(result, 200, {'Content-type': 'text/plain'})
+      return json_dump(result), 200, {'Content-type': 'text/plain'}
     return api_v1_nodeconfig(n.name)
 
 @blueprint.route('/v3/test', methods=['GET'])
@@ -875,7 +875,7 @@ def api_healthcheck():
       'version':current_app.jinja_env.globals['VERSION'],
       'health':health
     }
-    return json_dump(status, 200, {'Content-type': 'application/json'})
+    return (json_dump(status,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 def error_401():
     """Sends a 401 response that enables basic auth"""
@@ -976,7 +976,7 @@ def api_toollog():
        result[t.tool_id]['tool_nickname'] = nicknames[t.tool_id]
     else:
        result[t.tool_id]['tool_name']
-  return json_dump(result,200, {'Content-type': 'text/plain'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 #####
 ##
@@ -1076,7 +1076,7 @@ def member_api_setaccess(email):
       if m.slack and slack != "":
         add_user_to_channel(slack,m.slack)
   
-  return (json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2))
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 # Query like: http://test:test@127.0.0.1:5000/api/v1/getaccess/myemail@makeitlabs.com?resource=resource-users
 @blueprint.route("/v1/getaccess/<string:email>", methods = ['GET'])
@@ -1094,7 +1094,7 @@ def member_api_getaccess(email):
   else:
     #print m
     result = {'status':'success','level':m[1]}
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 ## ORIGINAL Vending - draws charges DIRECTLY from Stripe
 ## DO NOT CHANGE!!
@@ -1137,7 +1137,7 @@ def vendig_api_charge(member,amount):
       logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
   db.session.commit()
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
 # Just query
@@ -1160,7 +1160,7 @@ def vendig_api_getBalance(member):
     if bal is None:
        bal = 0
     result = {'status':'success','balance':bal,"lastLog":lastVendLog}
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
   
@@ -1176,7 +1176,7 @@ def vendig_api_chargeAccount(member):
   if m is None:
     logger.error("Payment charge No Member")
     result = {'status':'error','description':'No Member??'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   vl = VendingLogs.query.filter(VendingLogs.member_id==m.Member.id).order_by(VendingLogs.id.desc()).limit(1).one_or_none()
   if vl is None:
@@ -1189,21 +1189,21 @@ def vendig_api_chargeAccount(member):
   if data is None:
     logger.error("Payment charge non JSON payload")
     result = {'status':'error','description':'Bad Request'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if 'amount' not in data or 'prevBalance' not in data or 'lastLog' not in data:
     logger.error("Payment charge request malformed fields")
     result = {'status':'error','description':'Bad Request'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if lastVendLog != data['lastLog']:
     result = {'status':'error','description':'Please Try Again'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if m.Member.balance != data['prevBalance']:
     logger.error("Balance did not match previous")
     result = {'status':'error','description':'Please try again'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
   # Amount in CENTS!
@@ -1241,7 +1241,7 @@ def vendig_api_chargeAccount(member):
     db.session.add(vl)
     db.session.commit()
     result = {'status':'success','member':m.Member.member,'customer':m.customerid}
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
 #  curl -H 'Content-Type: application/json'  -d '{"addAmount": 100, "totalCharge":300, "prevBalance":200, "serviceFee":30,"purchaseAmt":100, "newBalance":400}'
@@ -1257,7 +1257,7 @@ def vendig_api_ReupBalance(member):
   if m is None:
     logger.error("Payment reup No Member")
     result = {'status':'error','description':'No Member??'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
   vl = VendingLogs.query.filter(VendingLogs.member_id==m.Member.id).order_by(VendingLogs.id.desc()).limit(1).one_or_none()
@@ -1269,30 +1269,30 @@ def vendig_api_ReupBalance(member):
   data=request.get_json()
   if data is None:
     logger.error("Payment reup non JSON payload")
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   # We are going to REDUNDANTLY check all of the charge information approved by the user on the front-end
   for v in ('lastLog','addAmount','totalCharge','prevBalance','serviceFee','purchaseAmt','newBalance'):
     if v not in data:
       logger.error("Payment reup missing "+v)
-      return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if (data['lastLog'] != lastVendLog):
     logger.error("Please Try Again")
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if (data['totalCharge'] != data['addAmount'] + data['serviceFee']):
     logger.error("Reup totalCharge was incorrect")
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if (data['newBalance'] != data['prevBalance'] + data['addAmount'] - data['purchaseAmt']):
     logger.error("Reup newBalance was incorrect")
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if m.Member.balance != data['prevBalance']:
     logger.error("Balance did not match previous")
     result = {'status':'error','description':'Please try again'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   # Amount in CENTS!
   if not m:
@@ -1314,7 +1314,7 @@ def vendig_api_ReupBalance(member):
     # --------- END REMOVE LINES
     """
     cid = m.customerid
-    cid = 'cus_MN5oo9gAnx3Vtn' # BOMB TODO FIXME!!!
+    #cid = 'cus_MN5oo9gAnx3Vtn' # BOMB TODO FIXME!!!
 
 
     try:
@@ -1376,4 +1376,4 @@ New Vending Balance: ${4:0.2f}""".format(
       logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message=vendstr,member_id=m.Member.id,commit=0)
     db.session.commit()
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
