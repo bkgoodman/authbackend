@@ -1134,7 +1134,7 @@ def vendig_api_charge(member,amount):
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_SUCCESS.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
     except BaseException as e:
       result = {'status':'error','description':'Stripe Error'}
-      logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
+      logger.warning("Stripe 2  error for {0} {1}".format(m.Member.member,str(e)))
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
   db.session.commit()
   return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
@@ -1200,10 +1200,15 @@ def vendig_api_chargeAccount(member):
     result = {'status':'error','description':'Please Try Again'}
     return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
-  if m.Member.balance != data['prevBalance']:
-    logger.error("Balance did not match previous")
-    result = {'status':'error','description':'Please try again'}
-    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  if (m.Member.balance is None):
+    if data['prevBalance'] != 0:
+      logger.error(f"NULL Balance did not match previous {data['prevBalance']}")
+      result = {'status':'error','description':'Please try again'}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  elif (m.Member.balance != data['prevBalance']):
+      logger.error(f"XXX Balance {m.Member.balance} did not match previous {data['prevBalance']}")
+      result = {'status':'error','description':'Please try again'}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
   # Amount in CENTS!
@@ -1289,10 +1294,15 @@ def vendig_api_ReupBalance(member):
     logger.error("Reup newBalance was incorrect")
     return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
-  if m.Member.balance != data['prevBalance']:
-    logger.error("Balance did not match previous")
-    result = {'status':'error','description':'Please try again'}
-    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  if (m.Member.balance is None):
+    if data['prevBalance'] != 0:
+      logger.error(f"ZZZ  Balance did not match previous {data['prevBalance']}")
+      result = {'status':'error','description':'Please try again'}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  elif (m.Member.balance != data['prevBalance']):
+      logger.error(f"YYY Balance {m.Member.balance} did not match previous {data['prevBalance']}")
+      result = {'status':'error','description':'Please try again'}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   # Amount in CENTS!
   if not m:
@@ -1319,10 +1329,14 @@ def vendig_api_ReupBalance(member):
 
     try:
       stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
-      if 'product' in data:
-        productId== data['product']
+      if 'productCode' in data:
+        productId== data['productCode']
       else:
         productId = current_app.config['globalConfig'].Config.get('Stripe','VendingProduct')
+      if 'description' in data:
+        description== data['description']
+      else:
+        description = "Vending Payment"
       vendstr = "OldBal: ${0:0.2f} Add: ${1:0.2f} Purchase: ${2:0.2f} Fee: ${3:0.2f} NewBal: ${4:0.2f}".format(
             data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0)
 
@@ -1333,13 +1347,13 @@ Amount Added: ${1:0.2f}
 Service Fee: ${3:0.2f} 
 Total Charge: ${5:0.2f} 
 New Vending Balance: ${4:0.2f}""".format(
-            data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0,data['totalCharge'])
+            data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0,data['totalCharge']/100.0)
 
       price = stripe.Price.create(
           unit_amount=data['addAmount'],
           currency='usd',
           product=productId)
-      invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description="Vending Payment")
+      invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=description)
 
       invoice = stripe.Invoice.create(
         customer=cid,
@@ -1350,12 +1364,12 @@ New Vending Balance: ${4:0.2f}""".format(
       finalize=stripe.Invoice.finalize_invoice(invoice)
       if (finalize['status'] != 'open'):
         result = {'error':'success','description':"Stripe Error"}
-        logger.warning("Stripe fainalize error for {0} status is {1}".format(m.Member.member,finalize['status']))
+        logger.warning("Stripe Finalize error for {0} status is {1} productId {2} customerId {3}".format(m.Member.member,pay['status'],productId,cid))
       else:
         pay = stripe.Invoice.pay(invoice)
         if (pay['status'] != 'paid'):
           result = {'error':'success','description':"Payment Declined"}
-          logger.warning("Stripe Payment error for {0} status is {1}".format(m.Member.member,pay['status']))
+          logger.warning("Stripe Payment error for {0} status is {1} productId {2} customerId {3}".format(m.Member.member,pay['status'],productId,cid))
       result = {'status':'success','member':m.Member.member,'customer':cid}
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message=vendstr,member_id=m.Member.id,commit=0)
       m.Member.balance = data['newBalance']
@@ -1373,7 +1387,7 @@ New Vending Balance: ${4:0.2f}""".format(
       db.session.add(vl)
     except BaseException as e:
       result = {'status':'error','description':'Payment Error'}
-      logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
+      logger.warning("Stripe 1 error for {0} {1}".format(m.Member.member,str(e)))
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message=vendstr,member_id=m.Member.id,commit=0)
     db.session.commit()
   return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
