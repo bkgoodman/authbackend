@@ -278,6 +278,11 @@ class RATTBE_LOGEVENT_VENDING_ADDBALANCE:
     id=3021
     desc="Add Balance"
     slack_icon=":moneybag:"
+
+class RATTBE_LOGEVENT_PURCHASABLE_PURCHASE:
+    id=3030
+    desc="Item Purchase"
+    slack_icon=":moneybag:"
     
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000

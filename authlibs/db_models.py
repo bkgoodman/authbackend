@@ -441,6 +441,20 @@ class Node(db.Model):
     name = db.Column(db.String(20))
     mac = db.Column(db.String(20))
 
+class Purchasable(db.Model):
+    __tablename__ = 'purchasable'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(20))
+    description = db.Column(db.String(80))
+    price = db.Column(db.Integer()) # In CENTS - NULL means it's floating
+    product = db.Column(db.String(20)) # Stripe Product Code
+    stripe_desc = db.Column(db.String(40)) # Add to Stripe invoice
+    slack_admin_chan = db.Column(db.String(50)) # Notify this channel of purchases
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    pricestr = "" # In-memory only - does not persist in DB
+
+
 # A node can have multiple KV entries for config
 class NodeConfig(db.Model):
     # TODO: Handle change from tagsbymember

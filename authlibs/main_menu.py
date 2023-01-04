@@ -175,6 +175,11 @@ def get_raw_menu():
                     'title':"Vending",
                     'img':url_for("static",filename="vending.png"),
                     'alt':"Vending and Payments"
+            },
+            {
+                    'url':url_for('purchasables.purchasables'),
+                    'title':"Purchasable Items",
+                    'privs':'Finance',
             }
     ]
 
