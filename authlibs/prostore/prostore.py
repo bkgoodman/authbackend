@@ -201,7 +201,9 @@ def grid():
         ab[b.location]['style'] = "background-color:#a3ff9f"
       if b.active != "Active" and b.active != "Grace Period":
         ab[b.location]['style'] = "background-color:#ffd0d0"
-  return render_template('grid.html',bins=ab)
+  grids = StorageGrid.query.all()
+
+  return render_template('grid.html',bins=ab,grids=grids)
 
 
 @blueprint.route('/notices', methods=['GET','POST'])
@@ -371,7 +373,7 @@ def grids_show(grid):
     r = StorageGrid.query.filter(StorageGrid.short==grid).one_or_none()
     if not r:
         flash("Grid not found")
-        return redirect(url_for('prostore.grids'))
+        return redirect(url_for('prostore.grid'))
     readonly=False
     if (not current_user.privs('Finance')):
         readonly=True
@@ -429,7 +431,7 @@ def grids_update(grid):
         r = StorageGrid.query.filter(StorageGrid.id==tid).one_or_none()
         if not r:
                     flash("Error: Grid not found")
-                    return redirect(url_for('prostore.grids'))
+                    return redirect(url_for('prostore.grid'))
 
         r.name = (request.form['input_name'].strip())
         if r.name is None or r.name.strip() == "":
@@ -489,7 +491,7 @@ def grid_delete(grid):
     db.session.delete(r)
     db.session.commit()
     flash("Grid deleted.")
-    return redirect(url_for('prostore.grids'))
+    return redirect(url_for('prostore.grid'))
 
 
 ## END GRID MANAGEMENT
