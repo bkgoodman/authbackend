@@ -359,6 +359,7 @@ def grids_create():
         flash("Invalid number of rows","danger")
         return redirect(url_for('prostore.grid'))
 
+    fixup_grid_locations(None,r.short,r.columns,r.rows)
 
     db.session.add(r)
     db.session.commit()
@@ -397,6 +398,7 @@ def fixup_grid_locations(oldname,newname,columns,rows):
             else:
                 l = ProLocation()
                 l.loctype=0
+                db.session.add(l)
             l.location=newloc
 
     # Now prune excess locations
@@ -404,7 +406,7 @@ def fixup_grid_locations(oldname,newname,columns,rows):
         locs = ProLocation.query.filter(ProLocation.location.like(oldname+"-%")).all()
         for l in locs:
             db.session.delete(l)
-    else:
+    elif oldname is not None:
         print (f"Changing {oldname} to {columns} {rows}")
         locs = ProLocation.query.filter(ProLocation.location.like(oldname+"-%")).all()
         for l in locs:
@@ -488,6 +490,9 @@ def grids_update(grid):
 def grid_delete(grid):
     """(Controller) Delete a grid. Shocking."""
     r = StorageGrid.query.filter(StorageGrid.id == grid).one()
+    locs = ProLocation.query.filter(ProLocation.location.like(r.short+"-%")).all()
+    for l in locs:
+            db.session.delete(l)
     db.session.delete(r)
     db.session.commit()
     flash("Grid deleted.")
