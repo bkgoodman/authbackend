@@ -255,6 +255,15 @@ CREATE TABLE tempauth (
         FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
 );
 
+CREATE TABLE storageGrid (
+	id INTEGER NOT NULL, 
+	name VARCHAR(60) NOT NULL, 
+	short VARCHAR(20) NOT NULL, 
+	rows INTEGER NOT NULL,
+	columns INTEGER NOT NULL,
+        UNIQUE (name),
+	PRIMARY KEY (id));
+
 CREATE TABLE purchasable (
 	id INTEGER NOT NULL, 
 	name VARCHAR(20), 

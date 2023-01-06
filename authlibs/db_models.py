@@ -454,6 +454,14 @@ class Purchasable(db.Model):
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
     pricestr = "" # In-memory only - does not persist in DB
 
+class StorageGrid(db.Model):
+    __tablename__ = 'storageGrid'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(60))
+    short = db.Column(db.String(20))
+    rows = db.Column(db.Integer(),nullable=False)
+    columns = db.Column(db.Integer(),nullable=False)
 
 # A node can have multiple KV entries for config
 class NodeConfig(db.Model):

@@ -301,5 +301,198 @@ def migrate(cmd,**kwargs):
         db.session.add(l)
   db.session.commit()
 
+### GRID MANAGEMENT
+
+@blueprint.route('/gridlist', methods=['GET','POST'])
+@roles_required(['Admin','ProStore'])
+@login_required
+def gridlist():
+	"""(Controller) Display Grids and controls"""
+	now=datetime.now()
+	grids = []
+	for x in StorageGrid.query.all():
+		grids.append({'id':x.id,
+			'name':x.name,
+			'short':x.short,
+            'columns':x.columns,
+            'rows':x.rows
+			})
+	resources = Resource.query.all()
+	return render_template('gridList.html',grids=sorted(grids,key=lambda x:x['name']),editable=True,grid={})
+
+@blueprint.route('/', methods=['POST'])
+@login_required
+@roles_required(['Admin','ProStore'])
+def grids_create():
+    """(Controller) Create a grid from an HTML form POST"""
+    r = StorageGrid()
+    r.name = (request.form['input_name'].strip())
+    if r.name is None or r.name.strip() == "":
+        flash("No name specified","danger")
+        return redirect(url_for('prostore.grid'))
+    r.short = (request.form['input_short'].strip().title())
+    if re.fullmatch("[A-Za-z0-9]+",r.short) is None:
+        flash("Invalid character in short code","danger")
+        return redirect(url_for('prostore.grid'))
+    
+    p= request.form['input_columns']
+    r.columns = 0
+    try:
+        r.columns = int(p)
+    except:
+        pass
+
+    if r.columns <= 0:
+        flash("Invalid number of columns","danger")
+        return redirect(url_for('prostore.grid'))
+
+    p= request.form['input_rows']
+    r.rows = 0
+    try:
+        r.rows = int(p)
+    except:
+        pass
+
+    if r.rows <= 0:
+        flash("Invalid number of rows","danger")
+        return redirect(url_for('prostore.grid'))
+
+
+    db.session.add(r)
+    db.session.commit()
+    flash("Created.")
+    return redirect(url_for('prostore.grid'))
+
+@blueprint.route('/<string:grid>', methods=['GET'])
+@roles_required(['Admin','ProStore'])
+@login_required
+def grids_show(grid):
+    """(Controller) Display information about a given grid"""
+    r = StorageGrid.query.filter(StorageGrid.short==grid).one_or_none()
+    if not r:
+        flash("Grid not found")
+        return redirect(url_for('prostore.grids'))
+    readonly=False
+    if (not current_user.privs('Finance')):
+        readonly=True
+    return render_template('grid_edit.html',grid=r,readonly=readonly)
+
+
+# If oldname is None, creates new locations
+# If oldame is specified, renames old locations to new
+# Caller must commit!
+def fixup_grid_locations(oldname,newname,columns,rows):
+    for c in range(1,columns+1):
+        for r in range(1,rows+1):
+            newloc = f"{newname}-{c}-{r}"
+            if oldname is not None:
+                oldloc = f"{oldname}-{c}-{r}"
+                l = ProLocation.query.filter(ProLocation.location == oldloc).one_or_none()
+                if l is None:
+                    l = ProLocation()
+                    l.loctype=0
+                    db.session.add(l)
+            else:
+                l = ProLocation()
+                l.loctype=0
+            l.location=newloc
+
+    # Now prune excess locations
+    if (oldname is not None and oldname != newname):
+        locs = ProLocation.query.filter(ProLocation.location.like(oldname+"-%")).all()
+        for l in locs:
+            db.session.delete(l)
+    else:
+        print (f"Changing {oldname} to {columns} {rows}")
+        locs = ProLocation.query.filter(ProLocation.location.like(oldname+"-%")).all()
+        for l in locs:
+            print (f"Found location {l.location}")
+            g = re.match("(\w+)-(\d+)-(\d+)",l.location)
+            if g is not None:
+                cc = int(g.group(2))
+                rr = int(g.group(3))
+                print (f"DECIDE {cc} {rr} vs {columns} {rows}")
+                if (cc > columns) or ( rr > rows):
+                    db.session.delete(l)
+
+
+
+    # Caller MUST COMMIT db.session.commit()
+
+@blueprint.route('/<string:grid>', methods=['POST'])
+@login_required
+@roles_required(['Admin','ProStore'])
+def grids_update(grid):
+        change = False
+        """(Controller) Update an existing grid from HTML form POST"""
+        tid = (grid)
+        r = StorageGrid.query.filter(StorageGrid.id==tid).one_or_none()
+        if not r:
+                    flash("Error: Grid not found")
+                    return redirect(url_for('prostore.grids'))
+
+        r.name = (request.form['input_name'].strip())
+        if r.name is None or r.name.strip() == "":
+            flash("No name specified","danger")
+            return redirect(url_for('prostore.grid'))
+        
+        p= request.form['input_columns']
+        newcols = 0
+        try:
+            newcols = int(p)
+        except:
+            pass
+
+        if newcols <= 0:
+            flash("Invalid number of columns","danger")
+            return redirect(url_for('prostore.grid'))
+
+        if newcols != r.columns:
+            r.columns = newcols
+            change=True
+
+        p= request.form['input_rows']
+        newrows = 0
+        try:
+            newrows = int(p)
+        except:
+            pass
+
+        if newrows <= 0:
+            flash("Invalid number of rows","danger")
+            return redirect(url_for('prostore.grid'))
+
+        if newrows != r.rows:
+            r.rows = newrows
+            change=True
+
+        newshort = request.form['input_short'].strip()
+        if re.fullmatch("[A-Za-z0-9]+",newshort) is None:
+            flash("Invalid character in short code","danger")
+            return redirect(url_for('prostore.grid'))
+        if newshort != r.short:
+            r.short = newshort
+            change=True
+
+        if change:
+            fixup_grid_locations(r.short,newshort,r.columns,r.rows)
+
+        db.session.commit()
+        flash("Grid updated")
+        return redirect(url_for('prostore.grid'))
+
+@blueprint.route('/<string:grid>/delete',methods=['GET','POST'])
+@roles_required(['Admin','ProStore'])
+def grid_delete(grid):
+    """(Controller) Delete a grid. Shocking."""
+    r = StorageGrid.query.filter(StorageGrid.id == grid).one()
+    db.session.delete(r)
+    db.session.commit()
+    flash("Grid deleted.")
+    return redirect(url_for('prostore.grids'))
+
+
+## END GRID MANAGEMENT
+
 def register_pages(app):
   app.register_blueprint(blueprint)
