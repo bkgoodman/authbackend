@@ -385,19 +385,24 @@ def grids_show(grid):
 # If oldame is specified, renames old locations to new
 # Caller must commit!
 def fixup_grid_locations(oldname,newname,columns,rows):
-    for c in range(1,columns+1):
+    for cc in range(1,columns+1):
+        c = chr(64+cc)
         for r in range(1,rows+1):
             newloc = f"{newname}-{c}-{r}"
             if oldname is not None:
                 oldloc = f"{oldname}-{c}-{r}"
+                #print ("Attempt to find ",oldloc)
                 l = ProLocation.query.filter(ProLocation.location == oldloc).one_or_none()
                 if l is None:
                     l = ProLocation()
                     l.loctype=0
+                    l.location=newloc
+                    #print ("ADD LOCATION "+l.location)
                     db.session.add(l)
             else:
                 l = ProLocation()
                 l.loctype=0
+                l.location=newloc
                 db.session.add(l)
             l.location=newloc
 
@@ -407,15 +412,16 @@ def fixup_grid_locations(oldname,newname,columns,rows):
         for l in locs:
             db.session.delete(l)
     elif oldname is not None:
-        print (f"Changing {oldname} to {columns} {rows}")
+        #print (f"Changing {oldname} to {columns} {rows}")
         locs = ProLocation.query.filter(ProLocation.location.like(oldname+"-%")).all()
         for l in locs:
-            print (f"Found location {l.location}")
-            g = re.match("(\w+)-(\d+)-(\d+)",l.location)
+            #print (f"Found location {l.location}")
+            g = re.match("(\w+)-(\w+)-(\d+)",l.location)
             if g is not None:
-                cc = int(g.group(2))
+                c = g.group(2)
+                cc = ord(c)-64
                 rr = int(g.group(3))
-                print (f"DECIDE {cc} {rr} vs {columns} {rows}")
+                #print (f"DECIDE {cc} {rr} vs {columns} {rows}")
                 if (cc > columns) or ( rr > rows):
                     db.session.delete(l)
 
