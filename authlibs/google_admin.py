@@ -132,6 +132,7 @@ NH's First and Largest Makerspace, a 501c3 non-profit organization
 
 def genericEmailSender(from_email,to_email,subject,contents):
     service = _buildEmailService()
+    #if isinstance(contents, str): contents=contents.encode('utf-8')
     msg = _CreateMessage(from_email,to_email,subject,contents)
     _SendMessage(service,'me',msg)
     
@@ -139,7 +140,7 @@ def testMessage():
     service = _buildEmailService()
     message_text = "To: %s\r\nFrom: info@makeitlabs.com\r\nSubject: Test message for new member signup \r\n\r\nbody goes here with actual content. Hopefully this works?" % TEST_EMAIL
     try:
-        message = (service.users().messages().send(userId='me', body={'raw': base64.urlsafe_b64encode(message_text)})
+        message = (service.users().messages().send(userId='me', body={'raw': base64.urlsafe_b64encode(message_text).decode("utf-8")})
                .execute())
         #print 'Message Id: %s' % message['id']
         return message
@@ -162,7 +163,7 @@ def _CreateMessage(sender, to, subject, message_text):
   message['From'] = "MakeIt Labs Infobot <%s>" % sender
   message['reply-to'] = 'info@makeitlabs.com'
   message['subject'] = subject
-  return {'raw': base64.urlsafe_b64encode(message.as_string())}
+  return {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode("utf-8")}
 
 def _buildEmailService():
     """Create an HTTP session specifically for the GMAIL API and sending emails from the EMAIL_USER account"""
