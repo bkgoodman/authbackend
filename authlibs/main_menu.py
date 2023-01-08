@@ -97,25 +97,15 @@ def get_raw_menu():
             },
             {
                     'privs':'ProStore',
-                    'url':url_for('prostore.bins'),
+                    'url':url_for('prostore.grid'),
                     'img':url_for("static",filename="ProStoreBin.png"),
                     'alt':"Manage storage bins & locations",
-                    'title':"Pro Storage Bins"
+                    'title':"Pro Storage"
             },
             {
                     'privs':'Finance',
                     'url':url_for('members.notices'),
                     'title':"Member Notifications"
-            },
-            {
-                    'privs':'ProStore',
-                    'url':url_for('prostore.locations'),
-                    'title':"Pro Storage Locations"
-            },
-            {
-                    'privs':'ProStore',
-                    'url':url_for('prostore.grid'),
-                    'title':"Pro Storage Grid"
             },
             {
                     'privs':'Finance',
@@ -175,6 +165,11 @@ def get_raw_menu():
                     'title':"Vending",
                     'img':url_for("static",filename="vending.png"),
                     'alt':"Vending and Payments"
+            },
+            {
+                    'url':url_for('purchasables.purchasables'),
+                    'title':"Purchasable Items",
+                    'privs':'Finance',
             }
     ]
 

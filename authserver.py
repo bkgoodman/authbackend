@@ -82,6 +82,7 @@ from authlibs.belog import belog
 from authlibs.training import training
 from authlibs.prostore import prostore
 from authlibs.vending import vending
+from authlibs.purchasables import purchasables
 
     
 
@@ -601,6 +602,7 @@ with app.app_context():
     vending.register_pages(app)
     memberFolders.register_pages(app)
     memberAudio.register_pages(app)
+    purchasables.register_pages(app)
     slackutils.create_routes(app)
     g.main_menu = main_menu
     app.config['main_menu'] = main_menu

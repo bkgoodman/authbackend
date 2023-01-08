@@ -278,7 +278,36 @@ Backups should be run with `nightly.py` script in cron file
 To help restore backups - you can use the `restore.py` helper script
 
 
-# Updating to latest version
+# Updating to this version
+
+Do the following on the database:
+```
+CREATE TABLE purchasable (
+	id INTEGER NOT NULL, 
+	name VARCHAR(20), 
+	description VARCHAR(80), 
+	price INTEGER,
+	product VARCHAR(80), 
+	stripe_desc VARCHAR(80), 
+	slack_admin_chan VARCHAR(80), 
+        resource_id INTEGER,
+	PRIMARY KEY (id),
+	FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE);
+
+CREATE TABLE storageGrid (
+	id INTEGER NOT NULL, 
+	name VARCHAR(60) NOT NULL, 
+	short VARCHAR(20) NOT NULL, 
+	rows INTEGER NOT NULL,
+	columns INTEGER NOT NULL,
+        UNIQUE (name),
+	PRIMARY KEY (id));
+```
+
+
+# Updating from pre-2.0 to 2.0
+
+I hope to got you can IGNORE this section forevermore!!
 
 ##  Multitrain/Python3 Update
 
@@ -312,18 +341,18 @@ CREATE TABLE vendinglog (
 ## Main DB
 
 
-# Node IP Addresses
+## Node IP Addresses
 
 ```
 ALTER TABLE nodes ADD COLUMN ip_addr VARCHAR(20);
 ```
-# HOTFIX - member balances
+## HOTFIX - member balances
 
 ```
 ALTER TABLE members ADD COLUMN balance INTEGER;
 ```
 
-# v1.0.7 Update
+## v1.0.7 Update
 
 ```
 PRAGMA foreign_keys=off;

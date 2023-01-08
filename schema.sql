@@ -254,3 +254,24 @@ CREATE TABLE tempauth (
         FOREIGN KEY(admin_id) REFERENCES members (id) ON DELETE CASCADE,
         FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
 );
+
+CREATE TABLE storageGrid (
+	id INTEGER NOT NULL, 
+	name VARCHAR(60) NOT NULL, 
+	short VARCHAR(20) NOT NULL, 
+	rows INTEGER NOT NULL,
+	columns INTEGER NOT NULL,
+        UNIQUE (name),
+	PRIMARY KEY (id));
+
+CREATE TABLE purchasable (
+	id INTEGER NOT NULL, 
+	name VARCHAR(20), 
+	description VARCHAR(80), 
+	price INTEGER,
+	product VARCHAR(80), 
+	stripe_desc VARCHAR(80), 
+	slack_admin_chan VARCHAR(80), 
+        resource_id INTEGER,
+	PRIMARY KEY (id),
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE);

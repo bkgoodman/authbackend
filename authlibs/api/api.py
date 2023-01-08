@@ -1253,6 +1253,7 @@ def vendig_api_chargeAccount(member):
 @blueprint.route("/v2/vending/reupBalance/<string:member>", methods = ['POST'])
 @api_only
 def vendig_api_ReupBalance(member):
+  maxbalance = current_app.config['globalConfig'].Config.get('Stripe','MaxVendingBalance')
   m = Member.query.filter(Member.member==member)
   m = m.join(Subscription,Subscription.member_id == Member.id)
   m = m.add_column(Subscription.customerid)
@@ -1292,6 +1293,11 @@ def vendig_api_ReupBalance(member):
 
   if (data['newBalance'] != data['prevBalance'] + data['addAmount'] - data['purchaseAmt']):
     logger.error("Reup newBalance was incorrect")
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+  if (data['newBalance'] > maxbalance):
+    logger.error("Max balance exceded")
+    result = {'status':'error','description':'Max Balance Exceded'}
     return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if (m.Member.balance is None):
