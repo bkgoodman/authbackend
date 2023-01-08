@@ -171,6 +171,7 @@ def grid():
   bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
   bins=bins.add_column(Waiver.created_date.label("waiverDate"))
   bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
+  bins=bins.add_columns(Subscription.rate_plan)
   bins=addQuickAccessQuery(bins)
   bins=ProBin.addBinStatusStr(bins).all()
   
@@ -195,6 +196,8 @@ def grid():
 
       if not b.waiverDate:
         ab[b.location]['style'] = "background-color:#ffffd0"
+      if b.rate_plan not in ('pro', 'produo'):
+        ab[b.location]['style'] = "background-color:#ffd49f"
       if b.ProBin.status > 2:
         ab[b.location]['style'] = "background-color:#ffd49f"
       if b.ProBin.status  == 0:
@@ -244,6 +247,7 @@ def notices():
   
   bins = bins.add_column(sq.c.waiverCount.label("waiverCount")).outerjoin(sq,(sq.c.member_id == Member.id))
   bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
+  bins=bins.add_columns(Subscription.rate_plan)
   bins=addQuickAccessQuery(bins)
   bins=ProBin.addBinStatusStr(bins).all()
 
@@ -269,6 +273,7 @@ def notices():
     rcmd = []
     if b.waiverCount is None or b.waiverCount <1: rcmd.append("NoWaiver")
     if b.active != "Active": rcmd.append("Subscription")
+    if b.rate_plan not in ('pro', 'produo'): rcmd.append("NonPro")
 
     if b.ProBin.status == ProBin.BINSTATUS_GONE:
       rcmd.append("BinGone")

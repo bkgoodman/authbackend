@@ -34,6 +34,7 @@ http://join.makeitlabs.com/account
 
 """,
     "BinGone" : "Your bin is listed as \"gone\". Bins are property of MakeIt Labs, and should not be removed from the premises.",
+    "NonPro" : "You are required to maintain a \"Pro\"-level memebership as a condition of retaining Storage Bin privilages. Please upgrade your membership or forefit your bin.",
     "Grace" : "Your should have received a prior notice about your Pro-Storage membership. You may need to either collect your belongings, or fix your membership.",
     "Forefeit" : "Your Pro-Storage location has been forfeited due to a lapse in membership. Please collect your belongings and notify us when you have vacated the bin.",
     "Moved" : "The bin with your materials has been moved. Please contact us to collect your belongings. Failure to do so will result in your bin contents being considered a donation to MakeIt Labs after 60 days from first notice.",
