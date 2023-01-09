@@ -287,9 +287,10 @@ def on_message(client,userdata,msg):
 
                 elif sst=="access":
                     if 'error' in message and message['error'] == True:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
-                        log_text = message['errorText'] + ' ' + message['errorExt']
-                        send_slack = False
+                        #log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
+                        #log_text = message['errorText'] + ' ' + message['errorExt']
+                        #send_slack = False
+                        pass
                     elif message['allowed']:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
                         if resourceId == 1:
@@ -341,9 +342,10 @@ def on_message(client,userdata,msg):
 
                 elif sst=="login":
                     if 'error' in message and message['error'] == True:
-                        log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
-                        log_text = message['errorText']
-                        send_slack = False
+                        #log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id
+                        #log_text = message['errorText']
+                        #send_slack = False
+                        pass
                     else:
                         # member
                         usedPassword = False
