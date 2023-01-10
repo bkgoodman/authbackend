@@ -19,7 +19,7 @@ TODO:
 - More documentation
 """
 
-import sqlite3, re, time
+import sqlite3, re, time,os 
 from flask import Flask, request, session, g, redirect, url_for, \
 	abort, render_template, flash, Response, Markup, make_response
 # NEwer login functionality
@@ -577,6 +577,14 @@ with app.app_context():
         app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
     if app.config['globalConfig'].backgroundColor:
         app.jinja_env.globals['BACKGROUND_COLOR'] = app.config['globalConfig'].backgroundColor
+
+    # Member Folder Cache
+
+    if app.config['globalConfig'].Config.has_option('MemberFolders','cache'):
+        try:
+            os.mkdir(app.config['globalConfig'].Config.get('MemberFolders','cache'))
+        except:
+            pass
 
     # Register Pages
     #app.config["SQLALCHEMY_ECHO"] = True # Enabled for DB Debug
