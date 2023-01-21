@@ -6,6 +6,8 @@
 		<button onclick='location.href="{{ url_for("prostore.locations") }}";'  type="button" class="btn btn-{% if page!="locations" %}outline-{% endif %}info">Locations</button>
 		<button onclick='location.href="{{ url_for("prostore.notices") }}";'  type="button" class="btn btn-{% if page!="notices" %}outline-{% endif %}info">Notices</button>
 		<button onclick='location.href="{{ url_for("prostore.gridlist") }}";'  type="button" class="btn btn-{% if page!="gridlist" %}outline-{% endif %}info">Grid Definitions</button>
+		<button onclick='location.href="{{ url_for("prostore.choose") }}";'  type="button" class="btn btn-{% if page!="choose" %}outline-{% endif %}info">Choose</button>
+		<button onclick='location.href="{{ url_for("prostore.waitlist") }}";'  type="button" class="btn btn-{% if page!="waitlist" %}outline-{% endif %}info">Waitlist</button>
 	</div>
 </div>
     {% endif %}

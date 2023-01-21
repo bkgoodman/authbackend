@@ -121,9 +121,6 @@ def purchasable_delete(purchasable):
 
 @blueprint.route('/purchase', methods=['POST'])
 def purchasable_purchase():
-    print ("NEW REQ")
-    for x in request.form:
-        print ("REQUFORM",x,request.form[x])
 
     sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
     if sub is None:
@@ -132,10 +129,10 @@ def purchasable_purchase():
     cents = int(float(request.form['pricestr'])*100.0)
 
     cid = sub.customerid
-    print("Customer ID is",cid)
+    #print("Customer ID is",cid)
     rid = (request.form['purchase_item_id'])
     r = Purchasable.query.filter(Purchasable.id == rid).one()
-    print ("Product code is ",r.product)
+    #print ("Product code is ",r.product)
     if r.product is None or r.product.strip() =="":
         flash("Error: Product code is undefined","danger")
         return redirect(url_for('purchasables.purchasables'))
@@ -149,16 +146,22 @@ def purchasable_purchase():
 
 
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+    stripedesc = r.stripe_desc
+    commentstr=""
+    if 'comment' in request.form and request.form['comment'].strip() != "": 
+        commentstr=request.form['comment'].strip()
+        stripedesc= f"{stripedesc} ({commentstr})"
+        commentstr=f" ({request.form['comment'].strip()})"
     try:
         price = stripe.Price.create(
           unit_amount=cents,
           currency='usd',
           product=r.product)
-        invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=r.stripe_desc)
+        invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc)
 
         invoice = stripe.Invoice.create(
         customer=cid,
-        description=r.stripe_desc
+        description=stripedesc
         #collection_method="charge_automatically",
         )
 
@@ -183,10 +186,10 @@ def purchasable_purchase():
     flash("Payment succeed","success")
     try:
         if (r.slack_admin_chan is not None) and (r.slack_admin_chan.strip() != ""):
-            send_slack_message(r.slack_admin_chan,f":moneybag: {current_user.firstname} {current_user.lastname} purchased {r.name} for ${request.form['pricestr']}")
+            send_slack_message(r.slack_admin_chan,f":moneybag: {current_user.firstname} {current_user.lastname} purchased {r.name} for ${request.form['pricestr']}{commentstr}")
     except:
         pass
-    logmsg = f"Purchased {r.name} for ${request.form['pricestr']}"
+    logmsg = f"Purchased {r.name} for ${request.form['pricestr']}{commentstr}"
     authutil.log(eventtypes.RATTBE_LOGEVENT_PURCHASABLE_PURCHASE.id,resource_id=r.resource_id,member_id=current_user.id,message=logmsg,commit=0)
     db.session.commit()
     return redirect(url_for('purchasables.purchasables'))

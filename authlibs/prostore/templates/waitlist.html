@@ -1,0 +1,114 @@
+{# vim:tabstop=2:shiftwidth=2:expandtab
+#}
+{% extends "layout_bootstrap.html" %}
+{% block widebody %}
+{% with page="waitlist" %}
+{% include 'header.html' %}
+{% endwith %}
+
+<h1>Waitlist</h1>
+
+{% macro grid(cols, rows, name) %}
+  <h3>{{ name }} Bins</h3>
+  <table style="table-layout: fixed; width: 100%;" class="table">
+    <tr>
+     <td></td>
+    {% for xx in range(cols) %}
+	  {% set x = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[xx] %}
+    <div class="col-sm-1">
+      <th>{{ x }}</th>
+    {% endfor %}
+    </tr>
+
+  {% for yy in range(rows) %} 
+  {% set y = (rows-yy)|string %}
+  <tr>
+      <th>{{ y }}</th>
+    {% for xx in range(cols) %}
+	  {% set x = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[xx] %}
+    <td
+        style="
+        {% if bins[name+'-'+x+"-"+y] %}
+        {{ bins[name+'-'+x+"-"+y]['style'] }}
+        {% endif %}
+        "
+     >
+        {% if bins[name+'-'+x+"-"+y] %}
+        {{ bins[name+'-'+x+"-"+y]['status'] }}<br />
+		{% if bins[name+'-'+x+"-"+y]['list'] %}
+
+		<select id="{{ "choose-"+name+'-'+x+"-"+y }}" priorvalue="" name="{{ "choose-"+name+'-'+x+"-"+y }}" onChange=changeSelect("choose-{{ name+'-'+x+"-"+y }}"); >
+				<option value="">- Empty -</option>
+				{% for ee in bins[name+'-'+x+"-"+y]['list'] %}
+				<option value="{{ ee['member_id'] }}" >{{ ee['member'] }} ({{ ee['rank'] }})</option>
+				{% endfor %}
+			</select>
+		{% endif %}
+	{% endif %}
+    </td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+  </table>
+{% endmacro %}
+
+
+{% for g in grids %}
+{{ grid(g.columns,g.rows,g.short) }}
+{% endfor %}
+
+<script type="text/javascript">
+
+	function reenableAll(val) {
+		/* Re-enabled "val" everywhere */
+		document.querySelectorAll("[id^=choose-]").forEach(
+			function Test(i) {
+				for (var x = 0;x<i.children.length;x++) {
+					if (i[x].value == val) {
+					i[x].removeAttribute("disabled");
+								}
+				}
+			})
+	}
+	function disableAllBut(sel,val) {
+		/* Disable "val" everywhere except in "sel" */
+		document.querySelectorAll("[id^=choose-]").forEach(
+			function Test(i) {
+				var waiters = false;
+				for (var x = 0;x<i.children.length;x++) {
+					if ((i[x].value == val) && (sel != i.name) && (x!=0)) {
+						i[x].setAttribute("disabled","");
+					}
+					if (i[x].getAttribute("disabled")!="" && (x!=0)) {
+						console.log("NOT DISABLED",x,i.id);
+						waiters = true;
+					}
+				}
+				if (waiters) {
+					i.removeAttribute("disabled");
+				} else {
+					console.log("DISABLING",i.id);
+					i.setAttribute("disabled","");
+				}
+			})
+	}
+
+
+	function changeSelect(xx) {
+	      var v = document.getElementById(xx);
+
+	      console.log("ChangeSelect",xx+" = "+v.value);
+		var prior = v.getAttribute("priorvalue");
+		if (prior != "") {
+			reenableAll(prior);
+		}
+		//if (v.value != "") {
+			disableAllBut(xx,v.value);
+		//}
+
+		/* LAST THING: Set new prior value for NEXT TIME */
+		v.setAttribute("priorvalue",v.value);
+	}
+</script>
+
+{% endblock %}

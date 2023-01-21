@@ -96,7 +96,6 @@ def get_raw_menu():
                     'title':"Logout (Soft)"
             },
             {
-                    'privs':'ProStore',
                     'url':url_for('prostore.grid'),
                     'img':url_for("static",filename="ProStoreBin.png"),
                     'alt':"Manage storage bins & locations",

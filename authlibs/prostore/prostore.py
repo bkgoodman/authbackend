@@ -160,14 +160,37 @@ def locations():
   locs=ProLocation.addLocTypeCol(locs,blankSingle=True).all()
   return render_template('locations.html',locations=locs)
 
-@blueprint.route('/grid', methods=['GET','POST'])
+@blueprint.route('/selectchoices', methods=['POST'])
 @login_required
-def grid():
+def selectChoices():
+    ProBinChoice.query.filter(ProBinChoice.member_id == current_user.id).delete()
+    for x in request.form:
+        if x.startswith('select-'):
+            v = x.replace("select-","")
+            r = request.form[x]
+            loc = ProLocation.query.filter(ProLocation.location == v).one_or_none()
+
+            if r is not None and r.strip() != "":
+                c = ProBinChoice()
+                c.member_id = current_user.id
+                c.location_id = loc.id
+                c.rank = r
+                db.session.add(c)
+
+
+    db.session.commit()
+
+    return redirect(url_for("prostore.grid"))
+
+@blueprint.route('/choose', methods=['GET'])
+@login_required
+def choose():
   bins=ProBin.query  
   bins=bins.outerjoin(ProLocation)
   bins=bins.add_column(ProLocation.location)
   bins=bins.outerjoin(Member)
   bins=bins.add_columns(Member.member,Member.lastname,Member.firstname)
+  bins=bins.add_column(Member.id.label("member_id"))
   bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
   bins=bins.add_column(Waiver.created_date.label("waiverDate"))
   bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
@@ -176,6 +199,102 @@ def grid():
   bins=ProBin.addBinStatusStr(bins).all()
   
   ab={}
+  iHaveABin=False
+  sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
+  iamPro = True if sub is not None and sub.rate_plan in ('pro', 'produo') else False
+
+  c = ProBinChoice.query.filter(ProBinChoice.member_id == current_user.id)
+  c = c.join(ProLocation,ProLocation.id == ProBinChoice.location_id)
+  c = c.add_column(ProLocation.location)
+  c = c.add_column(ProBinChoice.rank)
+
+  myranks={}
+  for cc in c.all():
+      if cc.rank is not None:
+          myranks[cc.location] = cc.rank
+
+
+  for b in bins:
+    if b.location:
+      ab[b.location] = {
+        'binid':b.ProBin.id,
+        'status':"In-Use"
+      }
+    if b.location in myranks:
+        ab[b.location]['rank']=myranks[b.location]
+    if b.member_id == current_user.id:
+      ab[b.location]['style'] = "background-color:#D0FFD0"
+      iHaveABin=True
+
+  grids = StorageGrid.query.all()
+
+  if iamPro and not iHaveABin:
+      return render_template('choose.html',bins=ab,grids=grids,ranks=myranks)
+  else:
+      flash ("You already have a bit and therefore cannot choose a new one")
+      return redirect(url_for('prostore.grid'))
+
+@blueprint.route('/waitlist', methods=['GET','POST'])
+@roles_required(['Admin','RATT','ProStore','Useredit'])
+@login_required
+def waitlist():
+  grids = StorageGrid.query.all()
+  bins = ProBin.query
+  bins = bins.outerjoin(ProLocation,ProLocation.id == ProBin.location_id)
+  bins = bins.add_column(ProLocation.location)
+  bins = bins.all()
+  ab={}
+  for b in bins:
+      if b.location is not None and b.location.strip() != "":
+          if b.location not in ab: ab[b.location]={}
+          ab[b.location]['status']='In-Use'
+
+  c = ProBinChoice.query
+  c = c.join(ProLocation,ProLocation.id == ProBinChoice.location_id)
+  c = c.join(Member,Member.id == ProBinChoice.member_id)
+  c = c.add_column(ProLocation.location)
+  c = c.add_column(ProBinChoice.rank)
+  c = c.add_column(Member.id)
+  c = c.add_column(Member.member)
+
+  for cc in c.all():
+        print (cc)
+        if cc.location not in ab: ab[cc.location]={}
+        if 'list' not in ab[cc.location]: ab[cc.location]['list']=[]
+        ab[cc.location]['list'].append({
+              'member':cc.member,
+              'member_id':cc.id,
+              'rank':cc.rank
+              })
+
+
+
+  return render_template('waitlist.html',bins=ab,grids=grids)
+
+@blueprint.route('/grid', methods=['GET','POST'])
+@login_required
+def grid():
+  bins=ProBin.query  
+  bins=bins.outerjoin(ProLocation)
+  bins=bins.add_column(ProLocation.location)
+  bins=bins.outerjoin(Member)
+  bins=bins.add_columns(Member.member,Member.lastname,Member.firstname)
+  bins=bins.add_column(Member.id.label("member_id"))
+  bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
+  bins=bins.add_column(Waiver.created_date.label("waiverDate"))
+  bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
+  bins=bins.add_columns(Subscription.rate_plan)
+  bins=addQuickAccessQuery(bins)
+  bins=ProBin.addBinStatusStr(bins).all()
+  
+  ab={}
+  iHaveABin=False
+  sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
+  iamPro = True if sub is not None and sub.rate_plan in ('pro', 'produo') else False
+  if not iamPro:
+      flash ("Storage bins are a \"Pro\"-Level membership perk. Please upgrade your membership to obtain bin privileges")
+      return redirect(url_for('index'))
+
   for b in bins:
     if b.location:
       ab[b.location] = {
@@ -194,16 +313,26 @@ def grid():
         ab[b.location]['firstname']=""
         ab[b.location]['lastname']=""
 
-      if not b.waiverDate:
-        ab[b.location]['style'] = "background-color:#ffffd0"
-      if b.rate_plan not in ('pro', 'produo'):
-        ab[b.location]['style'] = "background-color:#ffd49f"
-      if b.ProBin.status > 2:
-        ab[b.location]['style'] = "background-color:#ffd49f"
-      if b.ProBin.status  == 0:
-        ab[b.location]['style'] = "background-color:#a3ff9f"
-      if b.active != "Active" and b.active != "Grace Period":
-        ab[b.location]['style'] = "background-color:#ffd0d0"
+      if (current_user.privs('ProStore','Finance')):
+        if not b.waiverDate:
+          ab[b.location]['style'] = "background-color:#ffffd0"
+        if b.rate_plan not in ('pro', 'produo'):
+          ab[b.location]['style'] = "background-color:#ffd49f"
+        if b.ProBin.status > 2:
+          ab[b.location]['style'] = "background-color:#ffd49f"
+        if b.ProBin.status  == 0:
+          ab[b.location]['style'] = "background-color:#a3ff9f"
+        if b.active != "Active" and b.active != "Grace Period":
+          ab[b.location]['style'] = "background-color:#ffd0d0"
+      else: 
+        if b.member_id == current_user.id:
+          ab[b.location]['style'] = "background-color:#D0FFD0"
+          iHaveABin=True
+
+  # Regular Pro memember doesn't have a bin - let them find one
+  if (not current_user.privs('ProStore','Finance')) and iamPro and not iHaveABin:
+      return redirect(url_for('prostore.choose'))
+
   grids = StorageGrid.query.all()
 
   return render_template('grid.html',bins=ab,grids=grids)
@@ -381,7 +510,7 @@ def grids_show(grid):
         flash("Grid not found")
         return redirect(url_for('prostore.grid'))
     readonly=False
-    if (not current_user.privs('Finance')):
+    if (not current_user.privs('ProStore','Finance')):
         readonly=True
     return render_template('grid_edit.html',grid=r,readonly=readonly)
 

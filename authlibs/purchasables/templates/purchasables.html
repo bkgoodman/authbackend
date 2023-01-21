@@ -14,7 +14,8 @@
 		} else {
 			document.getElementById('payButton').style.display="none";
 			document.getElementById('confirmButton').style.display="block";
-			buydesc.innerHTML = `Please confirm - You consent to a charge of $${priceStr} to the credit card on-file for your MakeIt Labs membership. <input type="hidden" name="pricestr" id="pricestr" value=${priceStr}>`;
+			var comment=document.getElementById('comment').value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+			buydesc.innerHTML = `Please confirm - You consent to a charge of $${priceStr} to the credit card on-file for your MakeIt Labs membership. <input type="hidden" name="pricestr" id="pricestr" value=${priceStr} /><input type="hidden" name="comment" value="${comment}" />`;
 			}
 		}
 
@@ -24,7 +25,7 @@
 		document.getElementById('itemref').value=no;
 		var priceStr = (price/100.0).toFixed(2);
 		if (price == 0) {
-				buydesc.innerHTML = `Enter the dollar amount you would like to have billed for your purchase of "${name}".</br><label>Payment Amount $</label><input type="input" name="pricestr" id="pricestr" value="">`;
+				buydesc.innerHTML = `Enter the dollar amount you would like to have billed for your purchase of "${name}".</br><label>Payment Amount $</label><input type="input" size="6" name="pricestr" id="pricestr" value=""><br /><label>Comment:</label><input type="input" id="comment" name="comment" value=""><small>Optional</small>`;
 						
 				document.getElementById('payButton').style.display="block";
 				document.getElementById('confirmButton').style.display="none";

@@ -300,6 +300,15 @@ class ProBin(db.Model):
         ], 
         else_ = 'Unknown').label('binstatusstr'))
 
+# Pro Storage Bin Choices
+class ProBinChoice(db.Model):
+    __tablename__ = 'binchoice'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    rank = db.Column(db.Integer,nullable=False)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    location_id = db.Column(db.Integer(), db.ForeignKey('prostorelocations.id', ondelete='CASCADE'))
+
 # Pro Storage Location
 class ProLocation(db.Model):
   __tablename__ = 'prostorelocations'

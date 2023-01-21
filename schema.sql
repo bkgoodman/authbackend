@@ -200,6 +200,15 @@ CREATE TABLE prostorebins (
         FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE,
         FOREIGN KEY(location_id) REFERENCES prostorelocations (id) ON DELETE CASCADE
 );
+CREATE TABLE binchoice (
+        id INTEGER NOT NULL,
+        member_id INTEGER NOT NULL,
+        location_id INTEGER NOT NULL,
+        rank  INTEGER NOT NULL,
+        PRIMARY KEY (id),
+        FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE,
+        FOREIGN KEY(location_id) REFERENCES prostorelocations (id) ON DELETE CASCADE
+);
 CREATE TABLE training (
         id INTEGER NOT NULL,
         name VARCHAR(150),
