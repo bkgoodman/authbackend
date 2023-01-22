@@ -8,6 +8,15 @@
 
 <h1>Waitlist</h1>
 
+<form method="POST">
+	View Draft Number(s): <input id="draft" value="{{ draft }}" name="draft" />
+	<input type="Submit" name="ChangeDraft" value="View" class="btn btn-secondary"/>
+	<small>Enter a number or a range. Blank for all entries</small>
+</form>
+<form method="POST">
+<input type="submit" name="Update" value="Update" class="btn btn-primary">
+<input type="button" name="Auto-Assign Uncontended" value="Auto-Assign Uncontended" class="btn btn-secondary" onClick="autoassign_uncontended();">
+<input type="button" name="Auto-Assign First-Entries" value="Auto-Assign First-Entries" class="btn btn-secondary" onClick="autoassign_firsts();">
 {% macro grid(cols, rows, name) %}
   <h3>{{ name }} Bins</h3>
   <table style="table-layout: fixed; width: 100%;" class="table">
@@ -33,14 +42,19 @@
         {% endif %}
         "
      >
+     <p id="comment-{{ name }}-{{ x }}-{{ y }}">
+        {% if bins[name+'-'+x+"-"+y] %}
+	{{ bins[name+'-'+x+"-"+y]['comment'] }}
+	{% endif %}
+     </p>
         {% if bins[name+'-'+x+"-"+y] %}
         {{ bins[name+'-'+x+"-"+y]['status'] }}<br />
 		{% if bins[name+'-'+x+"-"+y]['list'] %}
 
-		<select id="{{ "choose-"+name+'-'+x+"-"+y }}" priorvalue="" name="{{ "choose-"+name+'-'+x+"-"+y }}" onChange=changeSelect("choose-{{ name+'-'+x+"-"+y }}"); >
+		<select id="{{ "choose-"+name+'-'+x+"-"+y }}" priorvalue="" uncontended="{{ bins[name+'-'+x+"-"+y]['uncontended'] }}" name="{{ "choose-"+name+'-'+x+"-"+y }}" onChange=changeSelect("choose-{{ name+'-'+x+"-"+y }}"); >
 				<option value="">- Empty -</option>
 				{% for ee in bins[name+'-'+x+"-"+y]['list'] %}
-				<option value="{{ ee['member_id'] }}" >{{ ee['member'] }} ({{ ee['rank'] }})</option>
+				<option rank="{{ ee['rank'] }}" value="{{ ee['member_id'] }}" >{{ ee['member'] }} ({{ ee['rank'] }})</option>
 				{% endfor %}
 			</select>
 		{% endif %}
@@ -56,6 +70,8 @@
 {% for g in grids %}
 {{ grid(g.columns,g.rows,g.short) }}
 {% endfor %}
+<input type="submit" name="Update" value="Update" class="btn btn-primary">
+</form>
 
 <script type="text/javascript">
 
@@ -80,14 +96,12 @@
 						i[x].setAttribute("disabled","");
 					}
 					if (i[x].getAttribute("disabled")!="" && (x!=0)) {
-						console.log("NOT DISABLED",x,i.id);
 						waiters = true;
 					}
 				}
-				if (waiters) {
+				if (waiters || i.value != "") {
 					i.removeAttribute("disabled");
 				} else {
-					console.log("DISABLING",i.id);
 					i.setAttribute("disabled","");
 				}
 			})
@@ -97,7 +111,6 @@
 	function changeSelect(xx) {
 	      var v = document.getElementById(xx);
 
-	      console.log("ChangeSelect",xx+" = "+v.value);
 		var prior = v.getAttribute("priorvalue");
 		if (prior != "") {
 			reenableAll(prior);
@@ -108,6 +121,33 @@
 
 		/* LAST THING: Set new prior value for NEXT TIME */
 		v.setAttribute("priorvalue",v.value);
+	}
+
+
+	function autoassign_uncontended() {
+		
+		document.querySelectorAll("[id^=choose-]").forEach(
+			function Test(i) {
+				var x = i.getAttribute("uncontended");
+				if (x != "") {
+					var mid = parseInt(x,10);
+					i.value = mid;
+					i.setAttribute("priorvalue",mid);
+					disableAllBut(i.name,mid)
+				}
+			})
+	}
+	function autoassign_firsts() {
+		
+		document.querySelectorAll("[id^=choose-]").forEach(
+			function Test(i) {
+				var x = i.getAttribute("uncontended");
+				if (x != "") {
+					var mid = parseInt(x,10);
+					i.value = mid;
+					i.setAttribute("priorvalue",mid);
+				}
+			})
 	}
 </script>
 

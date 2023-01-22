@@ -238,38 +238,99 @@ def choose():
 @roles_required(['Admin','RATT','ProStore','Useredit'])
 @login_required
 def waitlist():
+  dstr = ""
+  mn = mx = 0
+  if request.method == "POST" and 'ChangeDraft' in request.form and request.form['ChangeDraft'] == "View":
+      dstr = request.form['draft']
+      dd= dstr.strip().split("-")
+      try:
+          mn = int(dd[0])
+          mx = int(dd[1]) if len(dd)==2 else int(dd[0])
+      except:
+          pass
+
+  if request.method == "POST" and 'Update' in request.form and request.form['Update'] == "Update":
+      for x in request.form:
+          if x.startswith("choose-"):
+              loc = x.replace("choose-","")
+              mem =  request.form[x].strip()
+              if mem != "":
+                  mem = int(request.form[x])
+                  pl = ProLocation.query.filter(ProLocation.location == loc).one_or_none()
+                  if pl is None:
+                      flash(f"Location {loc} not found","danger")
+                  else:
+                      b = ProBin.query.filter(ProBin.location_id == pl.id).one_or_none()
+                      if b is not None:
+                          flash(f"Location {loc} already has a bin","danger")
+                      else:
+                          b = ProBin()
+                          b.status = ProBin.BINSTATUS_IN_USE
+                          b.member_id = mem
+                          b.location_id = pl.id
+                          db.session.add(b)
+      db.session.commit()
+
+
   grids = StorageGrid.query.all()
   bins = ProBin.query
   bins = bins.outerjoin(ProLocation,ProLocation.id == ProBin.location_id)
+  bins = bins.add_column(ProBin.member_id)
   bins = bins.add_column(ProLocation.location)
   bins = bins.all()
   ab={}
+  members={} # Track members who have bins
   for b in bins:
       if b.location is not None and b.location.strip() != "":
           if b.location not in ab: ab[b.location]={}
           ab[b.location]['status']='In-Use'
+          members[b.member_id] = True
 
   c = ProBinChoice.query
   c = c.join(ProLocation,ProLocation.id == ProBinChoice.location_id)
   c = c.join(Member,Member.id == ProBinChoice.member_id)
+  if (mx != 0) and (mn != 0):
+      c = c.filter(Member.draft >= mn)
+      c = c.filter(Member.draft <= mx)
   c = c.add_column(ProLocation.location)
   c = c.add_column(ProBinChoice.rank)
   c = c.add_column(Member.id)
   c = c.add_column(Member.member)
 
   for cc in c.all():
-        print (cc)
         if cc.location not in ab: ab[cc.location]={}
-        if 'list' not in ab[cc.location]: ab[cc.location]['list']=[]
-        ab[cc.location]['list'].append({
-              'member':cc.member,
-              'member_id':cc.id,
-              'rank':cc.rank
-              })
+        if 'status' not in ab[cc.location] or ab[cc.location]['status'] != 'In-Use':
+            if 'list' not in ab[cc.location]: ab[cc.location]['list']=[]
+            if cc.id not in members:
+                ab[cc.location]['list'].append({
+                      'member':cc.member,
+                      'member_id':cc.id,
+                      'rank':cc.rank
+                      })
+
+  # Sort all of our locations in rank order
+  for cc in c.all():
+        if cc.location in ab and 'list' in ab[cc.location]: 
+            ab[cc.location]['list'] = sorted(ab[cc.location]['list'],key=lambda d: d['rank'])
+
+  # Find bins with an uncontended #1 pick
+  for cc in c.all():
+        picks=0
+        uncontended_mem_id=0
+        if cc.location in ab and 'list' in ab[cc.location]: 
+            for b in ab[cc.location]['list']:
+                if b['rank'] ==1:
+                    picks += 1
+                    uncontended_mem_id=b['member_id']
+
+        if picks == 1:
+            ab[cc.location]['comment'] = "Uncontended";
+            ab[cc.location]['uncontended'] = uncontended_mem_id;
 
 
 
-  return render_template('waitlist.html',bins=ab,grids=grids)
+
+  return render_template('waitlist.html',bins=ab,grids=grids,draft=dstr)
 
 @blueprint.route('/grid', methods=['GET','POST'])
 @login_required
@@ -456,6 +517,39 @@ def gridlist():
 	resources = Resource.query.all()
 	return render_template('gridList.html',grids=sorted(grids,key=lambda x:x['name']),editable=True,grid={})
 
+@blueprint.route('/draft', methods=['GET','POST'])
+@login_required
+@roles_required(['Admin','ProStore'])
+def draft():
+    if request.method == "POST" and request.form['Submit'] == "Submit":
+        for x in request.form:
+            if x.startswith("member-"):
+                mid = x.split("-")[1]
+                v = request.form[x]
+                m = Member.query.filter(Member.id == mid).one_or_none()
+                if m:
+                    m.draft = None if v is None or v.strip() == "" else int(v)
+        db.session.commit()
+    members = []
+    mem = Member.query
+    mem = mem.join(Subscription,Subscription.member_id == Member.id)
+    mem = mem.filter(Subscription.active=="true")
+    mem = mem.filter(Subscription.plan == "pro")
+    for x in mem.all():
+        sq = db.session.query(func.count(Logs.member_id).label("Count")).filter(Logs.member_id == x.id).group_by(Logs.member_id).one_or_none();
+        c = ""
+        c += " ".join(x.resource_roles())
+        c += " "
+        c += " ".join(x.effective_roles())
+        members.append( {
+            'id':x.id,
+            'member':x.member,
+            'draft':"" if x.draft is None else x.draft,
+            'count':0 if sq is None else sq.Count,
+            'comments':c
+            })
+    return render_template('draft.html',members=members)
+
 @blueprint.route('/', methods=['POST'])
 @login_required
 @roles_required(['Admin','ProStore'])
@@ -640,6 +734,38 @@ def grid_delete(grid):
 
 
 ## END GRID MANAGEMENT
+
+def cli_randobinz(*cmd,**kvargs):
+    import socket,random
+    if (socket.gethostname()  != "staging"):
+        print("This is DANGEROUS: I will only run on a staging server!")
+        sys.exit(1)
+
+    # Assign all members with current bins to Draft wave 4
+    for m in Member.query.join(ProBin,ProBin.member_id == Member.id).all():
+        m.draft = 4;
+
+    ProBin.query.delete()
+    ProBinChoice.query.delete()
+    locs = list(ProLocation.query.all())
+    members = Member.query
+    members = members.join(Subscription, Subscription.member_id == Member.id)
+    members = members.filter(Subscription.rate_plan == "pro" and Subscription.active == "true")
+    members = members.all()
+    random.shuffle(members)
+    for m in members:
+        print (m.member)
+        random.shuffle(locs)
+        for (i,l) in enumerate(locs[0:20]):
+            z = ProBinChoice()
+            z.member_id = m.id
+            z.location_id = l.id
+            z.rank=i+1
+            db.session.add(z)
+
+    db.session.commit()
+
+    
 
 def register_pages(app):
   app.register_blueprint(blueprint)

@@ -19,6 +19,7 @@ import getpass
 from .prostore import prostore
 from .waivers.waivers import cli_waivers_connect, cli_waivers, cli_fix_waiver_types, cli_econtacts
 from .members.notices import cli_member_notices
+from .prostore.prostore import cli_randobinz
 
 import logging
 logger = logging.getLogger(__name__)
@@ -197,6 +198,10 @@ commands = {
 	"slacktest":{
 		'usage':"slacktest -- Send slack test",
 		'cmd':cli_slacktest
+	},
+	"randobinz":{
+		'usage':"randobinz  -- Delete all and create random bin choices DANGEROUS!!",
+		'cmd':cli_randobinz
 	},
 	"ubersearch":{
 		'usage':"ubersearch {searchstr} -- Try ubersearch",

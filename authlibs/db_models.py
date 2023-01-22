@@ -65,6 +65,7 @@ class Member(db.Model,UserMixin):
     time_updated = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
     warning_sent = db.Column(db.DateTime(timezone=True))
     warning_level = db.Column(db.Integer()) 
+    draft = db.Column(db.Integer())  # Draft wave for ProStore Bin
     email_confirmed_at = db.Column(db.DateTime())
     membership = db.Column(db.String(50),nullable=True,unique=True)
     memberFolder = db.Column(db.String(255))
