@@ -139,15 +139,43 @@
 	}
 	function autoassign_firsts() {
 		
+		var choices = Array();
 		document.querySelectorAll("[id^=choose-]").forEach(
 			function Test(i) {
-				var x = i.getAttribute("uncontended");
-				if (x != "") {
-					var mid = parseInt(x,10);
-					i.value = mid;
-					i.setAttribute("priorvalue",mid);
+				if ((!i.disabled) && (i.value == "")) {
+					for (var x = 0;x<i.children.length;x++) {
+						var v = i.children[x];
+						//console.log(i.id,v.value,v.getAttribute("rank"));
+						if ((v.getAttribute("disabled")  == null) && (v.value != "")) {
+							var c = {
+								'member':v.value,
+								'location':i.id,
+								'rank':v.getAttribute("rank")
+							}
+							choices.push(c);
+						}
+					}
 				}
 			})
+		/* Sort List */
+		choices.sort((a, b) => a['rank'] - b['rank']);
+		console.log(choices);
+
+		while (choices.length != 0) {
+				var x = choices.shift();
+				console.log("ASSIGN",x);
+				/* Make that assignment */
+			      var s = document.getElementById(x['location']);
+				s.value = x.member;
+				changeSelect(x['location']);
+				// Remember future references to this location and this member
+				var i = choices.length
+				while (i--) {
+				    if ((choices[i]['member'] == x['member']) || (choices[i]['location'] == x['location'])) {
+					choices.splice(i, 1);
+				    }
+				}
+		}
 	}
 </script>
 
