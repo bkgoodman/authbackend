@@ -6,11 +6,16 @@
 {% include 'header.html' %}
   <h1>Enter Bin Location Preferences</h2>
   <p>Please click <i>open</i> grid squares in the order of preference for which you would like your bin. Click first preference first. Unclicked bins shall mean you would <b>not</b> want this bin at all. For more information on bin locations <a href="https://sites.google.com/a/makeitlabs.com/wiki/reference/prostore">Click Here</a></p>
+  <p><b>Randomize</b> buttons will add random selections to any remaining <i>unselected choices</i> in their applicable areas.</p>
+  <p><i>Unselected</i> bins will <i>not</i> be assigned to you, even if you are on the waitlist and they become available</p>
+  <p>Once you have made your choices, press "submit" to confirm. You may come back and change selections at any time.</p>
 {% endwith %}
 
 <form method="POST" action="{{ url_for('prostore.selectChoices') }}">
 {% macro grid(cols, rows, name) %}
+<hr />
   <h3>{{ name }} Bins</h3>
+  <button type="button" class="btn btn-secondary" onClick="randoselect('{{ name }}', 1,{{ cols }},1, {{ rows }});">Randomize</button><small>(Add all remaining unchosen {{ name }} bins in random order</small>)
   <table style="table-layout: fixed; width: 100%;" class="table">
     <tr>
      <td></td>
@@ -47,11 +52,23 @@
         {% endif %}
     </td>
     {% endfor %}
+    <td>
+	    <button type="button" class="btn btn-secondary" onClick="randoselect('{{ name }}', 1,{{ cols }}, {{ y }} , {{ y }});">&#8592; Randomize</button>
+    </td>
   </tr>
   {% endfor %}
+  <tr> <td></td>
+  {% for xx in range(cols) %}
+	  {% set x = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[xx] %}
+	  <td> 
+		  <button type="button" class="btn btn-secondary" onClick="randoselect('{{ name }}', {{ xx +1 }} ,{{ xx +1 }}, 1 , {{ rows }});">&#8593; Randomize</button>
+	    </td>
+  {% endfor %}
+  </tr>
   </table>
 {% endmacro %}
 <input type="Submit"  name="Submit" value="Submit" class="btn btn-primary" />
+<input type="Button"  name="Clear" value="Clear" class="btn btn-secondary" onClick="clearAll()"/>
 
 
 {% for g in grids %}
@@ -61,6 +78,31 @@
 </form>
 
 <script type="text/javascript">
+
+	/* Randomly select among */
+	function randoselect(name,srow,erow,scol,ecol) {
+		var unshuffled=Array();
+			for(var x=srow;x<=erow;x++) {
+				for(var y=scol;y<=ecol;y++) {
+						unshuffled.push(name+"-"+String.fromCharCode(64+x)+"-"+y);
+				}
+			}
+
+		let shuffled = unshuffled
+		    .map(value => ({ value, sort: Math.random() }))
+		    .sort((a, b) => a.sort - b.sort)
+		    .map(({ value }) => value)
+		console.log(shuffled);
+
+		for (var i=0;i<shuffled.length;i++) {
+				var h = document.getElementById("select-"+shuffled[i]);
+
+				if (h.value == "") {
+						clickChoice("choice-"+shuffled[i]);
+				}
+		}
+	}
+
 	function findHole(arr) {
 	    // First, sort the array
 	    arr.sort((a, b) => a - b);
@@ -80,6 +122,20 @@
 	}
 
 
+
+	function clearAll() {
+		document.querySelectorAll("[id^=choice-]").forEach(function Test(i) { 
+				if (i.innerText != "Choose") {
+					i.innerText = "Choose";
+
+				var xx = i.id.replace("choice-","select-");
+				var xxx = document.getElementById(xx);
+				xxx.value = null;
+				xxx.innerText="Choose";
+						
+				}
+			});
+	}
 
 	var nextOpt=1;
 	function clickChoice(button) {

@@ -235,7 +235,7 @@ def choose():
       return redirect(url_for('prostore.grid'))
 
 @blueprint.route('/waitlist', methods=['GET','POST'])
-@roles_required(['Admin','RATT','ProStore','Useredit'])
+@roles_required(['Admin','ProStore'])
 @login_required
 def waitlist():
   dstr = ""
