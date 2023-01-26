@@ -1253,7 +1253,7 @@ def vendig_api_chargeAccount(member):
 @blueprint.route("/v2/vending/reupBalance/<string:member>", methods = ['POST'])
 @api_only
 def vendig_api_ReupBalance(member):
-  maxbalance = current_app.config['globalConfig'].Config.get('Stripe','MaxVendingBalance')
+  maxbalance = int(current_app.config['globalConfig'].Config.get('Stripe','MaxVendingBalance'))
   m = Member.query.filter(Member.member==member)
   m = m.join(Subscription,Subscription.member_id == Member.id)
   m = m.add_column(Subscription.customerid)
