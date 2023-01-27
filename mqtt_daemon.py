@@ -294,7 +294,7 @@ def on_message(client,userdata,msg):
                     elif message['allowed']:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_ALLOWED.id
                         if resourceId == 1:
-                            if memberId not in lastMemberAccess or ((datetime.now() - lastMemberAccess[memberId]).total_seconds() > (3600*3)):
+                            if memberId not in lastMemberAccess or ((datetime.now() - lastMemberAccess[memberId]).total_seconds() > (3600*18)):
                                 print ("DOOR ENTRY FOR",memberId)
                                 lastMemberAccess[memberId] = datetime.now()
                                 subprocess.Popen(
