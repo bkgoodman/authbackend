@@ -297,8 +297,12 @@ def on_message(client,userdata,msg):
                             if memberId not in lastMemberAccess or ((datetime.now() - lastMemberAccess[memberId]).total_seconds() > (3600*18)):
                                 print ("DOOR ENTRY FOR",memberId)
                                 lastMemberAccess[memberId] = datetime.now()
+                                opts = []
+                                now = datetime.now()
+                                if (now.weekday() ==3) and ((now.hour >= 19) and (now.hour <= 21)):
+                                    opts += [ "--quiet" ]
                                 subprocess.Popen(
-                                    ["/var/www/authbackend/doorentry",str(memberId)], shell=False, stdin=None, stdout=None, stderr=None,
+                                    ["/var/www/authbackend/doorentry",str(memberId)]+opts, shell=False, stdin=None, stdout=None, stderr=None,
                                     close_fds=True)
                     else:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id
@@ -455,7 +459,7 @@ def on_message(client,userdata,msg):
                     blocks = [{'type': 'context', 'elements': [{'type':'mrkdwn', 'text':icon + ' ' + time}, {'type': 'mrkdwn', 'text': slacktext } ] }]
 
                     # TODO FIEME This should be "send_slack_admin" - but Ham wanted only "public" messagse on their "admin" channel??
-                    if send_slack_public and associated_resource['slack_admin_chan']:
+                    if send_slack_admin and associated_resource['slack_admin_chan']:
                         #res = sc.api_call(
                         #res = sc.chat_postMessage(
                         #    'chat.postMessage',

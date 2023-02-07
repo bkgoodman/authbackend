@@ -127,7 +127,7 @@ class RATTBE_LOGEVENT_DOOR_CLOSED:
     slack_color='#777777'
 
 class RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE:
-    id=1027
+    id=1100
     desc='Charge for Leased Space'
 
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
