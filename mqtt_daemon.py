@@ -20,7 +20,7 @@ import json
 import subprocess
 import configparser,sys,os
 import paho.mqtt.client as mqtt
-import paho.mqtt.subscribe as sub
+# NO import paho.mqtt.subscribe as sub
 from datetime import datetime
 from authlibs.init import authbackend_init, createDefaultUsers
 import requests,urllib
@@ -34,8 +34,6 @@ for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
 logger=logging.getLogger()
-handler = logging.handlers.RotatingFileHandler(
-    "/tmp/mqtt_daemon.log", maxBytes=(1048576*5), backupCount=7)
 handler.setLevel(logging.DEBUG)
 format = logging.Formatter("%(asctime)s:%(levelname)s:%(module)s:%(message)s")
 handler.setFormatter(format)
@@ -102,6 +100,10 @@ def send_slack_message(towho,message):
 def convert_into_uppercase(a):
     return a.group(1) + a.group(2).upper()
     
+def on_connect(client,userdata,flags,res):
+    print ("MQTT CONNECTED")
+    client.subscribe("ratt/#")
+    client.publish("displayboard/read/status","CONNECTED")
 # The callback for when a PUBLISH message is received from the server.
 # 2019-01-11 17:09:01.736307
 #def on_message(msg):
@@ -423,7 +425,26 @@ def on_message(client,userdata,msg):
                 # Do slack notification
                 if not toolDisplay:
                     toolDisplay = toolname
+
                     
+                # displayboard MQTT event bus
+                if send_slack:
+                    try:
+                        mqttevt = {}
+                        mqttevt['color']='#777777'
+                        mqttevt['eventcode']=log_event_type
+                        if log_event_type in userdata['events']:
+                            mqttevt['eventstr']=userdata['events'][log_event_type]
+                        if log_event_type in userdata['icons']: 
+                          mqttevt['icon'] = userdata['icons'][log_event_type]
+
+                        if member:
+                          mqttevt['member'] = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
+                        mqttevt['tool'] = str(toolDisplay)
+                        client.publish("displayboard/read/event",json.dumps(mqttevt,ident=2))
+                    except e as BaseException:
+                        print ("Send MQTT Failed",str(e))
+
                 if send_slack and log_event_type and toolDisplay and associated_resource and associated_resource['slack_admin_chan'] and allow_slack_log:
                   try:
                     slacktext=""
@@ -547,13 +568,19 @@ if __name__ == '__main__':
             callbackdata['icons']=eventtypes.get_event_slack_icons()
             callbackdata['colors']=eventtypes.get_event_slack_colors()
             callbackdata['msg_track'] = {}
-            
-            sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
+            print (opts)
+            sub = mqtt.Client(userdata=callbackdata)
+            sub.tls_set(**opts['tls'])
+            sub.connect(opts['hostname'],port=opts['port'],keepalive=opts['keepalive'])
+            #sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
+            sub.on_message = on_message
+            sub.on_connect = on_connect
             sub.loop_forever()
+            print ("THIS SHOLD NEVER HAPPEN!")
             sub.loop_misc()
             time.sleep(1)
             msg = sub.simple("ratt/#", hostname=host,port=port,**opts)
-            print("%s %s" % (msg.topic, msg.payload))
+            print("%so %s" % (msg.topic, msg.payload))
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
           except BaseException as e:
