@@ -196,6 +196,7 @@ class Resource(db.Model):
     slack_admin_chan = db.Column(db.String(50))
     info_url = db.Column(db.String(150))
     info_text = db.Column(db.String(150))
+    event_mqtt_topic = db.Column(db.String(80))
     slack_info_text = db.Column(db.String())
     age_restrict = db.Column(db.Integer())  # Years old
     permissions = db.Column(db.String(255), nullable=True) # Endorsements

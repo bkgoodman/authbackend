@@ -44,9 +44,12 @@ blueprint = Blueprint("vending", __name__, template_folder='templates', static_f
 @blueprint.route('/', methods=['GET'])
 @login_required
 def vending():
-  return redirect(url_for('vending.vendingUser',id=current_user.member))
+  if current_user.privs('Useredit','Finance'):
+    return redirect(url_for('vending.summary'))
+  else:
+    return redirect(url_for('vending.vendingUser',id=current_user.member))
 
-@blueprint.route('/<string:id>', methods=['GET'])
+@blueprint.route('/user/<string:id>', methods=['GET'])
 @login_required
 def vendingUser(id):
     if (not current_user.privs('Finance')) and id != current_user.member:
@@ -110,6 +113,27 @@ def vendingUser(id):
     return render_template('vending.html',logs=logs,meta=meta,currentBalance=balance,username=username)
 
 
+@blueprint.route('/summary', methods=['GET'])
+@login_required
+@roles_required(['Admin','Finance'])
+def summary():
+    mall = Member.query.filter(Member.balance != 0).all()
+    balances=[]
+    total=0
+    for m in mall:
+        if m.balance is None:
+          balance = "$0.00"
+        else:
+          balance = "${0:0.2f}".format(float(m.balance)/100.0)
+          total += m.balance
+        balances.append({
+            "balance":balance,
+            "id":m.id,
+            "member":m.member,
+            "name":m.firstname+" "+m.lastname
+            })
+    total = "${0:0.2f}".format(float(total)/100.0)
+    return render_template('summary.html',balances=balances,total=total)
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

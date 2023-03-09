@@ -21,11 +21,14 @@ import subprocess
 import configparser,sys,os
 import paho.mqtt.client as mqtt
 import paho.mqtt.subscribe as sub
+import paho.mqtt.publish as pub
 from datetime import datetime
 from authlibs.init import authbackend_init, createDefaultUsers
 import requests,urllib
 import logging, logging.handlers
 from  authlibs import eventtypes
+
+global client
 
 
 ## SETUP LOGGING
@@ -135,6 +138,7 @@ def on_message(client,userdata,msg):
             send_slack_log_text=True
             send_slack_public=False
             send_slack_admin=True
+            send_mqtt_event=None
             
             # base_topic+"/control/broadcast/acl/update"
             if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
@@ -177,11 +181,13 @@ def on_message(client,userdata,msg):
                 t = t.add_column(Resource.slack_chan)
                 t = t.add_column(Resource.slack_admin_chan)
                 t = t.add_column(Resource.slack_info_text)
+                t = t.add_column(Resource.event_mqtt_topic)
                 t = t.one_or_none()
                 if t:
                     tool_cache[toolname]={"id":t.id,"displayname":t.displayname, "resource_id":t.resource_id,"data": {
                         'slack_public_chan':t.slack_chan,
                         'slack_admin_chan':t.slack_admin_chan,
+                        'event_mqtt_topic':t.event_mqtt_topic,
                         'slack_info_text':t.slack_info_text}}
                     toolId = tool_cache[toolname]['id']
                     toolDisplay = tool_cache[toolname]['displayname']
@@ -360,6 +366,7 @@ def on_message(client,userdata,msg):
                                 send_slack_message(memberSlackId,toolSlackInfoText)
                         elif allowed and not usedPassword:
                             log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN.id
+                            send_mqtt_event={'Title':"In-Use",'Timeout':30}
                         elif not allowed and not usedPassword:
                             log_event_type = RATTBE_LOGEVENT_TOOL_PROHIBITED.id
                             if toolSlackInfoText and memberSlackId:
@@ -402,6 +409,7 @@ def on_message(client,userdata,msg):
                     usage.time_logged = datetime.utcnow()
                     db.session.add(usage)
                     db.session.commit()
+                    send_mqtt_event={'Title':"Finished",'Timeout':30,"Message":reason}
 
                     send_slack_public = True
 
@@ -419,6 +427,14 @@ def on_message(client,userdata,msg):
                 # Do slack notification
                 if not toolDisplay:
                     toolDisplay = toolname
+                    
+                if send_mqtt_event is not None and associated_resource['event_mqtt_topic']:
+                    m = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
+                    if 'Message' in send_mqtt_event:
+                        send_mqtt_event['Message'] = send_mqtt_event.replace('{member}',m)
+                    else:
+                        send_mqtt_event['Message'] = m
+                    client.publish(associated_resource['event_mqtt_topic'],json.dumps(send_mqtt_event,indent=2))
                     
                 if send_slack and log_event_type and toolDisplay and associated_resource and associated_resource['slack_admin_chan'] and allow_slack_log:
                   try:
@@ -456,25 +472,19 @@ def on_message(client,userdata,msg):
 
                     # TODO FIEME This should be "send_slack_admin" - but Ham wanted only "public" messagse on their "admin" channel??
                     if send_slack_public and associated_resource['slack_admin_chan']:
-                        #res = sc.api_call(
-                        #res = sc.chat_postMessage(
-                        #    'chat.postMessage',
-                        #    channel=associated_resource['slack_admin_chan'],
-                        #    blocks=json.dumps(blocks),
-                        #    as_user=True
-                        #)
-                        res = sc.api_call(
-                          "chat.postMessage",
-                          json = {
-                              'channel':associated_resource['slack_admin_chan'],
-                              'blocks': blocks,
-                              #'text': icon + " " + time + " " + slacktext,
-                              'as_user':True
-                          }
-                        )
-                        
-                        if not res['ok']:
-                            logger.error("error doing postMessage to \"%s\" admin chan: %s" % (associated_resource['slack_admin_chan'],res))
+                        for chan in associated_resource['slack_admin_chan'].split(","):
+                            res = sc.api_call(
+                              "chat.postMessage",
+                              json = {
+                                  'channel':chan,
+                                  'blocks': blocks,
+                                  #'text': icon + " " + time + " " + slacktext,
+                                  'as_user':True
+                              }
+                            )
+                            
+                            if not res['ok']:
+                                logger.error("error doing postMessage to \"%s\" admin chan: %s" % (associated_resource['slack_admin_chan'],res))
 
                     """
                     if send_slack_public and associated_resource['slack_public_chan']:
@@ -502,6 +512,9 @@ def on_message(client,userdata,msg):
     except BaseException as e:
         logger.error("LOG ERROR=%s PAYLOAD=%s" %(e,msg.payload))
 
+
+def on_connect(client, userdata, flags, rc):
+    client.subscribe("ratt/#")
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser()
@@ -544,11 +557,17 @@ if __name__ == '__main__':
             callbackdata['colors']=eventtypes.get_event_slack_colors()
             callbackdata['msg_track'] = {}
             
-            sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
-            sub.loop_forever()
-            sub.loop_misc()
+            client = mqtt.Client("mosquitto")
+            client.on_message = on_message
+            client.on_connect = on_connect
+            client.tls_set(**opts['tls'])
+            client.connect(opts['hostname'],opts['port'],60)
+            client.loop_forever()
+            #sub.callback(on_message, "ratt/#",userdata=callbackdata, **opts)
+            #sub.loop_forever()
+            #sub.loop_misc()
             time.sleep(1)
-            msg = sub.simple("ratt/#", hostname=host,port=port,**opts)
+            #msg = sub.simple("ratt/#", hostname=host,port=port,**opts)
             print("%s %s" % (msg.topic, msg.payload))
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
