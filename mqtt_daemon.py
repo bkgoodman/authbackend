@@ -108,6 +108,7 @@ def on_connect(client,userdata,flags,res):
 # 2019-01-11 17:09:01.736307
 #def on_message(msg):
 def on_message(client,userdata,msg):
+    global verbose
     tool_cache={}
     resource_cache={}
     member_cache={}
@@ -116,7 +117,7 @@ def on_message(client,userdata,msg):
     try:
         with app.app_context():
             log=Logs()
-            print ("FROM WIRE",msg.topic,msg.payload)
+            if (verbose>=2): print ("FROM WIRE",msg.topic,msg.payload)
             message = json.loads(msg.payload)
             topic=msg.topic.split("/")
 
@@ -145,7 +146,7 @@ def on_message(client,userdata,msg):
                 member_cache={}
             elif topic[0]=="ratt" and topic[1]=="status":
                 if topic[2]=="node":
-                    print (topic)
+                    if (verbose >= 1): print ("RATT Node Status",topic)
                     n=Node.query.filter(Node.mac == topic[3]).one_or_none()
                     t=Tool.query.join(Node,((Node.id == Tool.node_id) & (Node.mac == topic[3]))).one_or_none()
                     if t is None:
@@ -176,9 +177,9 @@ def on_message(client,userdata,msg):
             elif toolname:
                 t = db.session.query(Tool.id,Tool.resource_id,Tool.displayname).filter(Tool.name==toolname)
                 t = t.join(Resource,Resource.id == Tool.resource_id)
-                t = t.add_column(Resource.slack_chan)
-                t = t.add_column(Resource.slack_admin_chan)
-                t = t.add_column(Resource.slack_info_text)
+                t = t.add_columns(Resource.slack_chan)
+                t = t.add_columns(Resource.slack_admin_chan)
+                t = t.add_columns(Resource.slack_info_text)
                 t = t.one_or_none()
                 if t:
                     tool_cache[toolname]={"id":t.id,"displayname":t.displayname, "resource_id":t.resource_id,"data": {
@@ -442,7 +443,7 @@ def on_message(client,userdata,msg):
                           mqttevt['member'] = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
                         mqttevt['tool'] = str(toolDisplay)
                         client.publish("displayboard/read/event",json.dumps(mqttevt,ident=2))
-                    except e as BaseException:
+                    except BaseException as e:
                         print ("Send MQTT Failed",str(e))
 
                 if send_slack and log_event_type and toolDisplay and associated_resource and associated_resource['slack_admin_chan'] and allow_slack_log:
@@ -529,10 +530,13 @@ def on_message(client,userdata,msg):
 
 
 if __name__ == '__main__':
+    global verbose
     parser=argparse.ArgumentParser()
     parser.add_argument("--command",help="Special command",action="store_true")
+    parser.add_argument("--verbose","-v",help="Verbosity",action="count",default=0)
     (args,extras) = parser.parse_known_args(sys.argv[1:])
 
+    verbose = args.verbose
     app=authbackend_init(__name__)
 
     with app.app_context():
@@ -568,7 +572,7 @@ if __name__ == '__main__':
             callbackdata['icons']=eventtypes.get_event_slack_icons()
             callbackdata['colors']=eventtypes.get_event_slack_colors()
             callbackdata['msg_track'] = {}
-            print (opts)
+            #print (opts)
             sub = mqtt.Client(userdata=callbackdata)
             sub.tls_set(**opts['tls'])
             sub.connect(opts['hostname'],port=opts['port'],keepalive=opts['keepalive'])
