@@ -123,7 +123,7 @@ def check_api_access(username,password):
 @api_only
 def api_v1_reloadacl():
     authutil.kick_backend()
-    return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
+    return (json_dump({'status':'success'}), 200, {'Content-type': 'application/json'})
 
 @blueprint.route('/test/localhost', methods=['GET'])
 @localhost_only
@@ -896,7 +896,7 @@ def api_cron_nightly():
     logger.error("Non-Production environment - NOT creating google/slack accounts")
   if (membership.syncWithSubscriptions(isTest)  ):
     logger.info("Nightly CRON member sync failed")
-    return json_dump({'status':'error','reason':'Member sync failed'}, 200, {'Content-type': 'text/plain'})
+    return (json_dump({'status':'error','reason':'Member sync failed'}), 200, {'Content-type': 'text/plain'})
   cli_waivers([])
   connect_waivers()
   try:
@@ -905,7 +905,7 @@ def api_cron_nightly():
     logger.info("Error in nightly slack sync")
   authutil.kick_backend()
   logger.info("Nightly CRON finished")
-  return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
+  return (json_dump({'status':'ok'}), 200, {'Content-type': 'text/plain'})
 
 @blueprint.route('/cron/weekly_notices', methods=['GET'])
 @api_only
@@ -913,10 +913,10 @@ def api_cron_weekly_notices():
   err = send_all_notices()
   if err:
     logger.warning("Weekly notice CRON ERROR")
-    return json_dump({'status':'error'}, 401, {'Content-type': 'text/plain'})
+    return (json_dump({'status':'error'}), 401, {'Content-type': 'text/plain'})
   else:
     logger.info("Weekly notice CRON finished")
-    return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
+    return (json_dump({'status':'ok'}), 200, {'Content-type': 'text/plain'})
 
 # Meant for CRON job
 @blueprint.route('/v1/autoplot/pay', methods=['GET'])

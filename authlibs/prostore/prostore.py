@@ -737,31 +737,33 @@ def grid_delete(grid):
 
 def cli_randobinz(*cmd,**kvargs):
     import socket,random
-    if (socket.gethostname()  != "staging"):
-        print("This is DANGEROUS: I will only run on a staging server!")
-        sys.exit(1)
 
+    print("Setting draft priorities")
     # Assign all members with current bins to Draft wave 4
     for m in Member.query.join(ProBin,ProBin.member_id == Member.id).all():
         m.draft = 4;
 
-    ProBin.query.delete()
-    ProBinChoice.query.delete()
-    locs = list(ProLocation.query.all())
-    members = Member.query
-    members = members.join(Subscription, Subscription.member_id == Member.id)
-    members = members.filter(Subscription.rate_plan == "pro" and Subscription.active == "true")
-    members = members.all()
-    random.shuffle(members)
-    for m in members:
-        print (m.member)
-        random.shuffle(locs)
-        for (i,l) in enumerate(locs[0:20]):
-            z = ProBinChoice()
-            z.member_id = m.id
-            z.location_id = l.id
-            z.rank=i+1
-            db.session.add(z)
+    if (socket.gethostname()  == "staging"):
+        print("Running DANGEROUS ops on staging server")
+        ProBin.query.delete()
+        ProBinChoice.query.delete()
+        locs = list(ProLocation.query.all())
+        members = Member.query
+        members = members.join(Subscription, Subscription.member_id == Member.id)
+        members = members.filter(Subscription.rate_plan == "pro" and Subscription.active == "true")
+        members = members.all()
+        random.shuffle(members)
+        for m in members:
+            print (m.member)
+            random.shuffle(locs)
+            for (i,l) in enumerate(locs[0:20]):
+                z = ProBinChoice()
+                z.member_id = m.id
+                z.location_id = l.id
+                z.rank=i+1
+                db.session.add(z)
+    else:
+        print("Skiping DANGEROUS operations on non-staging server")
 
     db.session.commit()
 
