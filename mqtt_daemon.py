@@ -141,6 +141,7 @@ def on_message(client,userdata,msg):
             send_slack_public=False
             send_slack_admin=True
             send_mqtt_event=None
+            send_mqtt_status=None
             
             # base_topic+"/control/broadcast/acl/update"
             if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
@@ -339,8 +340,12 @@ def on_message(client,userdata,msg):
                 elif sst=="lockout":
                     state = message['state'] # pending | locked | unlocked
                     if state=="pending": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_PENDING.id
-                    elif state=="locked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id
-                    elif state=="unlocked": log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id
+                    elif state=="locked": 
+                        log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_LOCKED.id
+                        send_mqtt_event={'status':"Lockout","text":reason}
+                    elif state=="unlocked": 
+                        log_event_type = RATTBE_LOGEVENT_TOOL_LOCKOUT_UNLOCKED.id
+                        send_mqtt_event={}
                     else: log_event_type=RATTBE_LOGEVENT_TOOL_LOCKOUT_OTHER.id
                     log_text = reason
                     send_slack_public = True
@@ -373,6 +378,10 @@ def on_message(client,userdata,msg):
                         elif allowed and not usedPassword:
                             log_event_type = RATTBE_LOGEVENT_TOOL_LOGIN.id
                             send_mqtt_event={'Title':"In-Use",'Timeout':30}
+                            m=""
+                            if member:
+                              m= re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
+                            send_mqtt_status={'status':"In-Use","text":m}
                         elif not allowed and not usedPassword:
                             log_event_type = RATTBE_LOGEVENT_TOOL_PROHIBITED.id
                             if toolSlackInfoText and memberSlackId:
@@ -416,6 +425,7 @@ def on_message(client,userdata,msg):
                     db.session.add(usage)
                     db.session.commit()
                     send_mqtt_event={'Title':"Finished",'Timeout':30,"Message":reason}
+                    send_mqtt_status={}
 
                     send_slack_public = True
 
@@ -438,7 +448,7 @@ def on_message(client,userdata,msg):
                 if send_mqtt_event is not None and associated_resource['event_mqtt_topic']:
                     m = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
                     if 'Message' in send_mqtt_event:
-                        send_mqtt_event['Message'] = send_mqtt_event.replace('{member}',m)
+                        send_mqtt_event['Message'] = send_mqtt_event['Message'].replace('{member}',m)
                     else:
                         send_mqtt_event['Message'] = m
                     client.publish(associated_resource['event_mqtt_topic'],json.dumps(send_mqtt_event,indent=2))
@@ -460,6 +470,18 @@ def on_message(client,userdata,msg):
                         client.publish("displayboard/read/event",json.dumps(mqttevt,ident=2))
                     except BaseException as e:
                         print ("Send MQTT Failed",str(e))
+
+                if send_mqtt_status is not None:
+                    try:
+                        if send_mqtt_status:
+                            client.publish("displayboard/read/status",json.dumps(send_mqtt_status,ident=2),retain=True)
+                        else:
+                            # If dictionary is empty, send an empty payload with retain flag to CLEAR the retained message
+                            client.publish("displayboard/read/status","",retain=True)
+                    except BaseException as e:
+                        print ("Send MQTT status Failed",str(e))
+                    
+
 
                 if send_slack and log_event_type and toolDisplay and associated_resource and associated_resource['slack_admin_chan'] and allow_slack_log:
                   try:
@@ -535,7 +557,8 @@ def on_message(client,userdata,msg):
                 #logger.warn('user_data_set end')
                 
     except BaseException as e:
-        logger.error("LOG ERROR=%s PAYLOAD=%s" %(e,msg.payload))
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        logger.error("LOG ERROR=%s LINE=%d TOPIC=%s PAYLOAD=%s" %(e,exc_tb.tb_lineno,msg.topic,msg.payload))
 
 
 def on_connect(client, userdata, flags, rc):
