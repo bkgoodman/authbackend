@@ -40,7 +40,8 @@ def authinit(app):
         client_id=app.config['globalConfig'].Config.get("OAuth","GOOGLE_CLIENT_ID"),
         client_secret=app.config['globalConfig'].Config.get("OAuth","GOOGLE_CLIENT_SECRET"),
         scope=[#"https://www.googleapis.com/auth/plus.me",
-        "https://www.googleapis.com/auth/userinfo.email"
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/calendar.events"
         ],
 	# TEST - DOESNT WORK authorized_url="https://staging.makeitlabs.com/authit/google_login/google/authorized",
         offline=True
@@ -79,6 +80,8 @@ def authinit(app):
             return redirect(url_for("google.login"))
         resp = google.get(SCOPE)
         assert resp.ok, resp.text
+        print("SET GOOGLE TOKEN",google.token)
+        session["google_token"]=google.token
         return resp.text
 
     @oauth_authorized.connect_via(google_blueprint)
@@ -106,6 +109,11 @@ def authinit(app):
             query = Member.query.filter(Member.email.ilike(email))
 
             try:
+                print("SET GOOGLE DIR",dir(google))
+                print("SET GOOGLE TOKEN DIR",dir(google.token))
+                print("SET GOOGLE TOKEN2",google.token)
+                print("SET GOOGLE TOKEN2 has",google.token.keys())
+                session["google_token"]=google.token
                 user = query.all()
                 if len(user) > 1:
                         flash("Error - Multiple accounts with same email - please seek assistance",'warning')

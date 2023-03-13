@@ -1002,13 +1002,30 @@ def docal():
     """
     print("My keys toekn is",session["google_token"].keys())
     print("My access toekn is",session["google_token"]["access_token"])
+    #print("My referesn toekn is",session["refresh_token"])
     #creds = Credentials.from_authorized_user_info(info=session["google_token"])
-    service = build('calendar', 'v3', credentials=session["google_token"])
+    creds = Credentials(session["google_token"]["access_token"])
+    service = build('calendar', 'v3', credentials=creds)
     now = datetime.datetime.utcnow().isoformat() + 'Z'
     events_result = service.events().list(calendarId='primary', timeMin=now,
                                               maxResults=10, singleEvents=True,
                                               orderBy='startTime').execute()
     events = events_result.get('items', [])
+    for x in events:
+        resources = []
+        if x['kind'] == "calendar#event" and x['status'] == "confirmed":
+            for a in x['attendees']:
+                if a['email'] == 'makeitlabs.com_3133373236393938363631@resource.calendar.google.com' and a['responseStatus'] == "accepted":
+                    resources.append("Laser/Epilog")
+                if a['email'] == 'c_1886b6dkec306jdkk38lsbpbejeo8@resource.calendar.google.com' and a['responseStatus'] == "accepted":
+                    resources.append("Laser/MOPA")
+
+
+            rr = ", ".join(resources)
+            if len(rr) > 0:
+                debug.append(f"EVENT {rr} {x['summary']} {x['start']['dateTime']} {x['end']['dateTime']}")
+
+        #debug.append(json.dumps(x,indent=2))
     return render_template('docal.html',debug=debug)
 
 def _createMember(m):
