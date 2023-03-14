@@ -990,6 +990,11 @@ def admin_page():
 def docal():
     debug=[]
     debug.append("This is a test")
+    if "google_token" not in session:
+        logger.error ("Invalidate and redirect calendar session")
+        session.clear()
+        logout_user()
+        return redirect(url_for("members.docal"))
     print("My authorized is",session["google_token"])
     """
     if google.authorized == False:
