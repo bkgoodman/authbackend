@@ -106,7 +106,11 @@ Slack is our primary discussion forum for members, and we strongly encourage you
 --
 Account names are auto-generated based on the name provided by the Payment provider (Pinpayments, Stripe, etc) but we can adjust them. Send an email to board@makeitlabs.com and we'll help sort it out.
 
-6) How do I get other information?
+6) Member Waiver
+
+Save yourself some time by completing the MakeIt Labs Member Waiver before coming in for your orientation. Waiver can be found here: https://waiver.smartwaiver.com/w/5626bfb9a69fd/web/
+
+7) How do I get other information?
 --
 We have a documentation site (Wiki) available here: http://wiki.makeitlabs.com with lots of information.
 

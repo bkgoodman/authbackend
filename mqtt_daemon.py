@@ -265,9 +265,14 @@ def on_message(client,userdata,msg):
                     
                 elif sst=="power":
                     state = message['state']  # lost | restored | shutdown
-                    if state == "lost": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_LOST.id
-                    elif state == "restored": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED.id
-                    elif state == "shutdown": log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN.id
+                    if state == "lost": 
+                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_LOST.id
+                        send_mqtt_status={}
+                    elif state == "restored": 
+                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_RESTORED.id
+                    elif state == "shutdown": 
+                        log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_SHUTDOWN.id
+                        send_mqtt_status={}
                     else: 
                         log_event_type = RATTBE_LOGEVENT_SYSTEM_POWER_OTHER.id
                         send_slack = False
@@ -355,6 +360,7 @@ def on_message(client,userdata,msg):
                     if powered:
                         log_event_type = RATTBE_LOGEVENT_TOOL_POWERON.id
                     else:
+                        send_mqtt_status={}
                         log_event_type = RATTBE_LOGEVENT_TOOL_POWEROFF.id
 
                 elif sst=="login":
@@ -467,25 +473,27 @@ def on_message(client,userdata,msg):
                         if member:
                           mqttevt['member'] = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
                         mqttevt['tool'] = str(toolDisplay)
-                        client.publish("displayboard/read/event",json.dumps(mqttevt,ident=2))
+                        client.publish("displayboard/read/event",json.dumps(mqttevt,indent=2))
                     except BaseException as e:
-                        print ("Send MQTT Failed",str(e))
+                        logger.error ("Send MQTT Failed %s" % str(e))
 
-                if send_mqtt_status is not None:
+                if send_mqtt_status is not None and toolname is not None:
+                    logger.error(f"Update Displayboard Status for {toolname} {send_mqtt_status}")
                     try:
                         if send_mqtt_status:
-                            client.publish("displayboard/read/status",json.dumps(send_mqtt_status,ident=2),retain=True)
+                            client.publish("displayboard/read/status/"+toolname,json.dumps(send_mqtt_status,indent=2),retain=True)
                         else:
                             # If dictionary is empty, send an empty payload with retain flag to CLEAR the retained message
-                            client.publish("displayboard/read/status","",retain=True)
+                            client.publish("displayboard/read/status/"+toolname,"",retain=True)
                     except BaseException as e:
-                        print ("Send MQTT status Failed",str(e))
+                        logger.error ("Send MQTT status Failed %s"%str(e))
                     
 
 
                 if send_slack and log_event_type and toolDisplay and associated_resource and associated_resource['slack_admin_chan'] and allow_slack_log:
                   try:
                     slacktext=""
+                    rawtext=""
                     icon = ""
                     
                     if log_event_type in userdata['icons']: 
@@ -494,13 +502,16 @@ def on_message(client,userdata,msg):
                     if member:
                       m = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
                       slacktext += "*" + m + "* "
+                      rawtext += m+" "
                         
                     
                     if log_event_type in userdata['events']:
                       if member:
                           t = "was %s at %s" % (userdata['events'][log_event_type].lower(), str(toolDisplay))
+                          rawtext += t
                       else:
                           t = "*%s* at %s" % (userdata['events'][log_event_type].upper(), str(toolDisplay))
+                          rawtext += "%s at %s" % (userdata['events'][log_event_type].upper(), str(toolDisplay))
                       slacktext += t
                       
                     else:
@@ -532,6 +543,8 @@ def on_message(client,userdata,msg):
                             
                             if not res['ok']:
                                 logger.error("error doing postMessage to \"%s\" admin chan: %s" % (associated_resource['slack_admin_chan'],res))
+                        if rawtext != "":
+                            client.publish("displayboard/read/resource/post",json.dumps({"Message":rawtext},indent=2))
 
                     """
                     if send_slack_public and associated_resource['slack_public_chan']:
@@ -548,7 +561,8 @@ def on_message(client,userdata,msg):
 
                             
                   except BaseException as e:
-                    logger.error("ERROR=%s" % e)
+                    exc_type, exc_obj, exc_tb = sys.exc_info()
+                    logger.error("LOG ERROR=%s LINE=%d TOPIC=%s PAYLOAD=%s" %(e,exc_tb.tb_lineno,msg.topic,msg.payload))
 
                 db.session.add(logevent)
                 db.session.commit()
@@ -623,5 +637,6 @@ if __name__ == '__main__':
           except KeyboardInterrupt:    #on_message(msg)
             sys.exit(0)
           except BaseException as e:
-            print ("EXCEPT",e)
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            logger.error("LOG ERROR=%s LINE=%d TOPIC=%s PAYLOAD=%s" %(e,exc_tb.tb_lineno,msg.topic,msg.payload))
             time.sleep(1)
