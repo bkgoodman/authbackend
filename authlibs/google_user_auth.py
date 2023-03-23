@@ -48,7 +48,7 @@ def authinit(app):
         client_secret=app.config['globalConfig'].Config.get("OAuth","GOOGLE_CLIENT_SECRET"),
         scope=[#"https://www.googleapis.com/auth/plus.me",
         "https://www.googleapis.com/auth/userinfo.email",
-        "https://www.googleapis.com/auth/calendar.events"
+        # Calendar Events "https://www.googleapis.com/auth/calendar.events"
         ],
 	# TEST - DOESNT WORK authorized_url="https://staging.makeitlabs.com/authit/google_login/google/authorized",
         offline=True
