@@ -13,6 +13,21 @@
   {% endif %}
   <span>{{ folder }}</span>
   
+  <hr />
+  <h3>Upload File</h3>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.upload_file") }}">
+    <input type="hidden" name="folder" value="{{ folder }}">
+    <input type=file name=file>
+    <input type=submit value=Upload>
+   </form>
+   <hr />
+  <h3>Create Folder</h3>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.createFolder") }}">
+	  <label>Folder Name:</label>
+    <input type="input" name="newname" value="">
+    <input type="hidden" name="folder" value="{{ folder }}">
+    <input type=submit value=Create>
+   </form>
   <table id="fileTable" style="font-size:10px" class="table greenbar-table table-compact supercompact">
       <thead>
 				<tr>
@@ -32,7 +47,7 @@
       {% if f['dir'] %}
         <td>Directory</td>
         <td sortvalue=0></td>
-        <td><a href="{{ url_for("memberFolders.folder")+"/"+f['path'] }}" class="btn btn-outline-secondary glyphicon glyphicon-folder-open"></a></td>
+        <td><a href="{{ url_for("memberFolders.folder")+"/"+f['path'] }}/" class="btn btn-outline-secondary glyphicon glyphicon-folder-open"></a></td>
       {% else %}
         <td>{{ f['ext'] }}</td>
         <td sortvalue={{ f['size'] }}>{{ f['sizeText'] }}</td>
@@ -41,11 +56,24 @@
     </tr>
   {% endfor %}
   </table>
+
+  {% if files|length > 25 %}
+  <hr />
+  <h3>Upload File</h3>
   <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.upload_file") }}">
     <input type="hidden" name="folder" value="{{ folder }}">
     <input type=file name=file>
     <input type=submit value=Upload>
    </form>
+   <hr />
+  <h3>Create Folder</h3>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.createFolder") }}">
+	  <label>Folder Name:</label>
+    <input type="input" name="newname" value="">
+    <input type="hidden" name="folder" value="{{ folder }}">
+    <input type=submit value=Create>
+   </form>
+   {% endif %}
 </div>
 
 <script type="text/javascript">
