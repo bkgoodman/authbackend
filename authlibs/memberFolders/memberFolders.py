@@ -140,7 +140,7 @@ def infolder(folder=""):
     elif len(top)==1:
       up=""
     else:
-      up = "/"+("/".join(top[:-1]))
+      up = "/"+("/".join(top[:-2]))
     return render_template('folder.html',up=up,folder=folder,member=current_user,files=files)
 
 
@@ -180,6 +180,40 @@ def download(filename):
     #return redirect(url_for("memberFolders.infolder"))
     ## return XX
     return send_from_directory(config['cache'], tempfileName, attachment_filename=fn, as_attachment=True)
+
+@blueprint.route('/createFolder', methods=['GET', 'POST'])
+@login_required
+def createFolder():
+    (config,error) = getFolderConfig()
+    if (error is not None):
+      flash(error,"warning")
+      return redirect(url_for("index"))
+
+    folder=""
+    if request.form and 'folder' in request.form:
+      folder = request.form['folder']
+      srcfolder = folder
+    #print ("FOLDER IS",folder)
+    if folder != "":
+      if not folder.endswith("/"):
+        #print ("AMMENDING FOLDER")
+        folder += "/"
+    if folder.find("../") != -1 or folder.find("/..") != -1:
+      flash("Invalid Filename","warning")
+      return redirect(url_for("memberFolders.folder",folder=""))
+
+    filename = secure_filename(request.form['newname'])
+    path = config['base']+"/"+current_user.memberFolder+"/"+folder+filename
+
+    try:
+        with paramiko.Transport((config['server'],22)) as transport:
+            transport.connect(None,config['user'],config['password'])
+            with paramiko.SFTPClient.from_transport(transport) as sftp:
+                sftp.mkdir(path)
+        flash("Folder Created","success")
+    except BaseException as e:
+        flash(f"Folder Create Error: {e}","danger")
+    return redirect(url_for('memberFolders.infolder', folder=srcfolder))
 
 @blueprint.route('/upload', methods=['GET', 'POST'])
 @login_required

@@ -1,5 +1,5 @@
 # vim:tabstop=2:shiftwidth=2:expandtab
-from flask import Blueprint, redirect, url_for, session, flash, g
+from flask import Blueprint, redirect, url_for, session, flash, g, request
 from flask_dance.contrib.google import make_google_blueprint, google
 
 from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
@@ -30,6 +30,13 @@ You can (and probably should) set OAUTHLIB_RELAX_TOKEN_SCOPE when running in pro
 def our_login():
     # Do something like this but not this
     logger.error("OUR LOGIN (Unauthenticated?)")
+    logger.error("session %s"%dir(session))
+    logger.error("request %s "%dir(request))
+    logger.error("referer %s " % request.referrer)
+    logger.error("base_url %s " % request.base_url)
+    logger.error("url %s " % request.url)
+    logger.error("root %s " % request.root_url)
+    session['after_login']=request.url
     return redirect(url_for('login'))
 
 
@@ -40,7 +47,8 @@ def authinit(app):
         client_id=app.config['globalConfig'].Config.get("OAuth","GOOGLE_CLIENT_ID"),
         client_secret=app.config['globalConfig'].Config.get("OAuth","GOOGLE_CLIENT_SECRET"),
         scope=[#"https://www.googleapis.com/auth/plus.me",
-        "https://www.googleapis.com/auth/userinfo.email"
+        "https://www.googleapis.com/auth/userinfo.email",
+        # Calendar Events "https://www.googleapis.com/auth/calendar.events"
         ],
 	# TEST - DOESNT WORK authorized_url="https://staging.makeitlabs.com/authit/google_login/google/authorized",
         offline=True
@@ -76,9 +84,12 @@ def authinit(app):
         if not google.authorized:
             logger.debug("Not google authorized")
             session['next_url'] = request.args.get('next')
+            print ("NEXT URL IS",session['next_url'])
             return redirect(url_for("google.login"))
         resp = google.get(SCOPE)
         assert resp.ok, resp.text
+        print("SET GOOGLE TOKEN",google.token)
+        session["google_token"]=google.token
         return resp.text
 
     @oauth_authorized.connect_via(google_blueprint)
@@ -106,6 +117,11 @@ def authinit(app):
             query = Member.query.filter(Member.email.ilike(email))
 
             try:
+                print("SET GOOGLE DIR",dir(google))
+                print("SET GOOGLE TOKEN DIR",dir(google.token))
+                print("SET GOOGLE TOKEN2",google.token)
+                print("SET GOOGLE TOKEN2 has",google.token.keys())
+                session["google_token"]=google.token
                 user = query.all()
                 if len(user) > 1:
                         flash("Error - Multiple accounts with same email - please seek assistance",'warning')
@@ -124,6 +140,14 @@ def authinit(app):
                   if (UserRoles.query.filter(UserRoles.member_id == user.id).count() >= 1):
                     login_user(user, remember=True)
                     flash("Welcome!")
+                    if "after_login" in session:
+                        logger.error("WE SHOULD REDIRECT TO %s "%session["after_login"])
+                        if (session["after_login"] != request.root_url) and (session["after_login"] != ""):
+                            red = session["after_login"]
+                            del session["after_login"]
+                            return redirect(red)
+                    else:
+                        logger.error("No AFTER_LOGIN found")
                     return redirect(url_for('index'))
                   logintype= app.config['globalConfig'].Config.get('General','Logins')
                   if logintype == "resource":
@@ -134,6 +158,14 @@ def authinit(app):
                       login_user(user, remember=True)
                   else:
                     flash("Welcome!")
+                    if "after_login" in session:
+                        logger.error("WE SHOULD REDIRECT TO %s "%session["after_login"])
+                        if (session["after_login"] != request.root_url) and (session["after_login"] != ""):
+                            red = session["after_login"]
+                            del session["after_login"]
+                            return redirect(red)
+                    else:
+                        logger.error("No AFTER_LOGIN found")
                     login_user(user, remember=True)
                     return redirect(url_for('index'))
                 else:

@@ -10,6 +10,9 @@ from .. import accesslib
 from .. import ago 
 from authlibs.members.notices import get_notices,sendnotices
 from authlibs.slackutils import add_user_to_channel
+from flask_dance.contrib.google import google
+from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
 import stripe    
 
 ## TODO make sure member's w/o Useredit can't see other users' data or search for them
@@ -271,8 +274,10 @@ def member_show(id):
    meta = {}
    access = {}
    mid = authutil._safestr(id)
-   member=db.session.query(Member,Subscription)
-   member = member.join(Subscription).outerjoin(Waiver).filter(Member.member==mid)
+   member=db.session.query(Member)
+   member = member.outerjoin(Subscription,Subscription.member_id==mid)
+   member = member.add_columns(Subscription)
+   member = member.outerjoin(Waiver).filter(Member.member==mid)
    res = member.one_or_none()
 
    if (not current_user.privs('Useredit')) and res[0].member != current_user.member:
@@ -283,6 +288,7 @@ def member_show(id):
  
    (warning,allowed,dooraccess)=(None,None,None)
  
+   print ("RES IS",res,dir(res))
    if res:
      (member,subscription) = res
 
@@ -979,6 +985,54 @@ def admin_page():
 
     return render_template('admin_page.html',privs=p,roles=roles)
 
+@blueprint.route('/calendar', methods=['GET'])
+@login_required
+def docal():
+    debug=[]
+    debug.append("This is a test")
+    if "google_token" not in session:
+        logger.error ("Invalidate and redirect calendar session")
+        session.clear()
+        logout_user()
+        return redirect(url_for("members.docal"))
+    print("My authorized is",session["google_token"])
+    """
+    if google.authorized == False:
+        new_credentials = google.refresh_token(
+            blueprint.client_id, blueprint.client_secret, session["google_token"]["refresh_token"])
+        # update the token in the user session
+        google.token = new_credentials.to_json()
+
+    print("My token is",google.token)
+    """
+    print("My keys toekn is",session["google_token"].keys())
+    print("My access toekn is",session["google_token"]["access_token"])
+    #print("My referesn toekn is",session["refresh_token"])
+    #creds = Credentials.from_authorized_user_info(info=session["google_token"])
+    creds = Credentials(session["google_token"]["access_token"])
+    service = build('calendar', 'v3', credentials=creds)
+    now = datetime.datetime.utcnow().isoformat() + 'Z'
+    events_result = service.events().list(calendarId='primary', timeMin=now,
+                                              maxResults=10, singleEvents=True,
+                                              orderBy='startTime').execute()
+    events = events_result.get('items', [])
+    for x in events:
+        resources = []
+        if x['kind'] == "calendar#event" and x['status'] == "confirmed":
+            for a in x['attendees']:
+                if a['email'] == 'makeitlabs.com_3133373236393938363631@resource.calendar.google.com' and a['responseStatus'] == "accepted":
+                    resources.append("Laser/Epilog")
+                if a['email'] == 'c_1886b6dkec306jdkk38lsbpbejeo8@resource.calendar.google.com' and a['responseStatus'] == "accepted":
+                    resources.append("Laser/MOPA")
+
+
+            rr = ", ".join(resources)
+            if len(rr) > 0:
+                debug.append(f"EVENT {rr} {x['summary']} {x['start']['dateTime']} {x['end']['dateTime']}")
+
+        #debug.append(json.dumps(x,indent=2))
+    return render_template('docal.html',debug=debug)
+
 def _createMember(m):
     """Add a member entry to the database"""
     sqlstr = "Select member from members where member = '%s'" % m['memberid']
@@ -1008,6 +1062,7 @@ def getDoorAccess(id):
 
   (warning,allowed) = accesslib.determineAccess(acc,"Door access pending orientation")
   return (warning,allowed.lower()=='allowed',acc)
+
 
 def register_pages(app):
   app.register_blueprint(blueprint)
