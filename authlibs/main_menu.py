@@ -96,6 +96,11 @@ def get_raw_menu():
                     'title':"Logout (Soft)"
             },
             {
+                    'url':url_for('facility.minisplit'),
+                    'alt':"HVAC Controls",
+                    'title':"HVAC"
+            },
+            {
                     'url':url_for('prostore.grid'),
                     'img':url_for("static",filename="ProStoreBin.png"),
                     'alt':"Manage storage bins & locations",

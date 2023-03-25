@@ -1,0 +1,38 @@
+{% block head %}
+<script type="text/javascript">
+</script>
+{% endblock %}
+{% extends "layout_bootstrap.html" %}
+<h2>HVAC Controls</h2>
+{% block body %}
+<div class="purchasablelist">
+	<table class="table table-sm">
+        <tr>
+            <th>Name</th>
+            <th>Power</th>
+            <th>Mode</th>
+            <th>Actual Temp</th>
+            <th>Temp. Setpoint</th>
+            <th>RSSID </th>
+            <th>FW Version</th>
+            <th>Last Update</th>
+            <th>Ago</th>
+        </tr>
+	{% for m in minisplits %}
+	  <tr>
+		<td>{{ m.name }}</td>
+		<td>{{ m.power }}</td>
+		<td>{{ m.mode }}</td>
+		<td>{{ m.roomTemp }}&deg;</td>
+		<td>{{ m.setPoint }}&deg;</td>
+		<td>{{ m.rssid }}dB</td>
+		<td>{{ m.fwversion }}</td>
+		<td>{{ m.lastupdate }}</td>
+		<td>{{ m.lastupdate2 }}</td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+
+{% endblock %}
