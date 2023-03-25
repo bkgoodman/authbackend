@@ -146,8 +146,10 @@ def on_message(client,userdata,msg):
             send_mqtt_status=None
             
             if topic[0]=="facility" and topic[1]=="minisplit" and topic[2]=="report":
+                r = redis.Redis()
                 minisplit = topic[3]
-                r.set("minisplit/"+minisplit,message)
+                print ("GOT",minisplit,message)
+                r.set("minisplit/"+minisplit,msg.payload)
 
             # base_topic+"/control/broadcast/acl/update"
             if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
@@ -583,6 +585,7 @@ def on_message(client,userdata,msg):
 
 def on_connect(client, userdata, flags, rc):
     client.subscribe("ratt/#")
+    client.subscribe("facility/minisplit/report/#")
 
 if __name__ == '__main__':
     global verbose
