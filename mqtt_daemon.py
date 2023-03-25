@@ -26,6 +26,7 @@ from authlibs.init import authbackend_init, createDefaultUsers
 import requests,urllib
 import logging, logging.handlers
 from  authlibs import eventtypes
+import redis
 
 global client
 
@@ -105,6 +106,7 @@ def convert_into_uppercase(a):
 def on_connect(client,userdata,flags,res):
     print ("MQTT CONNECTED")
     client.subscribe("ratt/#")
+    client.subscribe("facility/minisplit/report/#")
     client.publish("displayboard/read/status","CONNECTED")
 # The callback for when a PUBLISH message is received from the server.
 # 2019-01-11 17:09:01.736307
@@ -142,6 +144,10 @@ def on_message(client,userdata,msg):
             send_slack_admin=True
             send_mqtt_event=None
             
+            if topic[0]=="facility" and topic[1]=="minisplit" and topic[2]=="report":
+                minisplit = topic[3]
+                r.set("minisplit/"+minisplit,message)
+
             # base_topic+"/control/broadcast/acl/update"
             if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
                 tool_cache={}
@@ -543,6 +549,7 @@ def on_connect(client, userdata, flags, rc):
 
 if __name__ == '__main__':
     global verbose
+    red = redis.Redis()
     parser=argparse.ArgumentParser()
     parser.add_argument("--command",help="Special command",action="store_true")
     parser.add_argument("--verbose","-v",help="Verbosity",action="count",default=0)
