@@ -37,6 +37,7 @@ def minisplit():
             'mode': j['mode'],
             'power': j['power'],
             'fan': j['fan'],
+            'ipaddr': j['ip'],
             'rssid': j['rssid'],
             'fwversion': j['fw'],
             'lastupdate':acl[0],

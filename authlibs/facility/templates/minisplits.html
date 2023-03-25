@@ -13,8 +13,11 @@
             <th>Mode</th>
             <th>Actual Temp</th>
             <th>Temp. Setpoint</th>
+            {% if current_user.privs('RATT') %}
+            <th>IP Addr</th>
             <th>RSSID </th>
             <th>FW Version</th>
+            {% endif %}
             <th>Last Update</th>
             <th>Ago</th>
         </tr>
@@ -25,8 +28,11 @@
 		<td>{{ m.mode }}</td>
 		<td>{{ m.roomTemp }}&deg;</td>
 		<td>{{ m.setPoint }}&deg;</td>
+    {% if current_user.privs('RATT') %}
+		<td>{{ m.ipaddr }}</td>
 		<td>{{ m.rssid }}dB</td>
 		<td>{{ m.fwversion }}</td>
+    {% endif %}
 		<td>{{ m.lastupdate }}</td>
 		<td>{{ m.lastupdate2 }}</td>
 	  </tr>
