@@ -29,7 +29,7 @@ def minisplit():
         if 'mode' in request.form:
             command['mode'] = request.form['mode'].upper()
         if 'temp' in request.form:
-            command['temp'] = request.form['mode'].upper()
+            command['temp'] = int(request.form['temp'])
         try:
           gc= current_app.config['globalConfig']
           topic=  "facility/minisplit/request/"+request.form['minisplit']
@@ -38,6 +38,7 @@ def minisplit():
         except BaseException as e:
             flash("Error updating Minisplit","warning")
             logger.debug("MQTT minisplit failed to publish: "+str(e))
+        return redirect(url_for('facility.minisplit'))
 
     r = redis.Redis()
     minisplits=[]
