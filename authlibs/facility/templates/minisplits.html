@@ -40,8 +40,8 @@
     {% endif %}
 		<td>{{ m.lastupdate }}</td>
 		<td>{{ m.lastupdate2 }}</td>
-    {% if current_user.privs('RATT') %}
-		<td>
+    <td> <!-- last col -->
+    {% if current_user.privs('Facilities') %}
 			<button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#collapseExample-{{ m.name }}" aria-expanded="false" aria-controls="collapseExample">
 				  <span class="glyphicon glyphicon-cog" />
   </button>
@@ -200,8 +200,10 @@
 <input type="submit" name="Change" class="btn btn-primary" />
 </form>
 				</div> <!-- Collapse -->
-			</td></tr>
+			</td>
+    </tr>
     {% endif %}
+    </td>  <!-- OUTER TD -->
 
 	  </tr>
 	{% endfor %}

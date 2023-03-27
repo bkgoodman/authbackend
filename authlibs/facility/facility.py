@@ -20,7 +20,7 @@ blueprint = Blueprint("facility", __name__, template_folder='templates', static_
 @login_required
 def minisplit():
     # First, process POST data if any
-    if request.method == "POST":
+    if request.method == "POST" and current_user.privs('Facilities'):
         command = {}
         if 'power' in request.form:
             command['power'] = request.form['power'].upper()
