@@ -1,4 +1,9 @@
 {% block head %}
+<style>
+.lab {
+	width:5vw;
+}
+</style>
 <script type="text/javascript">
 </script>
 {% endblock %}
@@ -35,6 +40,169 @@
     {% endif %}
 		<td>{{ m.lastupdate }}</td>
 		<td>{{ m.lastupdate2 }}</td>
+    {% if current_user.privs('RATT') %}
+		<td>
+			<button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#collapseExample-{{ m.name }}" aria-expanded="false" aria-controls="collapseExample">
+				  <span class="glyphicon glyphicon-cog" />
+  </button>
+		</td>
+		<tr><td colspan=10>
+				<div class="collapse" id="collapseExample-{{ m.name }}">
+					<form method="POST">
+			  <div class="card card-body">
+			    
+<div class="btn-group btn-group-toggle" data-toggle="buttons">
+
+<label class="lab">Mode:</label>
+  <label class="btn btn-secondary active">
+    <input type="radio" name="mode" value="heat" id="mode_heat" checked> Heat
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="mode" value="cool" id="mode_cool"> Cool
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="mode" value="auto" id="mode_auto"> Auto
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="mode" value="fan" id="mode_fan"> Fan
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="mode" value="dry" id="mode_dry"> Dry
+  </label>
+</div>
+
+
+<div class="btn-group btn-group-toggle" data-toggle="buttons">
+	<label class="lab">Power:</label>
+  <label class="btn btn-secondary active">
+    <input type="radio" name="power" value="on" id="option1" checked> On
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="power" value="off" id="option2"> Off
+  </label>
+</div>
+
+<div class="btn-group btn-group-toggle" data-toggle="buttons">
+	<label class="lab">Fan:</label>
+  <label class="btn btn-secondary active">
+    <input type="radio" name="fan" value="auto" id="option1" checked> Auto
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="fan" value="quiet" id="option2"> Quiet
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="fan" value="1" id="option2"> 1
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="fan" value="2" id="option2"> 2
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="fan" value="3" id="option2"> 3
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="fan" value="4" id="option2"> 4
+  </label>
+</div>
+
+<div class="btn-group btn-group-toggle" data-toggle="buttons">
+	<label class="lab">Temp:</label>
+  <label class="btn btn-secondary active">
+    <input type="radio" name="temp" value="55" id="option1" checked> 50
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="temp" value="55" id="option2"> 55
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="temp" value="60" id="option2"> 60
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="temp" value="65" id="option2"> 65
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="temp" value="68" id="option2"> 68
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="temp" value="70" id="option2"> 70
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="temp" value="72" id="option2"> 72
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="temp" value="74" id="option2"> 74
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="temp" value="78" id="option2"> 78
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="temp" value="80" id="option2"> 80
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="temp" value="85" id="option2"> 85
+  </label>
+</div>
+
+
+<br />
+
+<div class="btn-group btn-group-toggle" data-toggle="buttons">
+	<label class="lab">Managed:</label>
+	  <label class="btn btn-secondary active">
+	    <input type="radio" name="managed" value="unmanaged" id="option1" checked> Unmanaged
+	  </label>
+	  <label class="btn btn-secondary">
+	    <input type="radio" name="managed" value="heat" id="option2"> Heat
+	  </label>
+	  <label class="btn btn-secondary">
+	    <input type="radio" name="managed" value="cool" id="option2"> Cool
+	  </label>
+	</div>
+<div class="btn-group btn-group-toggle" data-toggle="buttons">
+	<label class="lab">Temp:</label>
+  <label class="btn btn-secondary active">
+    <input type="radio" name="managed_temp" value="50" id="option1" checked> 50
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="managed_temp" value="55" id="option2"> 55
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="managed_temp" value="60" id="option2"> 60
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="managed_temp" value="65" id="option2"> 65
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="managed_temp" value="68" id="option2"> 68
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="managed_temp" value="70" id="option2"> 70
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="managed_temp" value="72" id="option2"> 72
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="managed_temp" value="74" id="option2"> 74
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="managed_temp" value="70" id="option2"> 78
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="managed_temp" value="80" id="option2"> 80
+  </label>
+  <label class="btn btn-secondary">
+    <input type="radio" name="managed_temp" value="85" id="option2"> 85
+  </label>
+</div>
+
+
+
+			  </div>  <!-- Card Body -->
+			  <input type="hidden" name="minisplit" value="{{ m.name }}" />
+<input type="submit" name="Change" class="btn btn-primary" />
+</form>
+				</div> <!-- Collapse -->
+			</td></tr>
+    {% endif %}
+
 	  </tr>
 	{% endfor %}
 	</table>
