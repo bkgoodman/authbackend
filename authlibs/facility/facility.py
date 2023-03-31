@@ -58,6 +58,10 @@ def minisplit():
             'roomTemp': j['roomTemp'],
             'mode': j['mode'],
             'power': j['power'],
+            'managed': j['managed'],
+            'managed_setpoint': j['managed_setpoint'],
+            'override_temp': j['override_temp'],
+            'override_time': j['override_time'],
             'fan': j['fan'],
             'ipaddr': j['ip'],
             'rssid': j['rssid'],
@@ -65,7 +69,8 @@ def minisplit():
             'lastupdate':acl[0],
             'lastupdate2':acl[1]
             })
-    return render_template('minisplits.html',minisplits=minisplits)
+    temperatures=[50,55,60,65,68,70,72,74,76,80,85]
+    return render_template('minisplits.html',minisplits=minisplits,temperatures=temperatures)
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
