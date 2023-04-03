@@ -50,9 +50,9 @@
 		<td>
             <form method="POST">
             {% if m.override_end == "" %}
-            <button class="btn btn-secondary" type="submit" name="override" value="{{ m.name }}">Override</button>
+            <button class="btn btn-secondary btn-success" type="submit" name="override" value="{{ m.name }}">Override</button>
             {% else %}
-            <button class="btn btn-secondary" type="submit" name="cancelOverride" value="{{ m.name }}">Override</button>
+            <button class="btn btn-secondary btn-warning" type="submit" name="cancelOverride" value="{{ m.name }}">Cancel Override</button>
             {% endif %}
             </form>
     </td>

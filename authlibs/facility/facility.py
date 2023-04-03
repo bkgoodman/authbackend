@@ -55,7 +55,7 @@ def minisplit():
     elif request.method == "POST" and 'cancelOverride' in request.form:
         try:
           gc= current_app.config['globalConfig']
-          topic=  "facility/minisplit/request/"+request.form['override']
+          topic=  "facility/minisplit/request/"+request.form['cancelOverride']
           command={'cancel_override':True}
           message = json.dumps(command)
           mqtt_pub.single(topic, message, hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
