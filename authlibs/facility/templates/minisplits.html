@@ -25,6 +25,7 @@
             {% endif %}
             <th>Last Update</th>
             <th>Ago</th>
+            <th>Override Until</th>
         </tr>
 	{% for m in minisplits %}
 	  <tr>
@@ -32,7 +33,7 @@
 		<td>{{ m.power }}</td>
 		<td>{{ m.mode }}</td>
 		<td>{{ m.roomTemp }}&deg;</td>
-		<td>{{ m.setPoint }}&deg;</td>
+		<td>{{ m.rawSetPoint }}&deg;</td>
     {% if current_user.privs('RATT') %}
 		<td>{{ m.ipaddr }}</td>
 		<td>{{ m.rssid }}dB</td>
@@ -40,13 +41,28 @@
     {% endif %}
 		<td>{{ m.lastupdate }}</td>
 		<td>{{ m.lastupdate2 }}</td>
+		<td>{{ m.override_end }}</td>
+        <td>
+                {% if m.operating == "ON" %}
+                <img style="width:20px" src="{{ url_for("facility.static",filename="operating.png") }}" />
+                {% endif %}
+        </td>
+		<td>
+            <form method="POST">
+            {% if m.override_end == "" %}
+            <button class="btn btn-secondary" type="submit" name="override" value="{{ m.name }}">Override</button>
+            {% else %}
+            <button class="btn btn-secondary" type="submit" name="cancelOverride" value="{{ m.name }}">Override</button>
+            {% endif %}
+            </form>
+    </td>
     <td> <!-- last col -->
     {% if current_user.privs('Facilities') %}
 			<button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#collapseExample-{{ m.name }}" aria-expanded="false" aria-controls="collapseExample">
 				  <span class="glyphicon glyphicon-cog" />
   </button>
 		</td>
-		<tr><td colspan=10>
+		<tr><td colspan=14>
 				<div class="collapse" id="collapseExample-{{ m.name }}">
 					<form method="POST">
 			  <div class="card card-body">
@@ -116,6 +132,7 @@
 </div>
 
 
+
 <br />
 
 <h3>Managed Settings</h3>
@@ -145,7 +162,7 @@
 	<label class="lab">Building Occupied:</label>
   {% for t in temperatures %}
   <label class="btn btn-outline-secondary {% if m.managed_setpoint == t %} active {% endif %}" >
-	  <input type="radio" name="override_temp" value="{{ t }}" id="option1"  {% if m.managed_setpoint == t %} checked {% endif %}> {{ t }}
+	  <input type="radio" name="managed_setpoint" value="{{ t }}" id="option1"  {% if m.managed_setpoint == t %} checked {% endif %}> {{ t }}
   </label>
   {% endfor %}
 </div>
@@ -153,8 +170,8 @@
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Building Unoccupied:</label>
   {% for t in temperatures %}
-  <label class="btn btn-outline-secondary {% if m.managed_unoccupied_setpoint == t %} active {% endif %}" >
-	  <input type="radio" name="override_temp" value="{{ t }}" id="option1"  {% if m.managed_unoccupied_setpoint == t %} checked {% endif %}> {{ t }}
+  <label class="btn btn-outline-secondary {% if m.managed_setpoint_unoccupied == t %} active {% endif %}" >
+          <input type="radio" name="managed_setpoint_unoccupied" value="{{ t }}" id="mamaged_setpoint_unoccupied_{{ t }}"  {% if m.managed_setpoint_unoccupied == t %} checked {% endif %}> {{ t }}
   </label>
   {% endfor %}
 </div>
@@ -163,7 +180,7 @@
 	<label class="lab">Override Temp: </label>
   {% for t in temperatures %}
   <label class="btn btn-outline-secondary {% if m.override_temp == t %} active {% endif %}" >
-	  <input type="radio" name="override_temp" value="{{ t }}" id="option1"  {% if m.override_temp == t %} checked {% endif %}> {{ t }}
+          <input type="radio" name="override_temp" value="{{ t }}" id="override_temp_{{ t }}"  {% if m.override_temp == t %} checked {% endif %}> {{ t }}
   </label>
   {% endfor %}
 </div>
@@ -203,27 +220,27 @@
   <label class="btn btn-outline-secondary {% if m.ir_interval == 0 %} active {% endif %}" >
     <input type="radio" name="ir_interval" value="0" id="option1"  {% if m.ir_interval == 0 %} checked {% endif %}> Not Required
   </label>
+  <label class="btn btn-outline-secondary {% if m.ir_interval == 15 %} active {% endif %}" >
+    <input type="radio" name="ir_interval" value="15" id="option1"  {% if m.ir_interval == 15 %} checked {% endif %}> 15 Min
+  </label>
+  <label class="btn btn-outline-secondary {% if m.ir_interval == 30 %} active {% endif %}" >
+    <input type="radio" name="ir_interval" value="30" id="option1"  {% if m.ir_interval == 30 %} checked {% endif %}> 30 Min
+  </label>
   <label class="btn btn-outline-secondary {% if m.ir_interval == 60 %} active {% endif %}" >
-    <input type="radio" name="ir_interval" value="15" id="option1"  {% if m.ir_interval == 60 %} checked {% endif %}> 15 Min
+    <input type="radio" name="ir_interval" value="60" id="option1"  {% if m.ir_interval == 60 %} checked {% endif %}> 1 Hr.
+  </label>
+  <label class="btn btn-outline-secondary {% if m.ir_interval == 90 %} active {% endif %}" >
+    <input type="radio" name="ir_interval" value="90" id="option1"  {% if m.ir_interval == 90 %} checked {% endif %}> 1&frac12; Hrs.
   </label>
   <label class="btn btn-outline-secondary {% if m.ir_interval == 120 %} active {% endif %}" >
-    <input type="radio" name="ir_interval" value="30" id="option1"  {% if m.ir_interval == 120 %} checked {% endif %}> 30 Min
-  </label>
-  <label class="btn btn-outline-secondary {% if m.ir_interval == 180 %} active {% endif %}" >
-    <input type="radio" name="ir_interval" value="60" id="option1"  {% if m.ir_interval == 180 %} checked {% endif %}> 1 Hr.
-  </label>
-  <label class="btn btn-outline-secondary {% if m.ir_interval == 240 %} active {% endif %}" >
-    <input type="radio" name="ir_interval" value="90" id="option1"  {% if m.ir_interval == 240 %} checked {% endif %}> 1&frac12; Hrs.
-  </label>
-  <label class="btn btn-outline-secondary {% if m.ir_interval == 360 %} active {% endif %}" >
-    <input type="radio" name="ir_interval" value="120" id="option1"  {% if m.ir_interval == 360 %} checked {% endif %}> 2 Hrs.
+    <input type="radio" name="ir_interval" value="120" id="option1"  {% if m.ir_interval == 120 %} checked {% endif %}> 2 Hrs.
   </label>
 </div>
 
 
 			  </div>  <!-- Card Body -->
 			  <input type="hidden" name="minisplit" value="{{ m.name }}" />
-<input type="submit" name="Change" class="btn btn-primary" />
+        <input type="submit" name="Change" value="{{ m.name }}" class="btn btn-primary" />
 </form>
 				</div> <!-- Collapse -->
 			</td>
