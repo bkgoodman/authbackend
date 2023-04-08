@@ -3,9 +3,12 @@
 .lab {
 	width:15vw;
 }
+
+.dothis {
+  onchange:doOnChange();
+}
+
 </style>
-<script type="text/javascript">
-</script>
 {% endblock %}
 {% extends "layout_bootstrap.html" %}
 <h2>HVAC Controls</h2>
@@ -69,23 +72,23 @@
 			    
 <h3>Minisplit Settings</h3>
 <small>Raw settings of the minisplit itself. Change these only when un "Unmanaged" mode</small>
-<div class="btn-group btn-group-toggle" data-toggle="buttons">
+<div class="form-check-input btn-group btn-group-toggle" data-toggle="buttons">
 
 <label class="lab">Mode:</label>
   <label class="btn btn-outline-secondary {% if m.mode == "HEAT" %} active {% endif %}" >
-	  <input type="radio" name="mode" value="HEAT" id="mode_heat" {% if m.mode == "HEAT" %} checked {% endif %}> Heat
+	  <input class="form-check-input" type="radio" name="mode" value="HEAT" id="mode_heat" {% if m.mode == "HEAT" %} checked {% endif %}> Heat
   </label>
   <label class="btn btn-outline-secondary {% if m.mode == "COOL" %} active {% endif %}">
-	  <input type="radio" name="mode" value="COOL" id="mode_cool"{% if m.mode == "COOL" %} checked {% endif %}> Cool
+	  <input class="form-check-input" type="radio" name="mode" value="COOL" id="mode_cool"{% if m.mode == "COOL" %} checked {% endif %}> Cool
   </label>
   <label class="btn btn-outline-secondary {% if m.mode == "AUTO" %} active {% endif %}">
-	  <input type="radio" name="mode" value="AUTO" id="mode_auto"{% if m.mode == "AUTO" %} checked {% endif %}> Auto
+	  <input class="form-check-input" type="radio" name="mode" value="AUTO" id="mode_auto"{% if m.mode == "AUTO" %} checked {% endif %}> Auto
   </label>
   <label class="btn btn-outline-secondary {% if m.mode == "FAN" %} active {% endif %}">
-	  <input type="radio" name="mode" value="FAN" id="mode_fan"{% if m.mode == "FAN" %} checked {% endif %}> Fan
+	  <input class="form-check-input" type="radio" name="mode" value="FAN" id="mode_fan"{% if m.mode == "FAN" %} checked {% endif %}> Fan
   </label>
   <label class="btn btn-outline-secondary {% if m.mode == "DRY" %} active {% endif %}">
-	  <input type="radio" name="mode" value="DRY" id="mode_dry"{% if m.mode == "DRY" %} checked {% endif %}> Dry
+	  <input class="form-check-input" type="radio" name="mode" value="DRY" id="mode_dry"{% if m.mode == "DRY" %} checked {% endif %}> Dry
   </label>
 </div>
 
@@ -93,40 +96,40 @@
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Power:</label>
   <label class="btn btn-outline-secondary {% if m.power == "ON" %} active {% endif %}" >
-    <input type="radio" name="power" value="ON" id="option1"  {% if m.power == "ON" %} checked {% endif %}> On
+    <input type="radio" name="power" value="ON" id="power_on"  {% if m.power == "ON" %} checked {% endif %}> On
   </label>
   <label class="btn btn-outline-secondary {% if m.power == "OFF" %} active {% endif %}" >
-    <input type="radio" name="power" value="OFF" id="option2" {% if m.power == "OFF" %} checked {% endif %}> Off
+    <input type="radio" name="power" value="OFF" id="power_on" {% if m.power == "OFF" %} checked {% endif %}> Off
   </label>
 </div>
 
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Fan:</label>
   <label class="btn btn-outline-secondary {% if m.fan == "AUTO" %} active {% endif %}" >
-    <input type="radio" name="fan" value="AUTO" id="option1"  {% if m.fan == "AUTO" %} checked {% endif %}> Auto
+    <input type="radio" name="fan" value="AUTO" id="fan_auto"  {% if m.fan == "AUTO" %} checked {% endif %}> Auto
   </label>
   <label class="btn btn-outline-secondary {% if m.fan == "QUIET" %} active {% endif %}" >
-    <input type="radio" name="fan" value="QUIET" id="option1"  {% if m.fan == "QUIET" %} checked {% endif %}> Quiet
+    <input type="radio" name="fan" value="QUIET" id="fan_quiet"  {% if m.fan == "QUIET" %} checked {% endif %}> Quiet
   </label>
   <label class="btn btn-outline-secondary {% if m.fan == "1" %} active {% endif %}" >
-    <input type="radio" name="fan" value="1" id="option1"  {% if m.fan == "1" %} checked {% endif %}> 1
+    <input type="radio" name="fan" value="1" id="fan_1"  {% if m.fan == "1" %} checked {% endif %}> 1
   </label>
   <label class="btn btn-outline-secondary {% if m.fan == "2" %} active {% endif %}" >
-    <input type="radio" name="fan" value="2" id="option1"  {% if m.fan == "2" %} checked {% endif %}> 2
+    <input type="radio" name="fan" value="2" id="fan_2"  {% if m.fan == "2" %} checked {% endif %}> 2
   </label>
   <label class="btn btn-outline-secondary {% if m.fan == "3" %} active {% endif %}" >
-    <input type="radio" name="fan" value="3" id="option1"  {% if m.fan == "3" %} checked {% endif %}> 3
+    <input type="radio" name="fan" value="3" id="fan_3"  {% if m.fan == "3" %} checked {% endif %}> 3
   </label>
   <label class="btn btn-outline-secondary {% if m.fan == "4" %} active {% endif %}" >
-	    <input type="radio" name="fan" value="4" id="option1"  {% if m.fan == "4" %} checked {% endif %}> 4
+	    <input type="radio" name="fan" value="4" id="fan_4"  {% if m.fan == "4" %} checked {% endif %}> 4
   </label>
 </div>
 
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Temp:</label>
   {% for t in temperatures %}
-  <label class="btn btn-outline-secondary {% if m.temp == t %} active {% endif %}" >
-	  <input type="radio" name="override_temp" value="{{ t }}" id="option1"  {% if m.temp == t %} checked {% endif %}> {{ t }}
+  <label class="btn btn-outline-secondary {% if m.setpoint == t %} active {% endif %}" >
+          <input type="radio" name="setpoint" value="{{ t }}" id="setpoint_{{ t }}"  {% if m.setpoint == t %} checked {% endif %}> {{ t }}
   </label>
   {% endfor %}
 </div>
@@ -140,19 +143,19 @@
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Managed:</label>
 	  <label class="btn btn-outline-secondary {% if m.managed == "UNMANAGED" %} active {% endif %}" >
-		    <input type="radio" name="managed" value="OFF" id="option1"  {% if m.managed == "UNMANAGED" %} checked {% endif %}> Unmanaged
+		    <input type="radio" name="managed" value="OFF" id="managed_unmanaged"  {% if m.managed == "UNMANAGED" %} checked {% endif %}> Unmanaged
 	  </label>
 
 	  <label class="btn btn-outline-secondary {% if m.managed == "HEAT" %} active {% endif %}" >
-		    <input type="radio" name="managed" value="HEAT" id="option1"  {% if m.managed == "HEAT" %} checked {% endif %}> Heat
+		    <input type="radio" name="managed" value="HEAT" id="managed_heat"  {% if m.managed == "HEAT" %} checked {% endif %}> Heat
 	  </label>
 
 	  <label class="btn btn-outline-secondary {% if m.managed == "COOL" %} active {% endif %}" >
-		    <input type="radio" name="managed" value="COOL" id="option1"  {% if m.managed == "COOL" %} checked {% endif %}> Cool
+		    <input type="radio" name="managed" value="COOL" id="managed_cool"  {% if m.managed == "COOL" %} checked {% endif %}> Cool
 	  </label>
 
 	  <label class="btn btn-outline-secondary {% if m.managed == "OFF" %} active {% endif %}" >
-		    <input type="radio" name="managed" value="OFF" id="option1"  {% if m.managed == "OFF" %} checked {% endif %}> Off
+		    <input type="radio" name="managed" value="OFF" id="managed_off"  {% if m.managed == "OFF" %} checked {% endif %}> Off
 	  </label>
 
 
@@ -162,7 +165,7 @@
 	<label class="lab">Building Occupied:</label>
   {% for t in temperatures %}
   <label class="btn btn-outline-secondary {% if m.managed_setpoint == t %} active {% endif %}" >
-	  <input type="radio" name="managed_setpoint" value="{{ t }}" id="option1"  {% if m.managed_setpoint == t %} checked {% endif %}> {{ t }}
+          <input type="radio" name="managed_setpoint" value="{{ t }}" id="managed_setpoint_{{ t }}"  {% if m.managed_setpoint == t %} checked {% endif %}> {{ t }}
   </label>
   {% endfor %}
 </div>
@@ -179,8 +182,8 @@
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Override Temp: </label>
   {% for t in temperatures %}
-  <label class="btn btn-outline-secondary {% if m.override_temp == t %} active {% endif %}" >
-          <input type="radio" name="override_temp" value="{{ t }}" id="override_temp_{{ t }}"  {% if m.override_temp == t %} checked {% endif %}> {{ t }}
+  <label class="btn btn-outline-secondary {% if m.override_setpoint == t %} active {% endif %}" >
+          <input type="radio" name="override_setpoint" value="{{ t }}" id="override_setpoint_{{ t }}"  {% if m.override_setpoint == t %} checked {% endif %}> {{ t }}
   </label>
   {% endfor %}
 </div>
@@ -190,26 +193,26 @@
 	<label class="lab">Override Time: </label>
 
   <label class="btn btn-outline-secondary {% if m.override_time == 0 %} active {% endif %}" >
-    <input type="radio" name="override_time" value="0" id="option1"  {% if m.override_time == 0 %} checked {% endif %}> Disallowed
+    <input type="radio" name="override_time" value="0" id="override_time_0"  {% if m.override_time == 0 %} checked {% endif %}> Disallowed
   </label>
 
   <label class="btn btn-outline-secondary {% if m.override_time == 60 %} active {% endif %}" >
-    <input type="radio" name="override_time" value="60" id="option1"  {% if m.override_time == 60 %} checked {% endif %}> 1 Hr.
+    <input type="radio" name="override_time" value="60" id="override_time_60"  {% if m.override_time == 60 %} checked {% endif %}> 1 Hr.
   </label>
   <label class="btn btn-outline-secondary {% if m.override_time == 120 %} active {% endif %}" >
-    <input type="radio" name="override_time" value="120" id="option1"  {% if m.override_time == 120 %} checked {% endif %}> 2 Hrs.
+    <input type="radio" name="override_time" value="120" id="override_time_120"  {% if m.override_time == 120 %} checked {% endif %}> 2 Hrs.
   </label>
   <label class="btn btn-outline-secondary {% if m.override_time == 180 %} active {% endif %}" >
-    <input type="radio" name="override_time" value="180" id="option1"  {% if m.override_time == 180 %} checked {% endif %}> 3 Hrs.
+    <input type="radio" name="override_time" value="180" id="override_time_180"  {% if m.override_time == 180 %} checked {% endif %}> 3 Hrs.
   </label>
   <label class="btn btn-outline-secondary {% if m.override_time == 240 %} active {% endif %}" >
-    <input type="radio" name="override_time" value="240" id="option1"  {% if m.override_time == 240 %} checked {% endif %}> 4 Hrs.
+    <input type="radio" name="override_time" value="240" id="override_time_240"  {% if m.override_time == 240 %} checked {% endif %}> 4 Hrs.
   </label>
   <label class="btn btn-outline-secondary {% if m.override_time == 360 %} active {% endif %}" >
-    <input type="radio" name="override_time" value="360" id="option1"  {% if m.override_time == 360 %} checked {% endif %}> 6 Hrs.
+    <input type="radio" name="override_time" value="360" id="override_time_360"  {% if m.override_time == 360 %} checked {% endif %}> 6 Hrs.
   </label>
   <label class="btn btn-outline-secondary {% if m.override_time == 480 %} active {% endif %}" >
-    <input type="radio" name="override_time" value="480" id="option1"  {% if m.override_time == 480 %} checked {% endif %}> 8 Hrs.
+    <input type="radio" name="override_time" value="480" id="override_time_480"  {% if m.override_time == 480 %} checked {% endif %}> 8 Hrs.
   </label>
 </div>
 
@@ -252,6 +255,5 @@
 	{% endfor %}
 	</table>
 	</div>
-
 
 {% endblock %}

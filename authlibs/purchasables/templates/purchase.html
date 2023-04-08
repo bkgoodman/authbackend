@@ -1,5 +1,4 @@
 {% block head %}
-<script src="https://www.google.com/recaptcha/api.js"></script>
  <script>
    function onSubmit(token) {
      document.getElementById("demo-form").submit();
@@ -13,14 +12,7 @@
 	<h2>Purchase</h2>
 	{{ purchaseable.name }}
 	{{ purchaseable.cost }}
-<button class="g-recaptcha" 
-        data-sitekey="6LdzrsojAAAAABt2yl5TXyAzdpoFvCxOD_SEOOtq" 
-        data-callback='onSubmit' 
-        data-action='submit'>Submit</button>
 	</div>
 
-<form METHOD="POST" id="demo-form" >
-<input type=hidden name="secondsubmit" value="123"
-</form>
 
 {% endblock %}

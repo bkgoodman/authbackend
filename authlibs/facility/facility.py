@@ -68,16 +68,17 @@ def minisplit():
 
     elif request.method == "POST" and current_user.privs('Facilities'):
         command = {}
-        if 'power' in request.form:
-            command['power'] = request.form['power'].upper()
-        if 'fan' in request.form:
-            command['fan'] = request.form['fan'].upper()
-        if 'mode' in request.form:
-            command['mode'] = request.form['mode'].upper()
-        if 'temp' in request.form:
-            command['temp'] = int(request.form['temp'])
         if 'managed' in request.form:
             command['managed'] = request.form['managed']
+        if ('managed' not in command) or (command['managed'] == "OFF"):
+            if 'power' in request.form:
+                command['power'] = request.form['power'].upper()
+            if 'fan' in request.form:
+                command['fan'] = request.form['fan'].upper()
+            if 'mode' in request.form:
+                command['mode'] = request.form['mode'].upper()
+            if 'setpoint' in request.form:
+                command['setpoint'] = int(request.form['setpoint'])
         if 'managed_setpoint' in request.form:
             command['managed_setpoint'] = int(request.form['managed_setpoint'])
         if 'managed_setpoint_unoccupied' in request.form:
@@ -119,14 +120,14 @@ def minisplit():
         minisplits.append({
             'name': m.decode('utf-8').replace("minisplit/",""),
             'rawSetPoint': j['setpoint'],
-            'setPoint': normalize_temp(j['setpoint']),
+            'setpoint': normalize_temp(j['setpoint']),
             'roomTemp': j['roomTemp'],
             'mode': j['mode'],
             'power': j['power'],
             'managed': j['managed'],
             'managed_setpoint': normalize_temp(j['managed_setpoint']),
             'managed_setpoint_unoccupied': normalize_temp(j['managed_setpoint_unoccupied']),
-            'override_temp': normalize_temp(j['override_temp']),
+            'override_setpoint': normalize_temp(j['override_setpoint']),
             'override_time': j['override_time'],
             'ir_interval': j['ir_interval'],
             'fan': j['fan'],

@@ -1,0 +1,24 @@
+{% block head %}
+<script src="https://www.google.com/recaptcha/api.js"></script>
+ <script>
+   function onSubmit(token) {
+     document.getElementById("demo-form").submit();
+   }
+ </script>
+{% endblock %}
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+	<h2>Purchase</h2>
+
+  <p>
+  Please confirm that you wish to make a purchase for {{ purchasable.name }} {{ ident }}
+  This will charge {{ chargeStr }} to the card you have on file with your MakeIt Labs Memebership.
+  </p>
+
+  <form method="POST" action="{{ url_for('purchasables.purchasable_purchase') }}">
+          <button type="submit" name="confirm" value="confirm" class="btn btn-primary">Yes</button>
+  </form>
+  <button class="btn btn-danger">No</button>
+
+
+{% endblock %}

@@ -32,7 +32,7 @@ def purchasables():
 	resources = Resource.query.all()
 	return render_template('purchasables.html',resources=resources,purchasables=sorted(purchasables,key=lambda x:x['name']),editable=True,purchasable={},)
 
-@blueprint.route('/', methods=['POST'])
+@blueprint.route('/create', methods=['POST'])
 @login_required
 @roles_required(['Admin','RATT'])
 def purchasables_create():
@@ -60,7 +60,7 @@ def purchasables_create():
     flash("Created.")
     return redirect(url_for('purchasables.purchasables'))
 
-@blueprint.route('/<string:purchasable>', methods=['GET'])
+@blueprint.route('/show/<string:purchasable>', methods=['GET'])
 @login_required
 def purchasables_show(purchasable):
     """(Controller) Display information about a given purchasable"""
@@ -76,7 +76,7 @@ def purchasables_show(purchasable):
     resources = Resource.query.all()
     return render_template('purchasable_edit.html',resources=resources,purchasable=r,readonly=readonly)
 
-@blueprint.route('/<string:purchasable>', methods=['POST'])
+@blueprint.route('/show/<string:purchasable>', methods=['POST'])
 @login_required
 @roles_required(['Admin','RATT'])
 def purchasables_update(purchasable):
@@ -109,7 +109,7 @@ def purchasables_update(purchasable):
         flash("Purchasable updated")
         return redirect(url_for('purchasables.purchasables'))
 
-@blueprint.route('/<string:purchasable>/delete',methods=['GET','POST'])
+@blueprint.route('/delete/<string:purchasable>',methods=['GET','POST'])
 @roles_required(['Admin','RATT'])
 def purchasable_delete(purchasable):
     """(Controller) Delete a purchasable. Shocking."""
@@ -118,6 +118,24 @@ def purchasable_delete(purchasable):
     db.session.commit()
     flash("Purchasable deleted.")
     return redirect(url_for('purchasables.purchasables'))
+
+@blueprint.route('/quick/<int:purchasable>/<int:cost>/<string:ident>', methods=['GET'])
+def quick(purchasable,cost,ident):
+
+    sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
+    if sub is None:
+        flash("No subscription found","danger")
+        return redirect(url_for('purchasables.purchasables'))
+
+    cid = sub.customerid
+    #print("Customer ID is",cid)
+    r = Purchasable.query.filter(Purchasable.id == purchasable).one()
+    #print ("Product code is ",r.product)
+    if r.product is None or r.product.strip() =="":
+        flash("Error: Product code is undefined","danger")
+        return redirect(url_for('purchasables.purchasables'))
+    cs = f"${cost/100:0.2f}"
+    return render_template('quick.html',purchasable=r,cost=cost,ident=ident,chargeStr=cs)
 
 @blueprint.route('/purchase', methods=['POST'])
 def purchasable_purchase():
@@ -205,7 +223,7 @@ def purchasable_showusers(purchasable):
     return render_template('purchasable_users.html',purchasable=rid,users=authusers)
 
 #TODO: Create safestring converter to replace string; converter?
-@blueprint.route('/<string:purchasable>/log', methods=['GET','POST'])
+@blueprint.route('log//<string:purchasable>', methods=['GET','POST'])
 @roles_required(['Admin','RATT'])
 def logging(purchasable):
      """Endpoint for a purchasable to log via API"""
