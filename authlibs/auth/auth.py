@@ -80,6 +80,7 @@ def authorize():
         (level,levelText)=authutil.getResourcePrivs(resource=r)
         res.append({'resource':r,'level':level,'levelText':levelText})
 
+    res = sorted(res,key=lambda x: x['resource'].name)
     return render_template("authorize.html",members=members,resources=res,**others)
 
 @blueprint.route("/membersearch/<string:search>",methods=['GET'])

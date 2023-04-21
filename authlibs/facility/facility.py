@@ -100,6 +100,17 @@ def minisplit():
         return redirect(url_for('facility.minisplit'))
 
     r = redis.Redis()
+    roomtemp={}
+    roomtemp["archer"]='--'
+    roomtemp["hall"]='--'
+    roomtemp["classroom"]='--'
+    roomtemp["first"]='--'
+    roomtemp["av"]='--'
+    roomtemp["ham"]='--'
+    roomtemp["textiles"]='--'
+    roomtemp["lounge"]='--'
+    roomtemp["cubes"]='--'
+
     minisplits=[]
     now=datetime.datetime.now()
     utc = dateutil.tz.gettz('UTC')
@@ -117,6 +128,7 @@ def minisplit():
 
         axx=dt_obj.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
         acl=ago.ago(axx,now)
+
         minisplits.append({
             'name': m.decode('utf-8').replace("minisplit/",""),
             'rawSetPoint': j['setpoint'],
@@ -140,7 +152,8 @@ def minisplit():
             'override_end_ago':ovend[1],
             'operating':j['operating']
             })
-    return render_template('minisplits.html',minisplits=minisplits,temperatures=temperatures)
+        roomtemp[ m.decode('utf-8').replace("minisplit/","")] = j['roomTemp']
+    return render_template('minisplits.html',minisplits=minisplits,roomtemp=roomtemp,temperatures=temperatures)
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

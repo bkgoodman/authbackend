@@ -27,6 +27,7 @@ def resources():
 	 """(Controller) Display Resources and controls"""
 	 resources = _get_resources()
 	 access = {}
+	 resources = sorted(resources,key=lambda x: x['name'])
 	 return render_template('resources.html',resources=resources,access=access,editable=True)
 
 @blueprint.route('/', methods=['POST'])
@@ -107,6 +108,7 @@ def resource_show(resource):
 			
 
 	resources = Resource.query.all()
+	resources = sorted(resources,key=lambda x: x.name)
 	return render_template('resource_edit.html',rec=r,resources=resources,readonly=readonly,tools=tools,comments=cc,maint=maint,train=train)
 
 @blueprint.route('/<string:resource>/usage', methods=['GET'])
