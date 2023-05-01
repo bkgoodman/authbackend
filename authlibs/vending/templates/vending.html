@@ -43,7 +43,7 @@
         <th style="text-align:right;background-color:#00b000">Total Charge</th>
         <th style="text-align:right">End Balance</th>
         <th>Invoice</th>
-        <th>Produce Code</th>
+        <th>Product Code</th>
         <th>Comment</th>
 				</tr>
       </thead>
@@ -57,8 +57,13 @@
 		<td style="text-align:right;color:#c0c0c0">{{ l.surcharge }}</td>
 		<td style="text-align:right;color:#c0c0c0">{{ l.totalCharge }}</td>
 		<td style="text-align:right">{{ l.newBalance }}</td>
-		<td>{{ l.invoice }}</td>
-		<td>{{ l.product }}</td>
+    {% if  current_user.privs("Finance") %}
+            <td><a href="http://dashboard.stripe.com/invoices/{{ l.invoice }}">{{ l.invoice }}</a></td>
+            <td><a href="http://dashboard.stripe.com/products/{{ l.product }}">{{ l.product }}</a></td>
+    {% else %}
+            <td>{{ l.invoice }}</td>
+            <td>{{ l.product }}</td>
+    {% endif %}
 		<td>{{ l.comment }}</td>
 	  </tr>
       {% endfor %}

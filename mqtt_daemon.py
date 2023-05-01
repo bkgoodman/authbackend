@@ -150,6 +150,8 @@ def on_message(client,userdata,msg):
                 minisplit = topic[3]
                 print ("GOT",minisplit,message)
                 r.set("minisplit/"+minisplit,msg.payload)
+                # We end here because we would get an index error below looking up subtopic
+                return
 
             # base_topic+"/control/broadcast/acl/update"
             if topic[0]=="ratt" and topic[1]=="control" and topic[2]=="broadcast" and topic[3]=="acl" and topic[4]=="update":
