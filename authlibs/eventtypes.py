@@ -283,6 +283,16 @@ class RATTBE_LOGEVENT_PURCHASABLE_PURCHASE:
     id=3030
     desc="Item Purchase"
     slack_icon=":moneybag:"
+
+class RATTBE_LOGEVENT_RESOURCE_USE_BILLED:
+    id=3031
+    desc="Usage Charged"
+    slack_icon=":moneybag:"
+
+class RATTBE_LOGEVENT_RESOURCE_BILL_FAILED:
+    id=3032
+    desc="Usage Billing Failed"
+    slack_icon=":bangbang:"
     
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000

@@ -77,6 +77,16 @@
 			{{ input('event_mqtt_topic',"MQTT Event Topic","displayboard/read/myresource",small="MQTT Topic for realtime usage displays") }}
     </div>
   </div>
+
+  <div class="form-row">
+    <div class="form-group col-md-6">
+			{{ input('prodcode',"Product Code",'prod_XXX',small="Stripe Product Code - If billable") }}
+    </div>
+    <div class="form-group col-md-6">
+			{{ input('price',"Price per Hour (CENTS)","0",small="If billable resource") }}
+    </div>
+  </div>
+
   <div class="form-row">
     <div class="form-group col-md-12">
 			{{ input('info_text',"Information Text (Short, for RATT)",'This tool requires a class..',small="Displayed on RATT for unauthorized users") }}

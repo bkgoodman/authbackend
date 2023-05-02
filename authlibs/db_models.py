@@ -200,6 +200,8 @@ class Resource(db.Model):
     slack_info_text = db.Column(db.String())
     age_restrict = db.Column(db.Integer())  # Years old
     permissions = db.Column(db.String(255), nullable=True) # Endorsements
+    prodcode = db.Column(db.String(50)) # For Charges
+    price = db.Column(db.Integer())  # Cents per hour
 
 class Training(db.Model):
     __tablename__ = 'training'

@@ -6,6 +6,7 @@
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_showusers",resource=rec.name) }}" class="btn btn-link">Members</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_usage",resource=rec.name) }}" class="btn btn-link">Usage Graphs</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.resource_usage_reports",resource=rec.name) }}" class="btn btn-link">Usage Reports</a>
+		<a class="btn btn-outline-secondary" href="{{ url_for("resources.billing",resource=rec.name) }}" class="btn btn-link">Billing</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.maintenance",resource=rec.name) }}" class="btn btn-link">Maintenance</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("resources.message",resource=rec.name) }}" class="btn btn-link">Message Users</a>
 		<a class="btn btn-outline-secondary" href="{{ url_for("training.approvals",resname=rec.name) }}" class="btn btn-link">Approve Auth</a>

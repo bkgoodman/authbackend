@@ -11,6 +11,7 @@ import datetime
 from . import graph
 from ..google_admin import genericEmailSender
 from functools import cmp_to_key
+import stripe
 
 blueprint = Blueprint("resources", __name__, template_folder='templates', static_folder="static",url_prefix="/resources")
 # ----------------------------------------------------
@@ -44,6 +45,11 @@ def resource_create():
 	  return redirect(url_for('resources.resources'))
 	r.owneremail = (request.form['input_owneremail']).strip()
 	r.slack_chan = (request.form['input_slack_chan']).strip()
+	r.prodcode = (request.form['input_prodcode']).strip()
+	try: 
+	    r.price = int(request.form['input_price'])
+	except:
+	    pass
 	r.slack_admin_chan = (request.form['input_slack_admin_chan']).strip()
 	r.event_mqtt_topic = (request.form['input_event_mqtt_topic']).strip()
 	r.info_url = (request.form['input_info_url']).strip()
@@ -288,6 +294,11 @@ def resource_update(resource):
 		  return redirect(url_for('resources.resources'))
 		r.owneremail = (request.form['input_owneremail']).strip()
 		r.slack_chan = (request.form['input_slack_chan']).strip()
+		r.prodcode = (request.form['input_prodcode']).strip()
+		try: 
+			r.price = int(request.form['input_price'])
+		except:
+			pass
 		r.slack_admin_chan = (request.form['input_slack_admin_chan']).strip()
 		r.event_mqtt_topic = (request.form['input_event_mqtt_topic']).strip()
 		r.info_url = (request.form['input_info_url']).strip()
@@ -377,6 +388,99 @@ def resource_showusers(resource):
           'lockout_reason':'' if x[4] is None else x[4],'lastusedago':lu1,'usedago':lu2,'lastused':lu1})
       
     return render_template('resource_users.html',resource=rid,accrecs=sorted(accrec,key=cmp_to_key(showuser_sort)))
+
+@blueprint.route('/<string:resource>/billing', methods=['GET','POST'])
+@roles_required(['Admin','RATT'])
+def billing(resource):
+    errors = []
+    rid = (resource)
+    res = Resource.query.filter(Resource.name == rid).one_or_none()
+    if not res:
+      flash ("Resource not found","warning")
+      return redirect(url_for('resources.resources'))
+
+    if (res.price == 0) or (res.prodcode is None) or (res.prodcode.strip()==""):
+      flash ("Non-Billable Resource","warning")
+      return redirect(url_for('resources.resources'))
+
+    users = Logs.query.filter((Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).all()
+    debug=[]
+    for u in users:
+        debug.append(f"{u.member_id}")
+
+
+    # Find all resource users
+    users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
+    for x in users:
+        m = Member.query.filter(Member.id == x.member_id)
+        m = m.join(Subscription,Subscription.member_id == Member.id)
+        m = m.add_column(Subscription.customerid)
+        m = m.one_or_none()
+        member = m.Member
+        cid = m.customerid
+        seconds=0
+        debug.append(f"Distinct User {x.member_id} {member.member}")
+        name = member.member
+        # Find most recent billing of this user
+        lastbill = Logs.query.filter((Logs.member_id == x.member_id) & (Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).one_or_none()
+
+        if lastbill is None:
+            debug.append(f" -- No Prior Bill for {x.member_id}")
+            logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.member_id == x.member_id)).all()
+        else:
+            logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.time_logged > lastbill.time_logged) & (UsageLog.member_id == x.member_id)).all()
+            debug.append(f" -- Last Billed {lastbill.time_logged}")
+
+        # If we have no prior, bill for everything
+        # If we have prior, bill only after that
+        for l in logs:
+            seconds += l.activeSecs
+            debug.append(f" -- Logged {l.time_logged} {l.activeSecs}")
+
+
+        cents = int((res.price * seconds)/3600)
+        stripedesc = "Description String"
+        debug.append(f" -- Billing {x.member_id} for {seconds} seconds Seconds={seconds}")
+        if (seconds > 100):
+            # Do Stripe Payment
+            stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+            commentstr="Billing"
+            error = None
+            try:
+                price = stripe.Price.create(
+                  unit_amount=cents,
+                  currency='usd',
+                  product=res.prodcode)
+                invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc)
+
+                invoice = stripe.Invoice.create(
+                customer=cid,
+                description=stripedesc
+                #collection_method="charge_automatically",
+                )
+
+                finalize=stripe.Invoice.finalize_invoice(invoice)
+                if (finalize['status'] != 'open'):
+                    #result = {'error':'success','description':"Stripe Error"}
+                    error = "Stripe Finalize error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(name,pay['status'],res.prodcode,cid,invoice.id)
+                else:
+                    pay = stripe.Invoice.pay(invoice)
+                    if (pay['status'] != 'paid'):
+                      #result = {'error':'success','description':"Payment Declined"}
+                      error = "Stripe Payment error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(name,pay['status'],r.prodcode,cid,invoice.id)
+            except BaseException as e:
+                error = f"Stripe Payment error billing {name}: {str(e)}"
+
+            if error is None:
+                logmsg = f"Invoice {invoice.id}"
+                authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id,resource_id=res.id,member_id=x.member_id,message=logmsg,commit=0)
+            else:
+                authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=x.member_id,message=error,commit=0)
+                errors.append(error)
+            db.session.commit()
+
+
+    return render_template('resource_billing.html',resource=res,debug=debug+['Errors:']+errors)
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('/<string:resource>/log', methods=['GET','POST'])
