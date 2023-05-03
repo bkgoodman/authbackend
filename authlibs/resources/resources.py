@@ -418,6 +418,7 @@ def billing(resource):
         m = m.one_or_none()
         member = m.Member
         cid = m.customerid
+        billdates={}
         seconds=0
         debug.append(f"Distinct User {x.member_id} {member.member}")
         name = member.member
@@ -435,12 +436,15 @@ def billing(resource):
         # If we have prior, bill only after that
         for l in logs:
             seconds += l.activeSecs
+            datestr = l.time_logged.strftime("%b-%d-%Y")
+            if datestr not in billdates: billdates[datestr] = 0
+            billdates[datestr] += l.activeSecs
             debug.append(f" -- Logged {l.time_logged} {l.activeSecs}")
 
 
         cents = int((res.price * seconds)/3600)
-        stripedesc = "Description String"
-        debug.append(f" -- Billing {x.member_id} for {seconds} seconds Seconds={seconds}")
+        stripedesc = ", ".join([f"{x}={int(billdates[x]/60)}min" for x in billdates])
+        debug.append(f" -- Billing {x.member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc}")
         if (seconds > 100):
             # Do Stripe Payment
             stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')

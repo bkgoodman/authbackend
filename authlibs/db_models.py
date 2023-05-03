@@ -572,6 +572,7 @@ class UsageLog(db.Model):
     idleSecs = db.Column(db.Integer())
     activeSecs = db.Column(db.Integer())
     enabledSecs = db.Column(db.Integer())
+    payTier = db.Column(db.Integer(),default=0)
 
 # TODO I'm pretty sure this class isn't used at all (???)
 class OAuth(OAuthConsumerMixin, db.Model):

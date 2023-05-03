@@ -412,6 +412,10 @@ def on_message(client,userdata,msg):
                     enabledSecs = message['enabledSecs']
                     activeSecs = message['activeSecs']
                     idleSecs = message['idleSecs']
+                    payTier = 0
+
+                    if 'payTier' in message:
+                        payTier = message['payTier']
 
                     reasons = {
                         "explicit" : "Logged out",
@@ -429,6 +433,10 @@ def on_message(client,userdata,msg):
                         seconds_to_timespan(enabledSecs),
                         seconds_to_timespan(activeSecs),
                         reason.upper())
+                    if (payTier == 1):
+                        log_text += f" - Free Tier"
+                    elif (payTier > 0):
+                        log_text += f" - Tier {payTier}"
                     usage= UsageLog()
                     usage.member_id = memberId
                     usage.tool_id = toolId
@@ -436,6 +444,7 @@ def on_message(client,userdata,msg):
                     usage.enabledSecs = enabledSecs
                     usage.activeSecs = activeSecs
                     usage.idleSecs = idleSecs
+                    usage.payTier = payTier
                     usage.time_reported = datetime.utcnow()
                     usage.time_logged = datetime.utcnow()
                     db.session.add(usage)
@@ -650,5 +659,5 @@ if __name__ == '__main__':
             sys.exit(0)
           except BaseException as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
-            logger.error("LOG ERROR=%s LINE=%d TOPIC=%s PAYLOAD=%s" %(e,exc_tb.tb_lineno,msg.topic,msg.payload))
+            logger.error("LOG ERROR=%s LINE=%d" %(e,exc_tb.tb_lineno))
             time.sleep(1)
