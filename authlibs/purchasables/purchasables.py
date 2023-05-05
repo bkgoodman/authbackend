@@ -34,7 +34,7 @@ def purchasables():
 
 @blueprint.route('/create', methods=['POST'])
 @login_required
-@roles_required(['Admin','RATT'])
+@roles_required(['Admin','Finance'])
 def purchasables_create():
     """(Controller) Create a purchasable from an HTML form POST"""
     r = Purchasable()
@@ -78,7 +78,7 @@ def purchasables_show(purchasable):
 
 @blueprint.route('/show/<string:purchasable>', methods=['POST'])
 @login_required
-@roles_required(['Admin','RATT'])
+@roles_required(['Admin','Finance'])
 def purchasables_update(purchasable):
         """(Controller) Update an existing purchasable from HTML form POST"""
         tid = (purchasable)
@@ -110,7 +110,7 @@ def purchasables_update(purchasable):
         return redirect(url_for('purchasables.purchasables'))
 
 @blueprint.route('/delete/<string:purchasable>',methods=['GET','POST'])
-@roles_required(['Admin','RATT'])
+@roles_required(['Admin','Finance'])
 def purchasable_delete(purchasable):
     """(Controller) Delete a purchasable. Shocking."""
     r = Purchasable.query.filter(Purchasable.id == purchasable).one()
@@ -224,7 +224,7 @@ def purchasable_showusers(purchasable):
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('log//<string:purchasable>', methods=['GET','POST'])
-@roles_required(['Admin','RATT'])
+@roles_required(['Admin','Finance'])
 def logging(purchasable):
      """Endpoint for a purchasable to log via API"""
      # TODO - verify purchasables against global list
