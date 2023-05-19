@@ -124,7 +124,7 @@ def get_raw_menu():
                     'importance':2000
             },
             {
-                    'privs':'Admin',
+                    'privs':'LeaseMgr',
                     'url':url_for('autoplot.autoplot'),
                     'title':"Auto Plot Billing",
                     'importance':2000
