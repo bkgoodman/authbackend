@@ -6,6 +6,12 @@
 {% block body %}
 <div class="body"><h3>{{ resource.name }} Usage Reports</h3></div>
 
+
+{% if current_user.privs("Finance") %}
+<form method="POST">
+	<input type="Submit" class="btn btn-primary" Value="Process Payments" name="Process Payments" />
+</form>
+{% endif %}
 <p>{{ resource.name }}</p>
 
 <p>

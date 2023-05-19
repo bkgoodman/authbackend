@@ -202,6 +202,7 @@ class Resource(db.Model):
     permissions = db.Column(db.String(255), nullable=True) # Endorsements
     prodcode = db.Column(db.String(50)) # For Charges
     price = db.Column(db.Integer())  # Cents per hour
+    price_pro = db.Column(db.Integer())  # Cents per hour - Pro members
 
 class Training(db.Model):
     __tablename__ = 'training'

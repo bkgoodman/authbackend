@@ -50,6 +50,10 @@ def resource_create():
 	    r.price = int(request.form['input_price'])
 	except:
 	    pass
+	try: 
+	    r.price_pro = int(request.form['input_price_pro'])
+	except:
+	    pass
 	r.slack_admin_chan = (request.form['input_slack_admin_chan']).strip()
 	r.event_mqtt_topic = (request.form['input_event_mqtt_topic']).strip()
 	r.info_url = (request.form['input_info_url']).strip()
@@ -299,6 +303,10 @@ def resource_update(resource):
 			r.price = int(request.form['input_price'])
 		except:
 			pass
+		try: 
+			r.price_pro = int(request.form['input_price_pro'])
+		except:
+			pass
 		r.slack_admin_chan = (request.form['input_slack_admin_chan']).strip()
 		r.event_mqtt_topic = (request.form['input_event_mqtt_topic']).strip()
 		r.info_url = (request.form['input_info_url']).strip()
@@ -392,6 +400,9 @@ def resource_showusers(resource):
 @blueprint.route('/<string:resource>/billing', methods=['GET','POST'])
 @roles_required(['Admin','RATT'])
 def billing(resource):
+    doBilling = False
+    if 'doBilling' in request.form:
+        doBilling = True
     errors = []
     rid = (resource)
     res = Resource.query.filter(Resource.name == rid).one_or_none()
@@ -403,8 +414,9 @@ def billing(resource):
       flash ("Non-Billable Resource","warning")
       return redirect(url_for('resources.resources'))
 
-    users = Logs.query.filter((Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).all()
     debug=[]
+
+    users = Logs.query.filter((Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).all()
     for u in users:
         debug.append(f"{u.member_id}")
 
@@ -415,22 +427,33 @@ def billing(resource):
         m = Member.query.filter(Member.id == x.member_id)
         m = m.join(Subscription,Subscription.member_id == Member.id)
         m = m.add_column(Subscription.customerid)
+        m = m.add_column(Subscription.rate_plan)
         m = m.one_or_none()
         member = m.Member
         cid = m.customerid
+        iamPro = True if m.rate_plan in ('pro', 'produo') else False
         billdates={}
         seconds=0
-        debug.append(f"Distinct User {x.member_id} {member.member}")
+        debug.append(f"Distinct User {x.member_id} {member.member} RatePlan={m.rate_plan} Pro={iamPro}")
         name = member.member
+
+        # Show prior bills
+        pb = Logs.query.filter((Logs.resource_id == res.id) & (Logs.member_id == x.member_id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).all()
+        for pbx in pb:
+            debug.append(f" -- Prior Billed Member {pbx.member_id} {pbx} {pbx.time_logged}")
+
+
         # Find most recent billing of this user
         lastbill = Logs.query.filter((Logs.member_id == x.member_id) & (Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).one_or_none()
 
         if lastbill is None:
             debug.append(f" -- No Prior Bill for {x.member_id}")
-            logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.member_id == x.member_id)).all()
+            logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.member_id == x.member_id) & (UsageLog.payTier != 1)).all()
+            logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.member_id == x.member_id) & ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None)))).all()
         else:
-            logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.time_logged > lastbill.time_logged) & (UsageLog.member_id == x.member_id)).all()
+            logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.time_logged > lastbill.time_logged) & (UsageLog.member_id == x.member_id) & ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None)))).all()
             debug.append(f" -- Last Billed {lastbill.time_logged}")
+
 
         # If we have no prior, bill for everything
         # If we have prior, bill only after that
@@ -439,13 +462,17 @@ def billing(resource):
             datestr = l.time_logged.strftime("%b-%d-%Y")
             if datestr not in billdates: billdates[datestr] = 0
             billdates[datestr] += l.activeSecs
-            debug.append(f" -- Logged {l.time_logged} {l.activeSecs}")
+            debug.append(f" -- Logged {l.time_logged} {l.activeSecs} {l.payTier}")
 
 
-        cents = int((res.price * seconds)/3600)
+        billMe = doBilling
+        if iamPro:
+            cents = int((res.price_pro * seconds)/3600)
+        else:
+            cents = int((res.price * seconds)/3600)
         stripedesc = ", ".join([f"{x}={int(billdates[x]/60)}min" for x in billdates])
-        debug.append(f" -- Billing {x.member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc}")
-        if (seconds > 100):
+        debug.append(f" -- Billing {x.member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc} Cents:{cents}")
+        if (billMe is True ) and (seconds > 100):
             # Do Stripe Payment
             stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
             commentstr="Billing"
