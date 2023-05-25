@@ -9,7 +9,7 @@
 
 {% if current_user.privs("Finance") %}
 <form method="POST">
-	<input type="Submit" class="btn btn-primary" Value="Process Payments" name="Process Payments" />
+	<input type="Submit" class="btn btn-primary" Value="Process Payments" name="doBilling" />
 </form>
 {% endif %}
 <p>{{ resource.name }}</p>

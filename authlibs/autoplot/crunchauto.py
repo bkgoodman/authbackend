@@ -267,12 +267,12 @@ def do_payment(customer,price,leaseid,description,test=False,pay=False):
       debug.append("Created Invoice Item {0} for lease {1}".format(ii['id'],leaseid))
 
   # If we have not created an invoice with this item in it - do so
-  if leaseid not in pendingleases or pendingleases[leaseid]['invoice'] is None:
-      print ("""
-      ** INVOICE
-      """)
-      inv = stripe.Invoice.create(
-        customer=customer,
+      if leaseid not in pendingleases or pendingleases[leaseid]['invoice'] is None:
+          print ("""
+          ** INVOICE
+          """)
+          inv = stripe.Invoice.create(
+            customer=customer,
         description=description,
         auto_advance=False,
         collection_method="charge_automatically",

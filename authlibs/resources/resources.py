@@ -348,9 +348,11 @@ def showuser_sort(a,b):
   if (not a['sorttime'] and not b['sorttime']): return 0
   return int((b['sorttime'] - a['sorttime']).total_seconds())
 
+
 	
 @blueprint.route('/<string:resource>/list', methods=['GET'])
 def resource_showusers(resource):
+    debug=[]
     """(Controller) Display users who are authorized to use this resource"""
     rid = (resource)
     res_id = Resource.query.filter(Resource.name == rid).one_or_none()
@@ -397,13 +399,118 @@ def resource_showusers(resource):
       
     return render_template('resource_users.html',resource=rid,accrecs=sorted(accrec,key=cmp_to_key(showuser_sort)))
 
+
+def bill_member_for_resource(member_id,res,doBilling):
+    error = None
+    debug = []
+    m = Member.query.filter(Member.id == member_id)
+    m = m.join(Subscription,Subscription.member_id == Member.id)
+    m = m.add_column(Subscription.customerid)
+    m = m.add_column(Subscription.rate_plan)
+    m = m.one_or_none()
+    if m is None:
+        return ([],f"Member {member_id} not found")
+    member = m.Member
+    cid = m.customerid
+    iamPro = True if m.rate_plan in ('pro', 'produo') else False
+    billdates={}
+    usageRecords=[]
+    seconds=0
+    debug.append(f"Distinct User {member_id} {member.member} RatePlan={m.rate_plan} Pro={iamPro}")
+    name = member.member
+
+    # Show prior bills
+    pb = Logs.query.filter((Logs.resource_id == res.id) & (Logs.member_id == member_id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).all()
+    for pbx in pb:
+        debug.append(f" -- Prior Billed Member {pbx.member_id} {pbx} {pbx.time_logged}")
+
+
+    # Find most recent billing of this user
+    lastbill = Logs.query.filter((Logs.member_id == member_id) & (Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).one_or_none()
+
+    if lastbill is None:
+        debug.append(f" -- No Prior Bill for {member_id}")
+        logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.member_id == member_id) & ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None)))).all()
+    else:
+        logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.time_logged > lastbill.time_logged) & (UsageLog.member_id == member_id) & ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None)))).all()
+        debug.append(f" -- Last Billed {lastbill.time_logged}")
+
+
+    # If we have no prior, bill for everything
+    # If we have prior, bill only after that
+    for l in logs:
+        if (l.activeSecs > 0):
+            seconds += l.activeSecs
+            datestr = l.time_logged.strftime("%b-%d-%Y")
+            if datestr not in billdates: billdates[datestr] = 0
+            billdates[datestr] += l.activeSecs
+            usageRecords.append(l.id)
+            debug.append(f" -- Logged {l.time_logged} {l.activeSecs} {l.payTier}")
+
+
+    billMe = doBilling
+    if iamPro:
+        cents = int((res.price_pro * seconds)/3600)
+    else:
+        cents = int((res.price * seconds)/3600)
+    stripedesc = ", ".join([f"{x}={int(billdates[x]/60)}min" for x in billdates])
+    debug.append(f" -- Billing {member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc} Cents:{cents}")
+    if (billMe is True ) and (seconds > 100):
+        # Do Stripe Payment
+        stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+        commentstr="Billing"
+        try:
+            price = stripe.Price.create(
+              unit_amount=cents,
+              currency='usd',
+              product=res.prodcode)
+            invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc)
+
+            invoice = stripe.Invoice.create(
+            customer=cid,
+            description=stripedesc,
+            #collection_method="charge_automatically",
+            metadata = {
+                'X-MIL-resource':'waterjet',
+                'X-MIL-usageRecords':str(usageRecords)
+                }
+            )
+
+            finalize=stripe.Invoice.finalize_invoice(invoice)
+            if (finalize['status'] != 'open'):
+                #result = {'error':'success','description':"Stripe Error"}
+                error = "Stripe Finalize error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(name,pay['status'],res.prodcode,cid,invoice.id)
+            else:
+                pay = stripe.Invoice.pay(invoice)
+                if (pay['status'] != 'paid'):
+                  #result = {'error':'success','description':"Payment Declined"}
+                  error = "Stripe Payment error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(name,pay['status'],r.prodcode,cid,invoice.id)
+                  try:
+                      stripe.Invoice.delete(invoice.id)
+                      debug.append(f" -- Deleting {finalize['status']} Invoice  {invoice.id}")
+                  except:
+                      error = f"Error deleting {finalize['status']} Invoice ID {invoice.id} {name}: {str(e)}"
+                else:
+                    debug.append(f" -- Invoice {invoice.id} paid ${cents/100.0:0.2f}")
+        except BaseException as e:
+            error = f"Stripe Payment error billing {name}: {str(e)}"
+
+        if error is None:
+            logmsg = f"Invoice {invoice.id} Charged ${cents/100.0:0.2f}"
+            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
+        else:
+            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=error,commit=0)
+        db.session.commit()
+    return (debug,error)
+
 @blueprint.route('/<string:resource>/billing', methods=['GET','POST'])
-@roles_required(['Admin','RATT'])
+@roles_required(['Admin','Finance'])
 def billing(resource):
     doBilling = False
     if 'doBilling' in request.form:
         doBilling = True
     errors = []
+    debug=[]
     rid = (resource)
     res = Resource.query.filter(Resource.name == rid).one_or_none()
     if not res:
@@ -414,101 +521,19 @@ def billing(resource):
       flash ("Non-Billable Resource","warning")
       return redirect(url_for('resources.resources'))
 
-    debug=[]
 
     users = Logs.query.filter((Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).all()
     for u in users:
-        debug.append(f"{u.member_id}")
+        debug.append(f"Member ID {u.member_id}")
 
 
     # Find all resource users
     users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
     for x in users:
-        m = Member.query.filter(Member.id == x.member_id)
-        m = m.join(Subscription,Subscription.member_id == Member.id)
-        m = m.add_column(Subscription.customerid)
-        m = m.add_column(Subscription.rate_plan)
-        m = m.one_or_none()
-        member = m.Member
-        cid = m.customerid
-        iamPro = True if m.rate_plan in ('pro', 'produo') else False
-        billdates={}
-        seconds=0
-        debug.append(f"Distinct User {x.member_id} {member.member} RatePlan={m.rate_plan} Pro={iamPro}")
-        name = member.member
-
-        # Show prior bills
-        pb = Logs.query.filter((Logs.resource_id == res.id) & (Logs.member_id == x.member_id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).all()
-        for pbx in pb:
-            debug.append(f" -- Prior Billed Member {pbx.member_id} {pbx} {pbx.time_logged}")
-
-
-        # Find most recent billing of this user
-        lastbill = Logs.query.filter((Logs.member_id == x.member_id) & (Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).one_or_none()
-
-        if lastbill is None:
-            debug.append(f" -- No Prior Bill for {x.member_id}")
-            logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.member_id == x.member_id) & (UsageLog.payTier != 1)).all()
-            logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.member_id == x.member_id) & ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None)))).all()
-        else:
-            logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.time_logged > lastbill.time_logged) & (UsageLog.member_id == x.member_id) & ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None)))).all()
-            debug.append(f" -- Last Billed {lastbill.time_logged}")
-
-
-        # If we have no prior, bill for everything
-        # If we have prior, bill only after that
-        for l in logs:
-            seconds += l.activeSecs
-            datestr = l.time_logged.strftime("%b-%d-%Y")
-            if datestr not in billdates: billdates[datestr] = 0
-            billdates[datestr] += l.activeSecs
-            debug.append(f" -- Logged {l.time_logged} {l.activeSecs} {l.payTier}")
-
-
-        billMe = doBilling
-        if iamPro:
-            cents = int((res.price_pro * seconds)/3600)
-        else:
-            cents = int((res.price * seconds)/3600)
-        stripedesc = ", ".join([f"{x}={int(billdates[x]/60)}min" for x in billdates])
-        debug.append(f" -- Billing {x.member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc} Cents:{cents}")
-        if (billMe is True ) and (seconds > 100):
-            # Do Stripe Payment
-            stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
-            commentstr="Billing"
-            error = None
-            try:
-                price = stripe.Price.create(
-                  unit_amount=cents,
-                  currency='usd',
-                  product=res.prodcode)
-                invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc)
-
-                invoice = stripe.Invoice.create(
-                customer=cid,
-                description=stripedesc
-                #collection_method="charge_automatically",
-                )
-
-                finalize=stripe.Invoice.finalize_invoice(invoice)
-                if (finalize['status'] != 'open'):
-                    #result = {'error':'success','description':"Stripe Error"}
-                    error = "Stripe Finalize error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(name,pay['status'],res.prodcode,cid,invoice.id)
-                else:
-                    pay = stripe.Invoice.pay(invoice)
-                    if (pay['status'] != 'paid'):
-                      #result = {'error':'success','description':"Payment Declined"}
-                      error = "Stripe Payment error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(name,pay['status'],r.prodcode,cid,invoice.id)
-            except BaseException as e:
-                error = f"Stripe Payment error billing {name}: {str(e)}"
-
-            if error is None:
-                logmsg = f"Invoice {invoice.id}"
-                authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id,resource_id=res.id,member_id=x.member_id,message=logmsg,commit=0)
-            else:
-                authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=x.member_id,message=error,commit=0)
-                errors.append(error)
-            db.session.commit()
+        d,e = bill_member_for_resource(x.member_id,res,doBilling)
+        debug += d
+        if e is not None:
+            errors.append(e)
 
 
     return render_template('resource_billing.html',resource=res,debug=debug+['Errors:']+errors)
