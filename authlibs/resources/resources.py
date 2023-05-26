@@ -54,6 +54,14 @@ def resource_create():
 	    r.price_pro = int(request.form['input_price_pro'])
 	except:
 	    pass
+	try: 
+	    r.free_min = int(request.form['input_free_min'])
+	except:
+	    pass
+	try: 
+	    r.free_min_pro = int(request.form['input_free_min_pro'])
+	except:
+	    pass
 	r.slack_admin_chan = (request.form['input_slack_admin_chan']).strip()
 	r.event_mqtt_topic = (request.form['input_event_mqtt_topic']).strip()
 	r.info_url = (request.form['input_info_url']).strip()
@@ -307,6 +315,14 @@ def resource_update(resource):
 			r.price_pro = int(request.form['input_price_pro'])
 		except:
 			pass
+		try: 
+			r.free_min = int(request.form['input_free_min'])
+		except:
+			pass
+		try: 
+			r.free_min_pro = int(request.form['input_free_min_pro'])
+		except:
+			pass
 		r.slack_admin_chan = (request.form['input_slack_admin_chan']).strip()
 		r.event_mqtt_topic = (request.form['input_event_mqtt_topic']).strip()
 		r.info_url = (request.form['input_info_url']).strip()
@@ -419,6 +435,11 @@ def bill_member_for_resource(member_id,res,doBilling):
     debug.append(f"Distinct User {member_id} {member.member} RatePlan={m.rate_plan} Pro={iamPro}")
     name = member.member
 
+    # Query Prior Invoices
+    invoices = query_invoices(cid,res.short)
+    for i in invoices:
+        debug.append(f"{i.amount_due} {i.status} {i.description} {i.status_transitions.finalized_at}")
+
     # Show prior bills
     pb = Logs.query.filter((Logs.resource_id == res.id) & (Logs.member_id == member_id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).all()
     for pbx in pb:
@@ -438,6 +459,7 @@ def bill_member_for_resource(member_id,res,doBilling):
 
     # If we have no prior, bill for everything
     # If we have prior, bill only after that
+    lastUsage=""
     for l in logs:
         if (l.activeSecs > 0):
             seconds += l.activeSecs
@@ -446,16 +468,33 @@ def bill_member_for_resource(member_id,res,doBilling):
             billdates[datestr] += l.activeSecs
             usageRecords.append(l.id)
             debug.append(f" -- Logged {l.time_logged} {l.activeSecs} {l.payTier}")
+            lastUsage = str(l.id)
 
 
     billMe = doBilling
     if iamPro:
         cents = int((res.price_pro * seconds)/3600)
+        try:
+            freeSecs = res.free_min_pro * 60
+        except:
+            freeSecs = 0
     else:
         cents = int((res.price * seconds)/3600)
-    stripedesc = ", ".join([f"{x}={int(billdates[x]/60)}min" for x in billdates])
-    debug.append(f" -- Billing {member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc} Cents:{cents}")
-    if (billMe is True ) and (seconds > 100):
+        try:
+            freeSecs = res.free_min * 60
+        except:
+            freeSecs = 0
+
+    seconds -= freeSecs
+    if seconds < 0: seconds = 0
+
+    stripedesc = f"{res.short} Usage: "+(", ".join([f"{x}={int(billdates[x]/60)}min" for x in billdates]))
+    if (cents < 100): billMe = False
+    debug.append(f" -- {'Do' if billMe else 'Dont'} Bill {member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc} Cents:{cents} ")
+    if (billMe is True):
+        invoiced=False
+        paid=False
+        pay=None
         # Do Stripe Payment
         stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
         commentstr="Billing"
@@ -471,37 +510,56 @@ def bill_member_for_resource(member_id,res,doBilling):
             description=stripedesc,
             #collection_method="charge_automatically",
             metadata = {
-                'X-MIL-resource':'waterjet',
+                'X-MIL-resource':res.short,
+                'X-MIL-resource-usage':res.short,
+                'X-MIL-last-usage':lastUsage,
                 'X-MIL-usageRecords':str(usageRecords)
                 }
             )
 
             finalize=stripe.Invoice.finalize_invoice(invoice)
+            logmsg = f"Invoiced {invoice.id} for ${cents/100.0:0.2f}"
+            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
             if (finalize['status'] != 'open'):
                 #result = {'error':'success','description':"Stripe Error"}
                 error = "Stripe Finalize error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(name,pay['status'],res.prodcode,cid,invoice.id)
             else:
-                pay = stripe.Invoice.pay(invoice)
-                if (pay['status'] != 'paid'):
-                  #result = {'error':'success','description':"Payment Declined"}
-                  error = "Stripe Payment error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(name,pay['status'],r.prodcode,cid,invoice.id)
-                  try:
-                      stripe.Invoice.delete(invoice.id)
-                      debug.append(f" -- Deleting {finalize['status']} Invoice  {invoice.id}")
-                  except:
-                      error = f"Error deleting {finalize['status']} Invoice ID {invoice.id} {name}: {str(e)}"
-                else:
+                invoiced=True
+                try:
+                    pay = stripe.Invoice.pay(invoice)
                     debug.append(f" -- Invoice {invoice.id} paid ${cents/100.0:0.2f}")
+                except BaseException as e:
+                    logmsg = f"Invoice {invoice.id} Error {e}"
+                    authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
+                    error = "Stripe Payment error for {0} Invoice {1}".format(name,invoice.id)
+                else:
+                    paid=True
         except BaseException as e:
-            error = f"Stripe Payment error billing {name}: {str(e)}"
+            logmsg = f"Error: {e}"
+            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
 
-        if error is None:
-            logmsg = f"Invoice {invoice.id} Charged ${cents/100.0:0.2f}"
-            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
-        else:
-            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=error,commit=0)
         db.session.commit()
+        # End Invoiced
     return (debug,error)
+
+def query_invoices(customer_id,resource_short):
+    error = None
+    debug = []
+    stripe.api_version = '2020-08-27'
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+    # Status can be "open" or "paid"
+    # https://stripe.com/docs/search#search-query-language
+    invoices = stripe.Invoice.search(query=f"metadata[\"X-MIL-resource\"]:\"{resource_short}\" AND customer:\"{customer_id}\"")
+
+    ### WARNING - DELETE ALL!
+    #invoices = stripe.Invoice.list()
+    #for invoice in invoices.data:
+    #    try:
+    #        stripe.Invoice.delete(invoice.id)
+    #    except:
+    #        pass
+
+    return invoices
 
 @blueprint.route('/<string:resource>/billing', methods=['GET','POST'])
 @roles_required(['Admin','Finance'])

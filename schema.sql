@@ -238,6 +238,10 @@ CREATE TABLE IF NOT EXISTS "resources" (
         slack_info_text VARCHAR,
         age_restrict INTEGER,
         permissions VARCHAR(255),
+        price INTEGER,
+        price_pro INTEGER,
+        free_min INTEGER,
+        free_min_pro INTEGER,
         PRIMARY KEY(id),
         UNIQUE (name),
         UNIQUE (short)

@@ -79,14 +79,20 @@
   </div>
 
   <div class="form-row">
-    <div class="form-group col-md-4">
+    <div class="form-group col-md-2">
 			{{ input('prodcode',"Product Code",'prod_XXX',small="Stripe Product Code - If billable") }}
     </div>
-    <div class="form-group col-md-4">
+    <div class="form-group col-md-2">
 			{{ input('price',"Price per Hour (CENTS)","0",small="If billable resource") }}
     </div>
-    <div class="form-group col-md-4">
+    <div class="form-group col-md-2">
 			{{ input('price_pro',"Pro-Member Price per Hour (CENTS)","0",small="If billable resource (Usually discounted)") }}
+    </div>
+    <div class="form-group col-md-2">
+			{{ input('free_min',"Free Minutes","0",small="Per bill cycle - If billable resource") }}
+    </div>
+    <div class="form-group col-md-2">
+			{{ input('free_min_pro',"Free Minutes (Pro)","0",small="Pro members - Per bill cycle - If billable resource") }}
     </div>
   </div>
 

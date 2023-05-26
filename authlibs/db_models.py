@@ -100,6 +100,11 @@ class Member(db.Model,UserMixin):
     def is_arm(self):
         return AccessByMember.query.filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).count() >= 1
 
+    def is_specific_arm(self,resource=None,resource_id=None):
+        if resource is not None:
+            resource_id = resource.id
+        return AccessByMember.query.filter(AccessByMember.resource_id== resource_id,AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).count() >= 1
+
     def resource_roles(self):
         return [x[0] for x in db.session.query(Resource.name).join(AccessByMember,AccessByMember.resource_id == Resource.id).filter(AccessByMember.member_id == self.id,AccessByMember.level >= AccessByMember.LEVEL_ARM).all()]
 
@@ -203,6 +208,8 @@ class Resource(db.Model):
     prodcode = db.Column(db.String(50)) # For Charges
     price = db.Column(db.Integer())  # Cents per hour
     price_pro = db.Column(db.Integer())  # Cents per hour - Pro members
+    free_min = db.Column(db.Integer())  # Free Minutes per period
+    free_min_pro = db.Column(db.Integer())  # Free Minutes per period - Pro Members
 
 class Training(db.Model):
     __tablename__ = 'training'
