@@ -43,8 +43,7 @@ def autoplot_logic(rundate=None,process_payment=False,process_invoice=False,debu
               data['Active']=sub.active
               if not data['Active']:
                   errors.append("Membership Inactive")
-              if data['Plan'] != "pro":
-                  errors.append("Not a pro member")
+              # if data['Plan'] != "pro": errors.append("Not a pro member")
           else:
               errors.append("Subscription Not Found")
       else:
