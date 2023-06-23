@@ -416,14 +416,32 @@ def resource_showusers(resource):
     return render_template('resource_users.html',resource=rid,accrecs=sorted(accrec,key=cmp_to_key(showuser_sort)))
 
 
-def bill_member_for_resource(member_id,res,doBilling):
+def end_of_month(date):
+    date =  date.replace(hour=23,minute=59,second=59,microsecond=999999)
+    if date.month == 12:
+        return date.replace(day=31)
+    return(date.replace(month=date.month+1, day=1) - datetime.timedelta(days=1))
+
+def bill_member_for_resource(member_id,res,doBilling,month,year):
+    tabledata = {
+            "member":"??",
+            "time":"",
+            "invoice":"",
+            "number":"",
+            "price":"",
+            "status":"None"
+            }
     error = None
+    disposition=None
     debug = []
+    startDate = datetime.datetime(month=int(month),year=int(year),day=1)
+    endDate = end_of_month(startDate)
     m = Member.query.filter(Member.id == member_id)
     m = m.join(Subscription,Subscription.member_id == Member.id)
     m = m.add_column(Subscription.customerid)
     m = m.add_column(Subscription.rate_plan)
     m = m.one_or_none()
+    debug.append(f"Bill member {member_id} for month {month} year {year}")
     if m is None:
         return ([],f"Member {member_id} not found")
     member = m.Member
@@ -435,26 +453,32 @@ def bill_member_for_resource(member_id,res,doBilling):
     debug.append(f"Distinct User {member_id} {member.member} RatePlan={m.rate_plan} Pro={iamPro}")
     name = member.member
 
+    tabledata['member']=name
     # Query Prior Invoices
-    invoices = query_invoices(cid,res.short)
-    for i in invoices:
-        debug.append(f"{i.amount_due} {i.status} {i.description} {i.status_transitions.finalized_at}")
+    alreadyBilled=False
+    invoiceStatus=None
+    if cid is not None and cid != "":
+        invoices = query_invoices(cid,res.short,f"{month}/{year}")
+        count=0
+        for i in invoices:
+            debug.append(f" -- Already Billed {i.amount_due} {i.status} {i.description} {i.status_transitions.finalized_at}")
+            tabledata['invoice']=i.id
+            tabledata['number']=i.number
+            invoiceStatus = i.status
+            count +=1
+            alreadyBilled=True
+        if (count > 1):
+            invoiceStatus = "<Multple!>"
+            debug.append(f" -- ERROR multiple outstanding invoices found!")
 
-    # Show prior bills
-    pb = Logs.query.filter((Logs.resource_id == res.id) & (Logs.member_id == member_id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).all()
-    for pbx in pb:
-        debug.append(f" -- Prior Billed Member {pbx.member_id} {pbx} {pbx.time_logged}")
 
-
-    # Find most recent billing of this user
-    lastbill = Logs.query.filter((Logs.member_id == member_id) & (Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).one_or_none()
-
-    if lastbill is None:
-        debug.append(f" -- No Prior Bill for {member_id}")
-        logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.member_id == member_id) & ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None)))).all()
-    else:
-        logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & (UsageLog.time_logged > lastbill.time_logged) & (UsageLog.member_id == member_id) & ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None)))).all()
-        debug.append(f" -- Last Billed {lastbill.time_logged}")
+    debug.append(f" -- Query between {startDate} - {endDate}")
+    logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & 
+        (UsageLog.member_id == member_id) & 
+        ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None))) & 
+        (UsageLog.time_reported >= startDate) &
+        (UsageLog.time_reported <= endDate)
+        ).all()
 
 
     # If we have no prior, bill for everything
@@ -467,7 +491,7 @@ def bill_member_for_resource(member_id,res,doBilling):
             if datestr not in billdates: billdates[datestr] = 0
             billdates[datestr] += l.activeSecs
             usageRecords.append(l.id)
-            debug.append(f" -- Logged {l.time_logged} {l.activeSecs} {l.payTier}")
+            debug.append(f" -- Logged {l.time_logged} ActiveSecs={l.activeSecs} Tier={l.payTier}")
             lastUsage = str(l.id)
 
 
@@ -487,11 +511,27 @@ def bill_member_for_resource(member_id,res,doBilling):
 
     seconds -= freeSecs
     if seconds < 0: seconds = 0
+    tabledata['time'] = sec_to_hms(seconds)
 
     stripedesc = f"{res.short} Usage: "+(", ".join([f"{x}={int(billdates[x]/60)}min" for x in billdates]))
-    if (cents < 100): billMe = False
-    debug.append(f" -- {'Do' if billMe else 'Dont'} Bill {member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc} Cents:{cents} ")
-    if (billMe is True):
+    tabledata['price']=f"${cents/100:0.2f}"
+    if (cents < 100): 
+        billMe = False
+        disposition = "Below Minimum"
+        tabledata['status']="Below Minimum"
+    elif alreadyBilled == True:
+        disposition = "Already Billed"
+        tabledata['status']="AlreadyBilled: "+invoiceStatus
+    elif billMe == False:
+        disposition = "Should Bill"
+        tabledata['status']="Should Bill"
+    elif disposition is None:
+        disposition = "Bill"
+        tabledata['status']="Billing"
+
+
+    debug.append(f" -- {'Do' if billMe else 'Dont'} Disposition={disposition} {member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc} Cents:{cents} ")
+    if (disposition == "Bill"):
         invoiced=False
         paid=False
         pay=None
@@ -511,6 +551,7 @@ def bill_member_for_resource(member_id,res,doBilling):
             #collection_method="charge_automatically",
             metadata = {
                 'X-MIL-resource':res.short,
+                'X-MIL-period':f"{month}/{year}",
                 'X-MIL-resource-usage':res.short,
                 'X-MIL-last-usage':lastUsage,
                 'X-MIL-usageRecords':str(usageRecords)
@@ -519,10 +560,12 @@ def bill_member_for_resource(member_id,res,doBilling):
 
             finalize=stripe.Invoice.finalize_invoice(invoice)
             logmsg = f"Invoiced {invoice.id} for ${cents/100.0:0.2f}"
+            tabledata['invoice']=str(invoice.id)
             authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
             if (finalize['status'] != 'open'):
                 #result = {'error':'success','description':"Stripe Error"}
                 error = "Stripe Finalize error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(name,pay['status'],res.prodcode,cid,invoice.id)
+                tabledata['status']="Finalize Error"
             else:
                 invoiced=True
                 try:
@@ -532,24 +575,30 @@ def bill_member_for_resource(member_id,res,doBilling):
                     logmsg = f"Invoice {invoice.id} Error {e}"
                     authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
                     error = "Stripe Payment error for {0} Invoice {1}".format(name,invoice.id)
+                    tabledata['status']=f"Stripe Pay Error {str(e)}"
                 else:
                     paid=True
+                    tabledata['status']="Paid"
         except BaseException as e:
             logmsg = f"Error: {e}"
+            tabledata['status']=f"Exception Error {str(e)}"
             authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
 
         db.session.commit()
         # End Invoiced
-    return (debug,error)
+    return (debug,error,tabledata)
 
-def query_invoices(customer_id,resource_short):
+def query_invoices(customer_id,resource_short,monthYear=None):
     error = None
     debug = []
     stripe.api_version = '2020-08-27'
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
     # Status can be "open" or "paid"
     # https://stripe.com/docs/search#search-query-language
-    invoices = stripe.Invoice.search(query=f"metadata[\"X-MIL-resource\"]:\"{resource_short}\" AND customer:\"{customer_id}\"")
+    if monthYear is not None:
+        invoices = stripe.Invoice.search(query=f"metadata[\"X-MIL-resource\"]:\"{resource_short}\" AND customer:\"{customer_id}\" AND metadata[\"X-MIL-period\"]:\"{monthYear}\"")
+    else:
+        invoices = stripe.Invoice.search(query=f"metadata[\"X-MIL-resource\"]:\"{resource_short}\" AND customer:\"{customer_id}\"")
 
     ### WARNING - DELETE ALL!
     #invoices = stripe.Invoice.list()
@@ -561,14 +610,88 @@ def query_invoices(customer_id,resource_short):
 
     return invoices
 
+def secsToHMS(seconds):
+    r = ""
+    hours = seconds // 3600
+    minutes = (seconds % 3600) // 60
+    seconds = seconds % 60
+    if hours > 0:
+        r = f"{hours} Hour{'s' if hours > 1 else ''}"
+    if minutes > 0:
+        r += f" {minutes} Min{'s' if minutes > 1 else ''}"
+    if (seconds > 0) or (r==""):
+        r += f" {seconds} Sec{'s' if seconds > 1 else ''}"
+    return r
+
+@blueprint.route('/<string:resource>/billingUsage', methods=['GET','POST'])
+@roles_required(['Admin','Finance'])
+def billing_usage(resource):
+    now = datetime.datetime.now()
+    month = now.month
+    day = now.day
+    if 'month' in request.form: month = int(request.form['month'])
+    if 'year' in request.form: year = int(request.form['year'])
+
+    tabledata=[]
+    doBilling = False
+    if 'Update' in request.form:
+        for x in request.form:
+            if x.startswith("change_"):
+                xx = int(x.replace("change_",""))
+                toval = 0 if request.form[x] == "makeFalse" else 1
+                ul = UsageLog.query.filter((UsageLog.id ==xx)).one_or_none()
+                ul.payTier = toval;
+        db.session.commit()
+
+    errors = []
+    debug=[]
+    rid = (resource)
+    res = Resource.query.filter(Resource.name == rid).one_or_none()
+    if not res:
+      flash ("Resource not found","warning")
+      return redirect(url_for('resources.resources'))
+
+    if (res.price == 0) or (res.prodcode is None) or (res.prodcode.strip()==""):
+      flash ("Non-Billable Resource","warning")
+      return redirect(url_for('resources.resources'))
+
+    names = {}
+    for m in Member.query.all():
+        names[m.id]=f"{m.firstname} {m.lastname}"
+
+    ul = UsageLog.query.filter((UsageLog.resource_id == res.id)).order_by(UsageLog.time_logged.desc()).limit(100).all()
+    for l in ul:
+        (lu1,lu2,lu3) = ago.ago(l.time_logged,now)
+        tabledata.append({
+            "id":l.id,
+            "who": names[l.member_id] if l.member_id in names else "??",
+            "when": lu1,
+            "ago": f"{lu2} Ago",
+            "usage": secsToHMS(l.activeSecs),
+            "tier": False if l.payTier != 1 else True
+            })
+    meta = {
+            'first':'',
+            'last':'?last'
+            }
+    return render_template('view_usage.html',resource=res,debug=debug+['Errors:']+errors,table=tabledata,meta=meta,month=month,year=year)
+
 @blueprint.route('/<string:resource>/billing', methods=['GET','POST'])
 @roles_required(['Admin','Finance'])
 def billing(resource):
+    now = datetime.datetime.now()
+    month = now.month
+    year = now.year
+    if 'month' in request.form: month = int(request.form['month'])
+    if 'year' in request.form: year = int(request.form['year'])
+
+    tabledata=[]
     doBilling = False
-    if 'doBilling' in request.form:
+    if 'invoiceCollect' in request.form:
         doBilling = True
     errors = []
     debug=[]
+    debug.append(f"Month {type(month)} {month} Year {type(year)} {year}")
     rid = (resource)
     res = Resource.query.filter(Resource.name == rid).one_or_none()
     if not res:
@@ -586,15 +709,47 @@ def billing(resource):
 
 
     # Find all resource users
-    users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
-    for x in users:
-        d,e = bill_member_for_resource(x.member_id,res,doBilling)
-        debug += d
-        if e is not None:
-            errors.append(e)
+    if 'doBilling' in request.form:
+        users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
+        for x in users:
+            d,e,t = bill_member_for_resource(x.member_id,res,doBilling,month,year)
+            debug += d
+            tabledata.append(t)
+            if e is not None:
+                errors.append(e)
+        return render_template('bill.html',resource=res,debug=debug+['Errors:']+errors,table=tabledata,month=month,year=year)
+    elif 'viewUsage' in request.form:
+        users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
+        for x in users:
+            d,e,t = bill_member_for_resource(x.member_id,res,False,month,year)
+            tabledata += t
+            debug += d
+            if e is not None:
+                errors.append(e)
+    else:
+        # User List
+        lst = {}
+        for l in Logs.query.filter((Logs.resource_id == res.id) & 
+            ((Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id) | 
+            (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id)) & 
+            (Logs.member_id == current_user.id)
+            ).order_by(Logs.time_logged.desc()).all():
+                #errors.append(f"{l.time_logged} {l.message}")
+                lst[l.time_logged] = l
+        for e in UsageLog.query.filter((UsageLog.member_id == current_user.id) & (UsageLog.resource_id == res.id)).all():
+                lst[e.time_logged] = e
+                #errors.append(f"{e.time_logged} {e.activeSecs} {e.payTier}")
 
+        for x in sorted(lst,key = lambda x: x,reverse=True):
+            o = lst[x]
+            if isinstance(o,UsageLog):
+                debug.append(f"UsageLog Time={o.time_logged} Active={o.activeSecs} Tier={o.payTier}")
+                tabledata.append({"date":o.time_logged,"data":f" Active={o.activeSecs} Tier={o.payTier}"})
+            elif isinstance(o,Logs):
+                debug.append(f"BILLED Log {o.time_logged} {o.message}")
+                tabledata.append({"date":o.time_logged,"data":f"BILLED {o.message}"})
 
-    return render_template('resource_billing.html',resource=res,debug=debug+['Errors:']+errors)
+    return render_template('resource_billing.html',resource=res,debug=debug+['Errors:']+errors,table=tabledata,month=month,year=year)
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('/<string:resource>/log', methods=['GET','POST'])

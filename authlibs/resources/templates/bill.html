@@ -10,14 +10,21 @@
 
 <table class="table table-sm">
 	<tr>
-		<th>Date</th>
-		<th>Col2</th>
-		<th>Col3</th>
+		<th>Member</th>
+		<th>Time</th>
+		<th style="text-align:right">Price</th>
+		<th>Invoice ID</th>
+		<th>Invoice Number</th>
+		<th>Status</th>
 	</tr>
 	{% for t in table %}
 	<tr>
-		<td>{{ t.date }}</td>
-		<td>{{ t.data }}</td>
+		<td>{{ t.member }}</td>
+		<td>{{ t.time }}</td>
+		<td style="text-align:right">{{ t.price }}</td>
+		<td>{{ t.invoice }}</td>
+		<td>{{ t.number }}</td>
+		<td>{{ t.status }}</td>
 	</tr>
 	{% endfor %}
 </table>
