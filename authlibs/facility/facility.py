@@ -129,6 +129,8 @@ def minisplit():
         axx=dt_obj.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
         acl=ago.ago(axx,now)
 
+        msu =  normalize_temp(j['managed_setpoint_unoccupied']) if 'managed_setpoint_unoccupied' in j else 0
+        os =  normalize_temp(j['override_setpoint']) if 'override_setpoint' in j else 0
         minisplits.append({
             'name': m.decode('utf-8').replace("minisplit/",""),
             'rawSetPoint': j['setpoint'],
@@ -138,10 +140,10 @@ def minisplit():
             'power': j['power'],
             'managed': j['managed'],
             'managed_setpoint': normalize_temp(j['managed_setpoint']),
-            'managed_setpoint_unoccupied': normalize_temp(j['managed_setpoint_unoccupied']),
-            'override_setpoint': normalize_temp(j['override_setpoint']),
+            'managed_setpoint_unoccupied': msu,
+            'override_setpoint': os,
             'override_time': j['override_time'],
-            'ir_interval': j['ir_interval'],
+            'ir_interval': j['ir_interval'] if 'ir_interval' in j else 0,
             'fan': j['fan'],
             'ipaddr': j['ip'],
             'rssid': j['rssid'],
@@ -150,7 +152,7 @@ def minisplit():
             'lastupdate2':acl[1],
             'override_end':ovend[0],
             'override_end_ago':ovend[1],
-            'operating':j['operating']
+            'operating':j['operating'] if 'operating' in j else 0
             })
         roomtemp[ m.decode('utf-8').replace("minisplit/","")] = j['roomTemp']
     return render_template('minisplits.html',minisplits=minisplits,roomtemp=roomtemp,temperatures=temperatures)

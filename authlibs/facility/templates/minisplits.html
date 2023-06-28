@@ -127,11 +127,8 @@
 
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Temp:</label>
-  {% for t in temperatures %}
-  <label class="btn btn-outline-secondary {% if m.setpoint == t %} active {% endif %}" >
-          <input type="radio" name="setpoint" value="{{ t }}" id="setpoint_{{ t }}"  {% if m.setpoint == t %} checked {% endif %}> {{ t }}
-  </label>
-  {% endfor %}
+	<input type="range" name="setpoint" value="{{ m.setpoint }}" min="50" max="90" oninput="this.nextElementSibling.value = this.value">
+	<output>{{ m.setpoint }}</output>
 </div>
 
 
@@ -163,29 +160,20 @@
 
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Building Occupied:</label>
-  {% for t in temperatures %}
-  <label class="btn btn-outline-secondary {% if m.managed_setpoint == t %} active {% endif %}" >
-          <input type="radio" name="managed_setpoint" value="{{ t }}" id="managed_setpoint_{{ t }}"  {% if m.managed_setpoint == t %} checked {% endif %}> {{ t }}
-  </label>
-  {% endfor %}
+	<input type="range" name="managed_setpoint" value="{{ m.managed_setpoint }}" min="50" max="90" oninput="this.nextElementSibling.value = this.value">
+	<output>{{ m.managed_setpoint }}</output>
 </div>
 
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Building Unoccupied:</label>
-  {% for t in temperatures %}
-  <label class="btn btn-outline-secondary {% if m.managed_setpoint_unoccupied == t %} active {% endif %}" >
-          <input type="radio" name="managed_setpoint_unoccupied" value="{{ t }}" id="mamaged_setpoint_unoccupied_{{ t }}"  {% if m.managed_setpoint_unoccupied == t %} checked {% endif %}> {{ t }}
-  </label>
-  {% endfor %}
+	<input type="range" name="managed_setpoint_unoccupied" value="{{ m.managed_setpoint_unoccupied }}" min="50" max="90" oninput="this.nextElementSibling.value = this.value">
+	<output>{{ m.managed_setpoint_unoccupied }}</output>
 </div>
 
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Override Temp: </label>
-  {% for t in temperatures %}
-  <label class="btn btn-outline-secondary {% if m.override_setpoint == t %} active {% endif %}" >
-          <input type="radio" name="override_setpoint" value="{{ t }}" id="override_setpoint_{{ t }}"  {% if m.override_setpoint == t %} checked {% endif %}> {{ t }}
-  </label>
-  {% endfor %}
+	<input type="range" name="override_setpoint" value="{{ m.override_setpoint }}" min="50" max="90" oninput="this.nextElementSibling.value = this.value">
+	<output>{{ m.override_setpoint }}</output>
 </div>
 
 
@@ -257,5 +245,47 @@
 	</div>
 
 {% include "upstairs.svg" %}
+
+<script type="text/javascript">
+	$(function () {
+
+    $(".range")
+        .noUiSlider({
+        start: 72,
+        step: 1,
+        range: {
+            min: 50,
+            max: 90
+        },
+			tooltips: [true, wNumb({decimals: 1}), true]
+    })
+        .noUiSlider_pips({
+        mode: 'values',
+        density: 4,
+        values: [55,68,72,76,85],
+        stepped: true,
+        format: wNumb({
+            decimals: 0,
+            prefix: '',
+            postfix: "&deg"
+        })
+    })
+        .Link('lower').to('-inline-<div class="tooltip_slider"></div>', function (value) {
+        $(this).html('<span>' + "" + float2int(value) + "&deg;" + '</span>');
+    })
+        .on('set', function (event, value) {
+        if (value < 50) {
+            $(this).val(50);
+        } else if (value > 90) {
+            $(this).val(90);
+        }
+    });
+
+});
+
+function float2int(value) {
+    return value | 0;
+}
+</script>
 
 {% endblock %}
