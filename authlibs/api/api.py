@@ -1355,11 +1355,8 @@ Total Charge: ${5:0.2f}
 New Vending Balance: ${4:0.2f}""".format(
             data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0,data['totalCharge']/100.0)
 
-      price = stripe.Price.create(
-          unit_amount=data['addAmount'],
-          currency='usd',
-          product=productId)
-      invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=description)
+      invoiceItem = stripe.InvoiceItem.create(customer=cid, description=description,
+              currency="usd",amount=data['addAmount'])
 
       invoice = stripe.Invoice.create(
         customer=cid,
