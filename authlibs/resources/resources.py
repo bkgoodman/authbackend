@@ -443,7 +443,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
     m = m.one_or_none()
     debug.append(f"Bill member {member_id} for month {month} year {year}")
     if m is None:
-        return ([],f"Member {member_id} not found")
+        return ([],f"Member {member_id} not found",[])
     member = m.Member
     cid = m.customerid
     iamPro = True if m.rate_plan in ('pro', 'produo') else False
