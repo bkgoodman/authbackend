@@ -719,10 +719,11 @@ def billing(resource):
                 errors.append(e)
         return render_template('bill.html',resource=res,debug=debug+['Errors:']+errors,table=tabledata,month=month,year=year)
     elif 'viewUsage' in request.form:
+        # "My Usage" button
         users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
         for x in users:
             d,e,t = bill_member_for_resource(x.member_id,res,False,month,year)
-            tabledata += t
+            tabledata.append(t)
             debug += d
             if e is not None:
                 errors.append(e)

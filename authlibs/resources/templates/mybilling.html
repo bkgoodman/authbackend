@@ -4,27 +4,21 @@
 {% block head %}
 {% endblock %}
 {% block body %}
-<div class="body"><h3>{{ resource.name }} Usage Reports</h3></div>
+<div class="body"><h3>My {{ resource.name }} Usage Reports</h3></div>
 
 <p>Month is {{ month }} Year is {{ year }}</p>
 
 <table class="table table-sm">
 	<tr>
-		<th>Member</th>
+		<th>When</th>
 		<th>Time</th>
-		<th style="text-align:right">Price</th>
-		<th>Invoice ID</th>
-		<th>Invoice Number</th>
-		<th>Status</th>
+		<th></th>
 	</tr>
 	{% for t in table %}
 	<tr>
-		<td>{{ t['member'] }}</td>
+		<td>{{ t.date }}</td>
 		<td>{{ t.time }}</td>
-		<td style="text-align:right">{{ t.price }}</td>
-		<td>{{ t.invoice }}</td>
-		<td>{{ t.number }}</td>
-		<td>{{ t.status }}</td>
+		<td>{{ t.info }}</td>
 	</tr>
 	{% endfor %}
 </table>

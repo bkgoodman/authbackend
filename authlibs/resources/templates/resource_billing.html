@@ -10,14 +10,15 @@
 
 <table class="table table-sm">
 	<tr>
-		<th>Date</th>
-		<th>Col2</th>
-		<th>Col3</th>
+		<th>Data</th>
+		<th>Col1</th>
+		<th>COl2</th>
 	</tr>
 	{% for t in table %}
 	<tr>
 		<td>{{ t.date }}</td>
-		<td>{{ t.data }}</td>
+		<td>{{ t.time }}</td>
+		<td>{{ t.info }}</td>
 	</tr>
 	{% endfor %}
 </table>
@@ -44,7 +45,7 @@
 		{% endfor %}
 	</select>
 	<input type="Submit" class="btn btn-primary" Value="Unpaid Invoices" name="unpaidInvoices" />
-	<input type="Submit" class="btn btn-primary" Value="View Usage" name="viewUsage" />
+	<input type="Submit" class="btn btn-primary" Value="My Usage" name="viewUsage" />
 	<input type="Submit" class="btn btn-danger" Value="Bill Usage" name="doBilling" />
 	<input type="checkbox" Value="Invoice & Collect" name="invoiceCollect" /> <label>Invoice &amp; Collect </label>
 </form>
