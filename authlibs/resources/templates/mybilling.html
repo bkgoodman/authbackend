@@ -6,24 +6,6 @@
 {% block body %}
 <div class="body"><h3>My {{ resource.name }} Usage Reports</h3></div>
 
-<p>Month is {{ month }} Year is {{ year }}</p>
-
-<table class="table table-sm">
-	<tr>
-		<th>When</th>
-		<th>Time</th>
-		<th></th>
-	</tr>
-	{% for t in table %}
-	<tr>
-		<td>{{ t.date }}</td>
-		<td>{{ t.time }}</td>
-		<td>{{ t.info }}</td>
-	</tr>
-	{% endfor %}
-</table>
-
-{% if current_user.privs("Finance") %}
 <form method="POST">
 	<select name="month">
 		<option value="1" {% if month==1 %}selected{% endif %}>January</option>
@@ -44,13 +26,37 @@
 	<option {% if year==x %}selected{% endif %} value="{{ x }}">{{ x }}</option>
 		{% endfor %}
 	</select>
-	<input type="Submit" class="btn btn-primary" Value="Unpaid Invoices" name="unpaidInvoices" />
-	<input type="Submit" class="btn btn-primary" Value="My Usage" name="viewUsage" />
-	<input type="Submit" class="btn btn-danger" Value="Bill Usage" name="doBilling" />
-	<input type="checkbox" Value="Invoice & Collect" name="invoiceCollect" /> <label>Invoice &amp; Collect </label>
+
+	<input type="Submit" class="btn btn-primary" Value="View Month" name="viewUsage" />
+
 </form>
-{% endif %}
-<p>{{ resource.name }}</p>
+<p>Month is {{ month }} Year is {{ year }}</p>
+
+<table class="table table-sm">
+	<tr>
+		<th>When</th>
+		<th>Time</th>
+		<th>Cost</th>
+		<th></th>
+	</tr>
+	{% for t in table %}
+	<tr>
+		<td>{{ t.date|safe }}</td>
+		<td>{{ t.time }}</td>
+		<td>{{ t.price }}</td>
+		<td>{{ t.info }}</td>
+	</tr>
+	{% endfor %}
+</table>
+
+	{% if invoices|length > 0 %}
+	<hr />
+	<h2> Invoiced </h2>
+	{% for i in invoices %}
+	Invoice #{{ i.number }} Status: {{ i.status }} Amount: {{ i.unit_amount }} Date: {{ i.created }}
+	{% endfor %}
+	{% endif %}
+
 
 <p>
 {% for x in debug %}

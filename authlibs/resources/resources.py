@@ -584,6 +584,17 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
         # End Invoiced
     return (debug,error,tabledata)
 
+def query_specific_invoice(customer_id,resource_short,monthYear=None):
+    error = None
+    debug = []
+    stripe.api_version = '2020-08-27'
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+    # Status can be "open" or "paid"
+    # https://stripe.com/docs/search#search-query-language
+    invoices = stripe.Invoice.search(query=f"metadata[\"X-MIL-resource\"]:\"{resource_short}\" AND customer:\"{customer_id}\" AND metadata[\"X-MIL-period\"]:\"{monthYear}\"")
+    return invoices
+
+
 def query_invoices(customer_id,resource_short,monthYear=None):
     error = None
     debug = []
@@ -692,6 +703,89 @@ def billing_usage(resource):
             'last':'?last'
             }
     return render_template('view_usage.html',resource=res,debug=debug+['Errors:']+errors,table=tabledata,meta=meta,month=month,year=year)
+
+@blueprint.route('/<string:resource>/mybilling', methods=['GET','POST'])
+def mybilling(resource):
+    now = datetime.datetime.now()
+    month = now.month
+    errors = []
+    debug=[]
+    year = now.year
+    if 'month' in request.form: month = int(request.form['month'])
+    if 'year' in request.form: year = int(request.form['year'])
+
+    s = Subscription.query.filter(Subscription.member_id == current_user.id).one()
+    iamPro = True if s.rate_plan in ('pro', 'produo') else False
+
+    startDate = datetime.datetime(month=int(month),year=int(year),day=1)
+    endDate = end_of_month(startDate)
+
+    tabledata=[]
+    rid = (resource)
+    res = Resource.query.filter(Resource.name == rid).one_or_none()
+    if not res:
+      flash ("Resource not found","warning")
+      return redirect(url_for('resources.resources'))
+
+    if (res.price == 0) or (res.prodcode is None) or (res.prodcode.strip()==""):
+      flash ("Non-Billable Resource","warning")
+      return redirect(url_for('resources.resources'))
+
+    logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & 
+        (UsageLog.member_id == current_user.id) & 
+        (UsageLog.time_reported >= startDate) &
+        (UsageLog.time_reported <= endDate)
+        ).all()
+    flash (f"{len(logs)} records in {startDate} - {endDate}","warning")
+    #        ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None))) & 
+    seconds = 0
+    totalCents=0
+    for l in logs:
+        t = {}
+        if (l.activeSecs > 0):
+            if ((l.payTier != 1) or (l.payTier is None)):
+                seconds += l.activeSecs
+                t['info'] = ""
+                if iamPro:
+                    cents = int((res.price_pro * seconds)/3600)
+                else:
+                    cents = int((res.price * seconds)/3600)
+                t['price'] = f"${cents/100:0.2f}"
+                totalCents += cents
+            else:
+                t['info'] = "Free Tier"
+                t['info'] = ""
+            datestr = l.time_logged.strftime("%b-%d-%Y")
+            debug.append(f" -- Logged {l.time_logged} ActiveSecs={l.activeSecs} Tier={l.payTier}")
+            t['date'] = datestr
+            t['time'] = sec_to_hms(l.activeSecs)
+            tabledata.append(t)
+
+
+    totalBill=f"${totalCents/100:0.2f}"
+
+    tabledata.append({
+        'date':"<b>Total</b>",
+        'time':sec_to_hms(seconds),
+        'price':totalBill
+        })
+
+    iv = query_specific_invoice(s.customerid,res.short,f"{month}/{year}")
+    invoices = []
+    for i in iv:
+        invoices.append({
+            'number':i.number,
+            'status':i.status,
+            'unit_amount':f"${i.amount_due/100:0.2f}",
+            'created':datetime.datetime.fromtimestamp((i['created']))
+            })
+
+
+    if (request.args.get("debug") is None): debug=[]
+
+    if (len(errors) > 0):
+        debug += ['Errors:']+errors
+    return render_template('mybilling.html',resource=res,debug=debug,table=tabledata,month=month,year=year,invoices=invoices)
 
 @blueprint.route('/<string:resource>/billing', methods=['GET','POST'])
 @roles_required(['Admin','Finance'])
