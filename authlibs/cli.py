@@ -8,6 +8,7 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from authlibs.db_models import db, ApiKey,  Role, UserRoles, Member, Resource, AccessByMember
 from authlibs.payments import cli_updatepayments
 from authlibs.membership import cli_syncmemberpayments
+from authlibs.resources.resources import cli_queryresourceinvoice,cli_refundinvoice
 from authlibs.slackutils import cli_slacktest
 from authlibs.ubersearch import cli_ubersearch
 from authlibs.autoplot.autoplot import cli_autoplot
@@ -194,6 +195,14 @@ commands = {
 	"notices":{
 		'usage':"notices -- Process member account notifications",
 		'cmd':cli_member_notices
+	},
+	"queryresourceinvoice":{
+		'usage':"cli_queryresourceinvoice <id> --  Query invoice no",
+		'cmd':cli_queryresourceinvoice
+	},
+	"refundinvoice":{
+		'usage':"cli_refundinvoice <id> --  Refund Invoice",
+		'cmd':cli_refundinvoice
 	},
 	"slacktest":{
 		'usage':"slacktest -- Send slack test",

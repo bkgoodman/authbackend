@@ -26,6 +26,7 @@ def round_to_closest(number, value1, value2):
         return value2
 
 def normalize_temp(temp):
+        return (temp)
         if (temp < temperatures[0]):
             return temperatures[0]
         if (temp > temperatures[-1]):
@@ -154,6 +155,8 @@ def minisplit():
             'override_end_ago':ovend[1],
             'operating':j['operating'] if 'operating' in j else 0
             })
+        print (j)
+        print (minisplits)
         roomtemp[ m.decode('utf-8').replace("minisplit/","")] = j['roomTemp']
     return render_template('minisplits.html',minisplits=minisplits,roomtemp=roomtemp,temperatures=temperatures)
 

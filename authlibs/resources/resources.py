@@ -461,7 +461,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
         invoices = query_invoices(cid,res.short,f"{month}/{year}")
         count=0
         for i in invoices:
-            debug.append(f" -- Already Billed {i.amount_due} {i.status} {i.description} {i.status_transitions.finalized_at}")
+            debug.append(f" -- Already Billed {i.amount_due} {i.status} {i.description} {i.status_transitions.finalized_at} charge {i.charge} metadata {i.metadata} invoice {i.id} number {i.number}")
             tabledata['invoice']=i.id
             tabledata['number']=i.number
             invoiceStatus = i.status
@@ -539,11 +539,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
         stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
         commentstr="Billing"
         try:
-            price = stripe.Price.create(
-              unit_amount=cents,
-              currency='usd',
-              product=res.prodcode)
-            invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc)
+            invoiceItem = stripe.InvoiceItem.create(customer=cid, amount=cents, currenct='usd', description=stripedesc) 
 
             invoice = stripe.Invoice.create(
             customer=cid,
@@ -609,6 +605,27 @@ def query_invoices(customer_id,resource_short,monthYear=None):
     #        pass
 
     return invoices
+
+def cli_queryresourceinvoice(cmd,**kwargs):
+    print (f"CMD IS {cmd}")
+    stripe.api_version = '2020-08-27'
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+    # Status can be "open" or "paid"
+    # https://stripe.com/docs/search#search-query-language
+    invoice = stripe.Invoice.retrieve(cmd[1])
+    print (invoice)
+
+def cli_refundinvoice(cmd,**kwargs):
+    print (f"CMD IS {cmd}")
+    stripe.api_version = '2020-08-27'
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
+    # Status can be "open" or "paid"
+    # https://stripe.com/docs/search#search-query-language
+    invoice = stripe.Invoice.retrieve(cmd[1])
+    if invoice is not None:
+        print (f"Invoice {invoice.id} {invoice.number} status {invoice.status} metadata {invoice.metadata} Total {invoice.total/100.00} Charge {invoice.charge}")
+        #charge = stripe.Charge.retrieve(invoice.charge)
+        #print (charge)
 
 def secsToHMS(seconds):
     r = ""
