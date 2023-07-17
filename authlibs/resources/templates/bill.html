@@ -8,8 +8,10 @@
 
 <p>Month is {{ month }} Year is {{ year }}</p>
 
+<form method="POST">
 <table class="table table-sm">
 	<tr>
+		<th></th>
 		<th>Member</th>
 		<th>Time</th>
 		<th style="text-align:right">Price</th>
@@ -19,6 +21,10 @@
 	</tr>
 	{% for t in table %}
 	<tr>
+		<td>
+			<button class="btn btn-secondary-outline glyphicon glyphicon-search" type="submit" name="memberDetail" value="{{ t['member_id'] }}">
+			</button>
+		</td>
 		<td>{{ t['member'] }}</td>
 		<td>{{ t.time }}</td>
 		<td style="text-align:right">{{ t.price }}</td>
@@ -29,8 +35,6 @@
 	{% endfor %}
 </table>
 
-{% if current_user.privs("Finance") %}
-<form method="POST">
 	<select name="month">
 		<option value="1" {% if month==1 %}selected{% endif %}>January</option>
 		<option value="2" {% if month==2 %}selected{% endif %}>February</option>
@@ -50,12 +54,11 @@
 	<option {% if year==x %}selected{% endif %} value="{{ x }}">{{ x }}</option>
 		{% endfor %}
 	</select>
-	<input type="Submit" class="btn btn-primary" Value="Unpaid Invoices" name="unpaidInvoices" />
-	<input type="Submit" class="btn btn-primary" Value="My Usage" name="viewUsage" />
+	<a href="{{ url_for('resources.billing_usage',resource=resource.name) }}" class="btn btn-primary">Edit Usage</a>
 	<input type="Submit" class="btn btn-danger" Value="Bill Usage" name="doBilling" />
 	<input type="checkbox" Value="Invoice & Collect" name="invoiceCollect" /> <label>Invoice &amp; Collect </label>
+	<input type="checkbox" Value="Debug" name="debug" /> <label>Debug</label>
 </form>
-{% endif %}
 <p>{{ resource.name }}</p>
 
 <p>

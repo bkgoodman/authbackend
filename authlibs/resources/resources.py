@@ -422,13 +422,24 @@ def end_of_month(date):
         return date.replace(day=31)
     return(date.replace(month=date.month+1, day=1) - datetime.timedelta(days=1))
 
+# bill_member_for_resource
+# Params:
+#   doBilling: True to actualy bill and collect to Stripe - False to just display
+# Returns: (debug,error,tabledata,userdata)
+#   debug: Array of debug strings
+#   Error: Errror string on failure or None if no error
+#   tabledata: Dict(below) containing result for this user-period (i.e. Totals)
+#   userdata: List of dicts - each billed line item
+
 def bill_member_for_resource(member_id,res,doBilling,month,year):
     tabledata = {
             "member":"??",
+            "member_id":"??",
             "time":"",
             "invoice":"",
             "number":"",
             "price":"",
+            "empty":True,
             "status":"None"
             }
     error = None
@@ -443,7 +454,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
     m = m.one_or_none()
     debug.append(f"Bill member {member_id} for month {month} year {year}")
     if m is None:
-        return ([],f"Member {member_id} not found",[])
+        return ([],f"Member {member_id} not found",tabledata,[])
     member = m.Member
     cid = m.customerid
     iamPro = True if m.rate_plan in ('pro', 'produo') else False
@@ -454,6 +465,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
     name = member.member
 
     tabledata['member']=name
+    tabledata['member_id']=member.id
     # Query Prior Invoices
     alreadyBilled=False
     invoiceStatus=None
@@ -472,50 +484,73 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
             debug.append(f" -- ERROR multiple outstanding invoices found!")
 
 
+    # Calculate General Parameters for billing
+
+    billMe = doBilling
+
+    # Query this user's stuff
+
     debug.append(f" -- Query between {startDate} - {endDate}")
     logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & 
         (UsageLog.member_id == member_id) & 
-        ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None))) & 
         (UsageLog.time_reported >= startDate) &
         (UsageLog.time_reported <= endDate)
         ).all()
 
+    freeSecs = 0
+    if iamPro and res.free_min_pro is not None:
+        freeSecs = res.free_min_pro * 60
+    elif (not iamPro) and res.free_min is not None:
+        freeSecs = res.free_min * 60
 
     # If we have no prior, bill for everything
     # If we have prior, bill only after that
     lastUsage=""
+    userdata=[]
+    totalCents=0
+    t={}
     for l in logs:
         if (l.activeSecs > 0):
-            seconds += l.activeSecs
+            t = {}
+            secs = l.activeSecs
+            if ((l.payTier != 1) or (l.payTier is None)):
+                t['info'] = ""
+
+                # Compensate for free time
+                if (freeSecs >= secs):
+                    t['info']="Free Allotment"
+                    secs=0
+                    freeSecs -= secs
+                elif (freeSecs > 0):
+                    t['info']="Partial Free Allotment"
+                    secs = secs - freeSecs
+                    freeSecs = 0
+
+                if iamPro:
+                    cents = int((res.price_pro * secs)/3600)
+                else:
+                    cents = int((res.price * secs)/3600)
+
+                t['price'] = f"${cents/100:0.2f}"
+
+                totalCents += cents
+                seconds += secs
+            else:
+                t['info'] = "Free Tier"
             datestr = l.time_logged.strftime("%b-%d-%Y")
             if datestr not in billdates: billdates[datestr] = 0
-            billdates[datestr] += l.activeSecs
+            billdates[datestr] += secs
             usageRecords.append(l.id)
             debug.append(f" -- Logged {l.time_logged} ActiveSecs={l.activeSecs} Tier={l.payTier}")
-            lastUsage = str(l.id)
+            t['date'] = datestr
+            t['time'] = sec_to_hms(l.activeSecs)
+            userdata.append(t)
 
-
-    billMe = doBilling
-    if iamPro:
-        cents = int((res.price_pro * seconds)/3600)
-        try:
-            freeSecs = res.free_min_pro * 60
-        except:
-            freeSecs = 0
-    else:
-        cents = int((res.price * seconds)/3600)
-        try:
-            freeSecs = res.free_min * 60
-        except:
-            freeSecs = 0
-
-    seconds -= freeSecs
-    if seconds < 0: seconds = 0
     tabledata['time'] = sec_to_hms(seconds)
 
     stripedesc = f"{res.short} Usage: "+(", ".join([f"{x}={int(billdates[x]/60)}min" for x in billdates]))
-    tabledata['price']=f"${cents/100:0.2f}"
-    if (cents < 100): 
+    tabledata['price']=f"${totalCents/100:0.2f}"
+    if (totalCents < 100): 
         billMe = False
         disposition = "Below Minimum"
         tabledata['status']="Below Minimum"
@@ -530,7 +565,12 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
         tabledata['status']="Billing"
 
 
-    debug.append(f" -- {'Do' if billMe else 'Dont'} Disposition={disposition} {member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc} Cents:{cents} ")
+    if ((seconds == 0) and (totalCents == 0)):
+        tabledata['empty'] = True
+    else:
+        tabledata['empty'] = False
+
+    debug.append(f" -- {'Do' if billMe else 'Dont'} Disposition={disposition} {member_id} for {seconds} seconds Seconds={seconds} Desc: {stripedesc} Cents:{totalCents} ")
     if (disposition == "Bill"):
         invoiced=False
         paid=False
@@ -539,7 +579,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
         stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
         commentstr="Billing"
         try:
-            invoiceItem = stripe.InvoiceItem.create(customer=cid, amount=cents, currenct='usd', description=stripedesc) 
+            invoiceItem = stripe.InvoiceItem.create(customer=cid, amount=totalCents, currenct='usd', description=stripedesc) 
 
             invoice = stripe.Invoice.create(
             customer=cid,
@@ -555,7 +595,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
             )
 
             finalize=stripe.Invoice.finalize_invoice(invoice)
-            logmsg = f"Invoiced {invoice.id} for ${cents/100.0:0.2f}"
+            logmsg = f"Invoiced {invoice.id} for ${totalCents/100.0:0.2f}"
             tabledata['invoice']=str(invoice.id)
             authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
             if (finalize['status'] != 'open'):
@@ -566,7 +606,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
                 invoiced=True
                 try:
                     pay = stripe.Invoice.pay(invoice)
-                    debug.append(f" -- Invoice {invoice.id} paid ${cents/100.0:0.2f}")
+                    debug.append(f" -- Invoice {invoice.id} paid ${totalCents/100.0:0.2f}")
                 except BaseException as e:
                     logmsg = f"Invoice {invoice.id} Error {e}"
                     authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
@@ -582,7 +622,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
 
         db.session.commit()
         # End Invoiced
-    return (debug,error,tabledata)
+    return (debug,error,tabledata,userdata)
 
 def query_specific_invoice(customer_id,resource_short,monthYear=None):
     error = None
@@ -656,7 +696,7 @@ def secsToHMS(seconds):
 def billing_usage(resource):
     now = datetime.datetime.now()
     month = now.month
-    day = now.day
+    year = now.year
     if 'month' in request.form: month = int(request.form['month'])
     if 'year' in request.form: year = int(request.form['year'])
 
@@ -678,6 +718,10 @@ def billing_usage(resource):
     if not res:
       flash ("Resource not found","warning")
       return redirect(url_for('resources.resources'))
+
+    if (not current_user.is_specific_arm(resource=res)):
+        flash("Forbidden","Danger")
+        return redirect(url_for('index'))
 
     if (res.price == 0) or (res.prodcode is None) or (res.prodcode.strip()==""):
       flash ("Non-Billable Resource","warning")
@@ -705,7 +749,26 @@ def billing_usage(resource):
     return render_template('view_usage.html',resource=res,debug=debug+['Errors:']+errors,table=tabledata,meta=meta,month=month,year=year)
 
 @blueprint.route('/<string:resource>/mybilling', methods=['GET','POST'])
+@login_required
 def mybilling(resource):
+    return billingdetail(resource,current_user.id)
+
+@blueprint.route('/<string:resource>/userbilling/<int:member_id>', methods=['GET','POST'])
+@login_required
+def userbilling(resource,member_id):
+    rid = (resource)
+    res = Resource.query.filter(Resource.name == rid).one_or_none()
+    if not res:
+      flash ("Resource not found","warning")
+      return redirect(url_for('index'))
+
+    if (not current_user.is_specific_arm(resource=res)):
+        flash("Forbidden","Danger")
+        return redirect(url_for('index'))
+    return billingdetail(resource,member_id)
+
+# Generic for single user to see their own, or for ARM to see anyones
+def billingdetail(resource,member_id):
     now = datetime.datetime.now()
     month = now.month
     errors = []
@@ -713,16 +776,8 @@ def mybilling(resource):
     year = now.year
     if 'month' in request.form: month = int(request.form['month'])
     if 'year' in request.form: year = int(request.form['year'])
-
-    s = Subscription.query.filter(Subscription.member_id == current_user.id).one()
-    iamPro = True if s.rate_plan in ('pro', 'produo') else False
-
-    startDate = datetime.datetime(month=int(month),year=int(year),day=1)
-    endDate = end_of_month(startDate)
-
-    tabledata=[]
-    rid = (resource)
-    res = Resource.query.filter(Resource.name == rid).one_or_none()
+    member = Member.query.filter(Member.id == member_id).one()
+    res = Resource.query.filter(Resource.name == resource).one_or_none()
     if not res:
       flash ("Resource not found","warning")
       return redirect(url_for('resources.resources'))
@@ -731,46 +786,19 @@ def mybilling(resource):
       flash ("Non-Billable Resource","warning")
       return redirect(url_for('resources.resources'))
 
-    logs = UsageLog.query.filter((UsageLog.resource_id == res.id) & 
-        (UsageLog.member_id == current_user.id) & 
-        (UsageLog.time_reported >= startDate) &
-        (UsageLog.time_reported <= endDate)
-        ).all()
-    flash (f"{len(logs)} records in {startDate} - {endDate}","warning")
-    #        ((UsageLog.payTier != 1) | (UsageLog.payTier.is_(None))) & 
-    seconds = 0
-    totalCents=0
-    for l in logs:
-        t = {}
-        if (l.activeSecs > 0):
-            if ((l.payTier != 1) or (l.payTier is None)):
-                seconds += l.activeSecs
-                t['info'] = ""
-                if iamPro:
-                    cents = int((res.price_pro * seconds)/3600)
-                else:
-                    cents = int((res.price * seconds)/3600)
-                t['price'] = f"${cents/100:0.2f}"
-                totalCents += cents
-            else:
-                t['info'] = "Free Tier"
-                t['info'] = ""
-            datestr = l.time_logged.strftime("%b-%d-%Y")
-            debug.append(f" -- Logged {l.time_logged} ActiveSecs={l.activeSecs} Tier={l.payTier}")
-            t['date'] = datestr
-            t['time'] = sec_to_hms(l.activeSecs)
-            tabledata.append(t)
+    (debug,error,tabledata,userdata) = bill_member_for_resource(member_id,res,False,month,year)
 
-
-    totalBill=f"${totalCents/100:0.2f}"
-
-    tabledata.append({
+    userdata.append({
         'date':"<b>Total</b>",
-        'time':sec_to_hms(seconds),
-        'price':totalBill
+        'time':tabledata['time'],
+        'price':tabledata['price']
         })
 
-    iv = query_specific_invoice(s.customerid,res.short,f"{month}/{year}")
+    name = f"{member.firstname} {member.lastname}"
+    period = f"{month}/{year}"
+
+    s = Subscription.query.filter(Subscription.member_id == member.id).one()
+    iv = query_specific_invoice(s.customerid,res.short,period)
     invoices = []
     for i in iv:
         invoices.append({
@@ -785,16 +813,21 @@ def mybilling(resource):
 
     if (len(errors) > 0):
         debug += ['Errors:']+errors
-    return render_template('mybilling.html',resource=res,debug=debug,table=tabledata,month=month,year=year,invoices=invoices)
+    return render_template('billingdetail.html',resource=res,debug=debug,table=userdata,month=month,year=year,
+            invoices=invoices,name=name,period=period)
+
 
 @blueprint.route('/<string:resource>/billing', methods=['GET','POST'])
-@roles_required(['Admin','Finance'])
+@login_required
 def billing(resource):
     now = datetime.datetime.now()
     month = now.month
     year = now.year
     if 'month' in request.form: month = int(request.form['month'])
     if 'year' in request.form: year = int(request.form['year'])
+
+    if 'memberDetail' in request.form:
+        return userbilling(resource,request.form['memberDetail'])
 
     tabledata=[]
     doBilling = False
@@ -813,6 +846,11 @@ def billing(resource):
       flash ("Non-Billable Resource","warning")
       return redirect(url_for('resources.resources'))
 
+    if (not current_user.is_specific_arm(resource=res)):
+        flash("Forbidden","Danger")
+        return redirect(url_for('index'))
+
+
 
     users = Logs.query.filter((Logs.resource_id == res.id) & (Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_USE_BILLED.id)).order_by(Logs.time_logged.desc()).limit(1).all()
     for u in users:
@@ -820,25 +858,18 @@ def billing(resource):
 
 
     # Find all resource users
-    if 'doBilling' in request.form:
+
+    if 'viewUsage' in request.form:
+        # "My Usage" button - Don't know what this is either
         users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
         for x in users:
-            d,e,t = bill_member_for_resource(x.member_id,res,doBilling,month,year)
-            debug += d
-            tabledata.append(t)
-            if e is not None:
-                errors.append(e)
-        return render_template('bill.html',resource=res,debug=debug+['Errors:']+errors,table=tabledata,month=month,year=year)
-    elif 'viewUsage' in request.form:
-        # "My Usage" button
-        users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
-        for x in users:
-            d,e,t = bill_member_for_resource(x.member_id,res,False,month,year)
-            tabledata.append(t)
+            d,e,t,userdata = bill_member_for_resource(x.member_id,res,False,month,year)
+            if (t['empty'] == False):
+                tabledata.append(t)
             debug += d
             if e is not None:
                 errors.append(e)
-    else:
+    elif 'wtfIsThis' in request.form:
         # User List
         lst = {}
         for l in Logs.query.filter((Logs.resource_id == res.id) & 
@@ -860,8 +891,27 @@ def billing(resource):
             elif isinstance(o,Logs):
                 debug.append(f"BILLED Log {o.time_logged} {o.message}")
                 tabledata.append({"date":o.time_logged,"data":f"BILLED {o.message}"})
+    else:
+        # This is the default and the "Bill Usage" button (doBilling)
+        users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
+        for x in users:
+            d,e,t,userdata = bill_member_for_resource(x.member_id,res,doBilling,month,year)
+            debug += d
+            if (t['empty'] == False):
+                tabledata.append(t)
+            if e is not None:
+                errors.append(e)
 
-    return render_template('resource_billing.html',resource=res,debug=debug+['Errors:']+errors,table=tabledata,month=month,year=year)
+            if (request.args.get("debug") is None): debug=[]
+            if (len(errors)>0):
+                debug = debug + ["Errors:"]+errors
+
+        return render_template('bill.html',resource=res,debug=debug,table=tabledata,month=month,year=year)
+
+    if (request.args.get("debug") is None): debug=[]
+    if (len(errors)>0):
+        debug = debug + ["Errors:"]+errors
+    return render_template('resource_billing.html',resource=res,debug=debug,table=tabledata,month=month,year=year)
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('/<string:resource>/log', methods=['GET','POST'])
