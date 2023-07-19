@@ -96,6 +96,11 @@ def get_raw_menu():
                     'title':"Logout (Soft)"
             },
             {
+                    'url':url_for('resources.billable_resources'),
+                    'title':"Billable Resources",
+                    'img':url_for("static",filename="ResourceBilling.png"),
+            },
+            {
                     'url':url_for('facility.minisplit'),
                     'alt':"HVAC Controls",
                     'title':"HVAC"

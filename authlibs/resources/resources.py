@@ -542,6 +542,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
             billdates[datestr] += secs
             usageRecords.append(l.id)
             debug.append(f" -- Logged {l.time_logged} ActiveSecs={l.activeSecs} Tier={l.payTier}")
+            datestr = l.time_logged.strftime("%b-%d-%Y %-I:%M %p")
             t['date'] = datestr
             t['time'] = sec_to_hms(l.activeSecs)
             userdata.append(t)
@@ -691,7 +692,18 @@ def secsToHMS(seconds):
         r += f" {seconds} Sec{'s' if seconds > 1 else ''}"
     return r
 
+@blueprint.route('/billableResources', methods=['GET'])
+@login_required
+@roles_required(['Admin','Finance'])
+def billable_resources():
+    resources = AccessByMember.query.filter(current_user.id == AccessByMember.member_id)
+    resources = resources.join(Resource,((AccessByMember.resource_id == Resource.id) & ((Resource.price > 0) | (Resource.price_pro > 0))))
+    resources = resources.add_column(Resource.name)
+    resources = resources.all()
+    return render_template('list.html',resources=resources)
+
 @blueprint.route('/<string:resource>/billingUsage', methods=['GET','POST'])
+@login_required
 @roles_required(['Admin','Finance'])
 def billing_usage(resource):
     now = datetime.datetime.now()
