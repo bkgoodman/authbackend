@@ -32,11 +32,13 @@
 </form>
 <p>Month is {{ month }} Year is {{ year }}</p>
 
+<form method="POST">
 <table class="table table-sm">
 	<tr>
 		<th>When</th>
 		<th>Time</th>
 		<th>Cost</th>
+		<th></th>
 		<th></th>
 	</tr>
 	{% for t in table %}
@@ -45,9 +47,23 @@
 		<td>{{ t.time }}</td>
 		<td>{{ t.price }}</td>
 		<td>{{ t.info }}</td>
+		<td>
+		{% if isARM == True %}
+			{% if t.freeTier is not defined  %}
+			{% elif t.freeTier == False  %}
+				<input type="checkbox" value="makeTrue" name="change_{{ t.log_id }}" /> Make Free
+			{% else %}
+				<input type="checkbox" value="makeFalse" name="change_{{ t.log_id }}" /> Make Billable
+			{% endif %}
+		{% endif %}
+		</td>
 	</tr>
 	{% endfor %}
 </table>
+{% if isARM == True %}
+	<input type="Submit" class="btn btn-primary" Value="Update" name="Update" />
+{% endif %}
+</form>
 
 	<hr />
 	{% if invoices|length > 0 %}

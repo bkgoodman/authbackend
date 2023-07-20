@@ -544,7 +544,9 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
             debug.append(f" -- Logged {l.time_logged} ActiveSecs={l.activeSecs} Tier={l.payTier}")
             datestr = l.time_logged.strftime("%b-%d-%Y %-I:%M %p")
             t['date'] = datestr
+            t['log_id'] = l.id
             t['time'] = sec_to_hms(l.activeSecs)
+            t["freeTier"] = False if l.payTier != 1 else True
             userdata.append(t)
 
     tabledata['time'] = sec_to_hms(seconds)
@@ -825,13 +827,32 @@ def billingdetail(resource,member_id):
 
     if (len(errors) > 0):
         debug += ['Errors:']+errors
+    isARM = accesslib.user_privs_on_resource(member=current_user,resource=res) >= AccessByMember.LEVEL_ARM
     return render_template('billingdetail.html',resource=res,debug=debug,table=userdata,month=month,year=year,
-            invoices=invoices,name=name,period=period)
+            invoices=invoices,name=name,period=period,isARM=isARM)
 
 
 @blueprint.route('/<string:resource>/billing', methods=['GET','POST'])
 @login_required
 def billing(resource):
+    # Did we make changes?
+    if request.method == 'POST' and 'Update' in request.form:
+        res = Resource.query.filter(Resource.name == resource).one()
+        if (not current_user.is_specific_arm(resource=res)):
+            flash("Forbidden","Danger")
+            return redirect(url_for('index'))
+        for x in request.form:
+            if x.startswith("change_"):
+                xx = int(x.replace("change_",""))
+                toval = 0 if request.form[x] == "makeFalse" else 1
+                ul = UsageLog.query.filter((UsageLog.id ==xx)).one_or_none()
+                ul.payTier = toval;
+        db.session.commit()
+        flash("Updated","Danger")
+        return redirect(url_for('resources.billing',resource=resource))
+
+
+
     now = datetime.datetime.now()
     month = now.month
     year = now.year
