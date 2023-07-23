@@ -582,7 +582,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
         stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
         commentstr="Billing"
         try:
-            invoiceItem = stripe.InvoiceItem.create(customer=cid, amount=totalCents, currenct='usd', description=stripedesc) 
+            invoiceItem = stripe.InvoiceItem.create(customer=cid, amount=totalCents, currency='usd', description=stripedesc) 
 
             invoice = stripe.Invoice.create(
             customer=cid,
@@ -935,13 +935,13 @@ def billing(resource):
             if e is not None:
                 errors.append(e)
 
-            if (request.args.get("debug") is None): debug=[]
+            if (request.args.get("debug") is None) and ('debug' not in request.form): debug=[]
             if (len(errors)>0):
                 debug = debug + ["Errors:"]+errors
 
         return render_template('bill.html',resource=res,debug=debug,table=tabledata,month=month,year=year)
 
-    if (request.args.get("debug") is None): debug=[]
+    if (request.args.get("debug") is None) and ('debug' not in request.form): debug=[]
     if (len(errors)>0):
         debug = debug + ["Errors:"]+errors
     return render_template('resource_billing.html',resource=res,debug=debug,table=tabledata,month=month,year=year)
