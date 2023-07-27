@@ -19,7 +19,7 @@ def grids():
 
 @blueprint.route('/', methods=['POST'])
 @login_required
-@roles_required(['Admin','RATT'])
+@roles_required(['Admin','RATT','ProStore'])
 def grids_create():
     """(Controller) Create a grid from an HTML form POST"""
     r = Grid()
@@ -54,7 +54,7 @@ def grids_show(grid):
         flash("Grid not found")
         return redirect(url_for('grids.grids'))
     readonly=False
-    if (not current_user.privs('Finance')):
+    if (not current_user.privs('Finance','ProStore')):
         readonly=True
     r.pricestr = "" if r.price is None else f"{r.price/100.0:0.2f}"
     print ("PURCHASBLE ID",r.resource_id)
@@ -63,7 +63,7 @@ def grids_show(grid):
 
 @blueprint.route('/<string:grid>', methods=['POST'])
 @login_required
-@roles_required(['Admin','RATT'])
+@roles_required(['Admin','RATT','ProStore'])
 def grids_update(grid):
         """(Controller) Update an existing grid from HTML form POST"""
         tid = (grid)
@@ -95,7 +95,7 @@ def grids_update(grid):
         return redirect(url_for('grids.grids'))
 
 @blueprint.route('/<string:grid>/delete',methods=['GET','POST'])
-@roles_required(['Admin','RATT'])
+@roles_required(['Admin','RATT','ProStore'])
 def grid_delete(grid):
     """(Controller) Delete a grid. Shocking."""
     r = Grid.query.filter(Grid.id == grid).one()
