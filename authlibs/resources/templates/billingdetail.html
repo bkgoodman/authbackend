@@ -48,7 +48,7 @@
 		<td>{{ t.price }}</td>
 		<td>{{ t.info }}</td>
 		<td>
-		{% if isARM == True %}
+		{% if (isARM == True) and (invoices|length ==0) %}
 			{% if t.freeTier is not defined  %}
 			{% elif t.freeTier == False  %}
 				<input type="checkbox" value="makeTrue" name="change_{{ t.log_id }}" /> Make Free
@@ -60,7 +60,7 @@
 	</tr>
 	{% endfor %}
 </table>
-{% if isARM == True %}
+{% if (isARM == True) and (invoices|length ==0) %}
 	<input type="Submit" class="btn btn-primary" Value="Update" name="Update" />
 {% endif %}
 </form>
