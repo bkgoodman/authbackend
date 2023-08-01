@@ -181,6 +181,16 @@ def download(filename):
     ## return XX
     return send_from_directory(config['cache'], tempfileName, attachment_filename=fn, as_attachment=True)
 
+@blueprint.route('/uploaded', methods=['GET'])
+@blueprint.route('/uploaded/', methods=['GET'])
+@blueprint.route('/uploaded/<path:folder>', methods=['GET'])
+@login_required
+def uploaded(folder=""):
+    m = request.args.get("message")
+    if m is not None and m.strip() != "" :
+        flash(m)
+    return infolder(folder=folder)
+
 @blueprint.route('/createFolder', methods=['GET', 'POST'])
 @login_required
 def createFolder():
@@ -214,6 +224,68 @@ def createFolder():
     except BaseException as e:
         flash(f"Folder Create Error: {e}","danger")
     return redirect(url_for('memberFolders.infolder', folder=srcfolder))
+
+@blueprint.route('/upload2', methods=['POST'])
+@blueprint.route('/upload2/', methods=['POST'])
+@blueprint.route('/upload2/<path:folder>', methods=['POST'])
+@blueprint.route('/upload2', methods=['POST'])
+@login_required
+def upload_file2(folder=""):
+
+
+    (config,error) = getFolderConfig()
+    if (error is not None):
+      flash(error,"warning")
+      return redirect(url_for("index"))
+
+    #print ("FOLDER IS",folder)
+
+    if folder != "":
+      if not folder.endswith("/"):
+        #print ("AMMENDING FOLDER")
+        folder += "/"
+    if folder.find("../") != -1 or folder.find("/..") != -1:
+      flash("Invalid Filename","warning")
+      return redirect(url_for("memberFolders.folder",folder=""))
+
+    uploaded_files = request.files.getlist('file')
+
+    if not uploaded_files:
+        return json.dumps({'folder':folder,'message': "No files"}),200
+
+    # Replace 'uploads' with the path where you want to save the uploaded files
+    upload_folder = 'uploads'
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+
+    uploadlist=[]
+    for file in uploaded_files:
+        if file.filename == '':
+            return json.dumps({'folder':folder,'message': "No files"}),200
+
+        # DO UPLOAD 
+        filename = secure_filename(file.filename)
+        #print ("SAVE TO",filename)
+        tempfileName = next(tempfile._get_candidate_names())
+        tempfilePath = config['cache']+tempfileName
+        file.save(tempfilePath)
+
+        path = config['base']+"/"+current_user.memberFolder+"/"+folder+filename
+        try:
+            with paramiko.Transport((config['server'],22)) as transport:
+                transport.connect(None,config['user'],config['password'])
+                with paramiko.SFTPClient.from_transport(transport) as sftp:
+                    print("SFTP",tempfilePath,path)
+                    sftp.put(tempfilePath,path)
+            os.remove(tempfilePath)
+            uploadlist.append(f"Uploaded {file.filename}")
+        except BaseException as e:
+            uploadlist.append(f"Error {filename}: {e}")
+
+        # file.save(os.path.join(upload_folder, file.filename))
+
+    return json.dumps({'folder':folder,'message': 'Uploaded: '+", ".join(uploadlist)}), 200
+
 
 @blueprint.route('/upload', methods=['GET', 'POST'])
 @login_required

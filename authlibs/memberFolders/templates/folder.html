@@ -1,8 +1,20 @@
 {% extends "layout_bootstrap.html" %}
 {% block head %}
 	<script type="text/javascript" src="{{ url_for("static",filename="js/sorttable.js") }}"></script>
+
+
+	<style>
+    #dropArea {
+      border: 2px dashed #ccc;
+      margin: 10px;
+      align-items: center;
+      font-size: 18px;
+      color: #aaa;
+    }
+  </style>
 {% endblock %}
 {% block body %}
+
 <div class="body"> <!-- BASE contrainer -->
 
 		
@@ -15,6 +27,9 @@
   
   <hr />
   <h3>Upload File</h3>
+  <div id="dropArea">Drag and Drop Files Here to Upload</div>
+  <hr />
+  ...or click to browse and upload:
   <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.upload_file") }}">
     <input type="hidden" name="folder" value="{{ folder }}">
     <input type=file name=file>
@@ -78,5 +93,53 @@
 
 <script type="text/javascript">
 var t = new SortableTable(document.getElementById('fileTable'), 100);
+</script>
+<script>
+	    function preventDefault(event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    function handleDrop(event) {
+      preventDefault(event);
+
+      const files = event.dataTransfer.files;
+      handleFiles(files);
+    }
+
+    function handleFiles(files) {
+      const fileList = Array.from(files);
+      fileList.forEach(uploadFile);
+    }
+
+    function uploadFile(file) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Replace 'your-upload-endpoint' with the URL where you handle file uploads on the server
+	console.log("folder", "{{ folder }}");
+      fetch("{{ url_for('memberFolders.upload_file2',folder=folder) }}", {
+        method: "POST",
+        body: formData,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          // Handle the server's response (if needed)
+	  console.log("filder", "{{ folder }}");
+          console.log("Upload successful:", data);
+			const listItem = document.createElement('li');
+      listItem.textContent = data['message'];
+      document.getElementById("dropArea").appendChild(listItem);
+			//window.location.href = '{{ url_for("memberFolders.uploaded",folder=folder) }}?message='+encodeURIComponent(data['message']);
+        })
+        .catch((error) => {
+          console.error("Error uploading file:", error);
+        });
+    }
+
+    document.getElementById("dropArea").addEventListener("dragover", preventDefault);
+    document.getElementById("dropArea").addEventListener("dragenter", preventDefault);
+    document.getElementById("dropArea").addEventListener("drop", handleDrop);
+  </script>
 </script>
 {% endblock %}
