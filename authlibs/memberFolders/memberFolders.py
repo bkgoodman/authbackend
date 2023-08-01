@@ -141,7 +141,7 @@ def infolder(folder=""):
       up=""
     else:
       up = "/"+("/".join(top[:-2]))
-    return render_template('folder.html',up=up,folder=folder,member=current_user,files=files)
+    return render_template('folder.html',up=up,folder=folder,member=current_user,files=sorted(files,key=lambda item: item['lastmod'],reverse=True))
 
 
 @blueprint.route('/download/<path:filename>', methods=['GET'])
