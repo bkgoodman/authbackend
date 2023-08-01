@@ -762,6 +762,11 @@ def billing_usage(resource):
             }
     return render_template('view_usage.html',resource=res,debug=debug+['Errors:']+errors,table=tabledata,meta=meta,month=month,year=year)
 
+@blueprint.route('/<string:resource>/mybilling/<int:month>/<int:year>', methods=['GET','POST'])
+@login_required
+def mybillingmon(resource,month,year):
+    return billingdetail(resource,current_user.id,month,year)
+
 @blueprint.route('/<string:resource>/mybilling', methods=['GET','POST'])
 @login_required
 def mybilling(resource):
@@ -782,12 +787,12 @@ def userbilling(resource,member_id):
     return billingdetail(resource,member_id)
 
 # Generic for single user to see their own, or for ARM to see anyones
-def billingdetail(resource,member_id):
+def billingdetail(resource,member_id,month=None,year=None):
     now = datetime.datetime.now()
-    month = now.month
+    if month is None: month = now.month
+    if year is None: year = now.year
     errors = []
     debug=[]
-    year = now.year
     if 'month' in request.form: month = int(request.form['month'])
     if 'year' in request.form: year = int(request.form['year'])
     member = Member.query.filter(Member.id == member_id).one()
