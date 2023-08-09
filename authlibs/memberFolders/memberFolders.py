@@ -11,6 +11,7 @@ from authlibs.waivers.waivers import cli_waivers,connect_waivers
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
 from authlibs.members.notices import send_all_notices
 import base64
+from  urllib.parse import quote,unquote
 import random,string
 import tempfile
 import subprocess
@@ -193,10 +194,10 @@ def member_folder(folder,member,asshared=False):
                         h.update(str(hashstring).encode())
                         actual = h.hexdigest()
                         if (mode & statmod.S_IFDIR):
-                            sharedurl = url_for('memberFolders.sharedfolder',member=member.member,secret=actual,folder=fullpath)
+                            sharedurl = (url_for('memberFolders.sharedfolder',member=member.member,secret=actual,folder=fullpath))
                         else:
                             fullpath = folder+"/"+entry.filename
-                            sharedurl = url_for('memberFolders.downloadShared',filename=fullpath,secret=actual,member=member.member)
+                            sharedurl = (url_for('memberFolders.downloadShared',filename=fullpath,secret=actual,member=member.member))
 
                     files.append({
                         'name':entry.filename,
@@ -223,7 +224,7 @@ def member_folder(folder,member,asshared=False):
         h = hashlib.sha224()
         h.update(str(hashstring).encode())
         actual = h.hexdigest()
-        sharedlink = url_for('memberFolders.sharedfolder',member=member.member,secret=actual,folder=folder)
+        sharedlink = (url_for('memberFolders.sharedfolder',member=member.member,secret=actual,folder=folder))
     top = folder.split("/")
     if folder == "":
       up=None
