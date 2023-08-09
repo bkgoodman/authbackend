@@ -112,6 +112,8 @@ def infolder(folder=""):
 @blueprint.route('/sharedfolder/<string:member>/<string:secret>/<path:folder>', methods=['GET'])
 @login_required
 def sharedfolder(folder,secret=None,member=None):
+    logger.warning(f"Got folder {folder}")
+    folder = folder.rstrip("/")
     m = Member.query.filter(Member.member == member).one_or_none()
     if m is None:
       flash("Invalid member","warning")
@@ -135,6 +137,7 @@ def sharedfolder(folder,secret=None,member=None):
 # This is the worker function for any member or foler
 # "As Shared" will give shared links
 def member_folder(folder,member,asshared=False):
+    folder = folder.rstrip("/")
     #print ("INFOLDER",folder)
     if folder.find("../") != -1 or folder.find("/..") != -1:
       flash("Invalid Filename","warning")
@@ -182,7 +185,7 @@ def member_folder(folder,member,asshared=False):
                     ext = entry.filename.split(".")[-1]
                     created = datetime.datetime.fromtimestamp(entry.st_mtime)
                     (ago1, ago2, ago3) = ago.ago(created,datetime.datetime.now())
-                    fullpath = folder+entry.filename
+                    fullpath = folder+"/"+entry.filename
 
                     sharedurl=""
                     if sharedSecret is not None:
@@ -196,7 +199,6 @@ def member_folder(folder,member,asshared=False):
                         if (mode & statmod.S_IFDIR):
                             sharedurl = (url_for('memberFolders.sharedfolder',member=member.member,secret=actual,folder=fullpath))
                         else:
-                            fullpath = folder+"/"+entry.filename
                             sharedurl = (url_for('memberFolders.downloadShared',filename=fullpath,secret=actual,member=member.member))
 
                     files.append({
@@ -225,6 +227,8 @@ def member_folder(folder,member,asshared=False):
         h.update(str(hashstring).encode())
         actual = h.hexdigest()
         sharedlink = (url_for('memberFolders.sharedfolder',member=member.member,secret=actual,folder=folder))
+        logger.warning(f"Calculated Shared folder as {actual} hashstring \"{hashstring}\"")
+
     top = folder.split("/")
     if folder == "":
       up=None
@@ -247,6 +251,7 @@ def download(filename):
 @blueprint.route('/shareddownload/<string:member>/<string:secret>/<path:filename>', methods=['GET'])
 @login_required
 def downloadShared(filename,secret=None,member=None):
+    filename = filename.rstrip("/")
     if filename.find("../") != -1 or filename.find("/..") != -1:
       flash("Invalid Filename","warning")
       return redirect(url_for("memberFolders.folder",folder=""))
@@ -267,7 +272,7 @@ def downloadShared(filename,secret=None,member=None):
     actual = h.hexdigest()
     if (secret != actual):
       flash("Invalid Request","warning")
-      logger.warning(f"Download Shared folder failed for {m.member} folder {folder} got {secret} neeeded {actual}")
+      logger.warning(f"Download Shared folder failed for {m.member} folder {folder} got {secret} neeeded {actual} hashstring \"{hashstring}\"")
       return redirect(url_for("index"))
     return download_member(filename,m,asshared=True)
 
@@ -280,6 +285,7 @@ def download_member(filename,member=current_user,asshared=False):
             pass
         return response
 
+    filename = filename.rstrip("/")
     if filename.find("../") != -1 or filename.find("/..") != -1:
       flash("Invalid Filename","warning")
       return redirect(url_for("memberFolders.folder",folder=""))
@@ -287,7 +293,9 @@ def download_member(filename,member=current_user,asshared=False):
     if (error is not None):
       flash(error,"warning")
       return redirect(url_for("index"))
+    folder = "/".join(os.path.split(filename)[0:-1])
     path = config['base']+"/"+member.memberFolder+"/"+filename
+    folderpath = config['base']+"/"+member.memberFolder+"/"+folder
     fn = os.path.split(path)[-1]
     files = []
     ext = filename.split(".")[-1]
@@ -298,7 +306,7 @@ def download_member(filename,member=current_user,asshared=False):
         transport.connect(None,config['user'],config['password'])
         with paramiko.SFTPClient.from_transport(transport) as sftp:
             try:
-                contents = sftp.file(path+"/.shared").read()
+                contents = sftp.file(folderpath+"/.shared").read()
                 setShared=int(contents)
             except:
                 setShared=0
@@ -388,10 +396,10 @@ def uploadshared_file2(folder=""):
     if (secret != actual):
       logger.warning(f"Upload Shared folder failed for {m.member} folder {folder} got {secret} neeeded {actual}")
       return json.dumps({'folder':folder,'message': "Invalid Request/No Access"}),200
-    return upload_member_file2(folder,current_user,asshared=True)
+    return upload_member_file2(folder,m,asshared=True)
 
-def upload_member_file2(folder,memberName,asshared=False):
-    member=Member.query.filter(Member.member==memberName).one()
+def upload_member_file2(folder,member,asshared=False):
+    folder = folder.rstrip("/")
     (config,error) = getFolderConfig()
     if (error is not None):
       flash(error,"warning")
@@ -429,7 +437,7 @@ def upload_member_file2(folder,memberName,asshared=False):
         tempfilePath = config['cache']+tempfileName
         file.save(tempfilePath)
 
-        path = config['base']+"/"+member.memberFolder+"/"+folder+filename
+        path = config['base']+"/"+member.memberFolder+"/"+folder+"/"+filename
         try:
             with paramiko.Transport((config['server'],22)) as transport:
                 transport.connect(None,config['user'],config['password'])
