@@ -11,6 +11,10 @@
       font-size: 18px;
       color: #aaa;
     }
+    #dropArea.highlight {
+    	border-color: #007bff; /* Change this to the highlight color you want */
+    	background-color: #f0f0f0; /* Change this to the highlight background color you want */
+ }
   </style>
 {% endblock %}
 {% block body %}
@@ -20,14 +24,38 @@
 		
 <div class="container"> {# Outer container #}
   <h3>Member Folder for {{ member.firstname }} {{ member.lastname}} </h3>
+  {% if asshared == false %}
+
   {% if up is not none %}
   <a class="btn btn-outline-secondary glyphicon glyphicon-arrow-up" href="{{ url_for("memberFolders.folder")+up }}"></a>
   {% endif %}
   <span>{{ folder }}</span>
+
+  <div>
+	  {% if sharedline != "" %}
+	  {% if setShared != 0 %}
+	  <a href="{{ sharedlink }}">Shared Link to this Folder</a>
+	  {% endif %}
+	  <form method="POST">
+	  <select name="setShared">
+		  <option value="0" {% if setShared == 0 %}selected{% endif %}>No Sharing</option>
+		  <option value="1" {% if setShared == 1 %}selected{% endif %}>Read Only</option>
+		  <option value="2" {% if setShared == 2 %}selected{% endif %}>Upload but no overwrite </option>
+		  <option value="3" {% if setShared == 3 %}selected{% endif %}>Upload and overwrite </option>
+	  </select>
+	  <input type="hidden" name="currentFolder" value="{{ folder }}" />
+	  <button type="submit" value="changeShare" name="changeShare" class="btn btn-primary">Set Share</button>
+	  </form>
+	  {% endif %}
+  </div>
+  {% endif %}
   
   <hr />
+  {% if asshared == false or setShared >= 2 %}
   <h3>Upload File</h3>
   <div id="dropArea">Drag and Drop Files Here to Upload</div>
+  {% endif %}
+  {% if asshared == false %}
   <hr />
   ...or click to browse and upload:
   <form method="post" enctype="multipart/form-data" action="{{ url_for("memberFolders.upload_file") }}">
@@ -43,6 +71,7 @@
     <input type="hidden" name="folder" value="{{ folder }}">
     <input type=submit value=Create>
    </form>
+   {% endif %}
   <table id="fileTable" style="font-size:10px" class="table greenbar-table table-compact supercompact">
       <thead>
 				<tr>
@@ -67,11 +96,14 @@
         <td>{{ f['ext'] }}</td>
         <td sortvalue={{ f['size'] }}>{{ f['sizeText'] }}</td>
         <td><a href="{{ url_for("memberFolders.download",filename=f['path']) }}" class="btn btn-outline-secondary glyphicon glyphicon-download"></a></td>
+
+
       {% endif %}
     </tr>
   {% endfor %}
   </table>
 
+  {% if asshared == false %}
   {% if files|length > 25 %}
   <hr />
   <h3>Upload File</h3>
@@ -88,6 +120,7 @@
     <input type="hidden" name="folder" value="{{ folder }}">
     <input type=submit value=Create>
    </form>
+   {% endif %}
    {% endif %}
 </div>
 
@@ -140,6 +173,26 @@ var t = new SortableTable(document.getElementById('fileTable'), 100);
     document.getElementById("dropArea").addEventListener("dragover", preventDefault);
     document.getElementById("dropArea").addEventListener("dragenter", preventDefault);
     document.getElementById("dropArea").addEventListener("drop", handleDrop);
-  </script>
+
+
+	 const dropArea = document.getElementById("dropArea");
+
+  function handleDragEnter() {
+    dropArea.classList.add("highlight");
+  }
+
+  function handleDragLeave() {
+    dropArea.classList.remove("highlight");
+  }
+
+  function handleDragEnd() {
+    dropArea.classList.remove("highlight");
+  }
+
+  dropArea.addEventListener("dragover", preventDefault);
+  dropArea.addEventListener("dragenter", handleDragEnter);
+  dropArea.addEventListener("dragleave", handleDragLeave);
+  dropArea.addEventListener("drop", handleDrop);
+  dropArea.addEventListener("dragend", handleDragEnd);
 </script>
 {% endblock %}
