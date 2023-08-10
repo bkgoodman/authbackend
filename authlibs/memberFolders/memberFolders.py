@@ -236,10 +236,15 @@ def member_folder(folder,member,asshared=False):
       up=""
     else:
       up = "/"+("/".join(top[:-2]))
+
+    if asshared == True:
+        uploadLink=url_for('memberFolders.uploadshared_file2',member=member.member,secret=actual,folder=folder)
+    else:
+        uploadLink=url_for('memberFolders.upload_file2',folder=folder)
     return render_template('folder.html',up=up,folder=folder,member=member,
             asshared=asshared,files=sorted(files,key=lambda item: item['lastmod'],
                 reverse=True),sharedlink=sharedlink,
-                setShared=setShared)
+                setShared=setShared,uploadLink=uploadLink)
 
 
 @blueprint.route('/download/<path:filename>', methods=['GET'])
@@ -377,8 +382,8 @@ def upload_file2(folder=""):
 
 @blueprint.route('/uploadshared2/<string:member>/<string:secret>/<path:folder>', methods=['POST'])
 @login_required
-def uploadshared_file2(folder=""):
-    if filename.find("../") != -1 or filename.find("/..") != -1:
+def uploadshared_file2(member,secret,folder):
+    if folder.find("../") != -1 or folder.find("/..") != -1:
       return json.dumps({'folder':folder,'message': "Invalid Filename"}),200
     m = Member.query.filter(Member.member == member).one_or_none()
     if m is None:
@@ -388,7 +393,7 @@ def uploadshared_file2(folder=""):
     else:
       return json.dumps({'folder':folder,'message': "Not configured for shared access"}),200
 
-    folder = "/".join(os.path.split(filename)[0:-1])
+    folder = folder.rstrip("/")
     hashstring = f"{sharedSecret}|{m.id}|{folder}"
     h = hashlib.sha224()
     h.update(str(hashstring).encode())
@@ -437,21 +442,30 @@ def upload_member_file2(folder,member,asshared=False):
         tempfilePath = config['cache']+tempfileName
         file.save(tempfilePath)
 
-        path = config['base']+"/"+member.memberFolder+"/"+folder+"/"+filename
+        path = config['base']+"/"+member.memberFolder+"/"+folder+filename
         try:
             with paramiko.Transport((config['server'],22)) as transport:
                 transport.connect(None,config['user'],config['password'])
                 with paramiko.SFTPClient.from_transport(transport) as sftp:
                     print("SFTP",tempfilePath,path)
+                    checkpath = config['base']+"/"+member.memberFolder+"/"+folder+".shared"
                     try:
-                        contents = sftp.file(path+"/.shared").read()
+                        contents = sftp.file(checkpath).read()
+                        #logger.warn(f"Contents \"{contents}\"")
                         setShared=int(contents)
-                    except:
+                    except BaseException as e:
+                        #logger.warn(f"Upload error folder {checkpath}.shared error {e}")
                         setShared=0
 
+                    #logger.warn(f"Sharing Path {folder} {setShared} AsShared {asshared}")
                     if ((setShared < 2) and (asshared == True)):
-                        flash("No write permissions for this folder")
                         return json.dumps({'folder':folder,'message': "No upload permission"}),200
+                    elif ((setShared == 2) and (asshared == True)):
+                        try:
+                            sftp.stat(path)
+                            return json.dumps({'folder':folder,'message': "Can't overwrite existing file"}),200
+                        except:
+                            pass
                     sftp.put(tempfilePath,path)
             os.remove(tempfilePath)
             uploadlist.append(f"Uploaded {file.filename}")

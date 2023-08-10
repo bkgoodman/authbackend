@@ -155,7 +155,7 @@ var t = new SortableTable(document.getElementById('fileTable'), 100);
 
       // Replace 'your-upload-endpoint' with the URL where you handle file uploads on the server
 	console.log("folder", "{{ folder }}");
-      fetch("{{ url_for('memberFolders.upload_file2',folder=folder) }}", {
+      fetch("{{ uploadLink }}", {
         method: "POST",
         body: formData,
       })
