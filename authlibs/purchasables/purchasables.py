@@ -13,7 +13,6 @@ blueprint = Blueprint("purchasables", __name__, template_folder='templates', sta
 
 
 @blueprint.route('/', methods=['GET'])
-@roles_required(['Admin','Finance'])
 @login_required
 def purchasables():
 	"""(Controller) Display Purchasables and controls"""
@@ -120,6 +119,7 @@ def purchasable_delete(purchasable):
     return redirect(url_for('purchasables.purchasables'))
 
 @blueprint.route('/quick/<int:purchasable>/<int:cost>/<string:ident>', methods=['GET'])
+@login_required
 def quick(purchasable,cost,ident):
 
     sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
@@ -138,6 +138,7 @@ def quick(purchasable,cost,ident):
     return render_template('quick.html',purchasable=r,cost=cost,ident=ident,chargeStr=cs)
 
 @blueprint.route('/purchase', methods=['POST'])
+@login_required
 def purchasable_purchase():
 
     sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
@@ -213,6 +214,7 @@ def purchasable_purchase():
     return redirect(url_for('purchasables.purchasables'))
 
 @blueprint.route('/<string:purchasable>/list', methods=['GET'])
+@login_required
 def purchasable_showusers(purchasable):
     """(Controller) Display users who are authorized to use this purchasable"""
     tid = (purchasable)

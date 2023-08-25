@@ -178,7 +178,8 @@ def get_raw_menu():
             {
                     'url':url_for('purchasables.purchasables'),
                     'title':"Purchasable Items",
-                    'privs':'Finance',
+                    'img':url_for("static",filename="PurchasableIcon.png"),
+                    'alt':"Purchase Consumables"
             }
     ]
 
