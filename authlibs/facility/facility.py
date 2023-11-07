@@ -41,7 +41,9 @@ def normalize_temp(temp):
 @login_required
 def minisplit():
     # First, process POST data if any
-    if request.method == "POST" and 'override' in request.form:
+    if request.method == "POST" and 'Refresh' in request.form:
+        pass
+    elif request.method == "POST" and 'override' in request.form:
         try:
           gc= current_app.config['globalConfig']
           topic=  "facility/minisplit/request/"+request.form['override']

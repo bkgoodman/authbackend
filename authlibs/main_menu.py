@@ -102,7 +102,9 @@ def get_raw_menu():
             },
             {
                     'url':url_for('facility.minisplit'),
+                    'privs':'Facilities',
                     'alt':"HVAC Controls",
+                    'img':url_for("static",filename="hvac.png"),
                     'title':"HVAC"
             },
             {

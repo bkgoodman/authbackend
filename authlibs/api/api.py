@@ -1336,7 +1336,7 @@ def vendig_api_ReupBalance(member):
     try:
       stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
       if 'productCode' in data:
-        productId== data['productCode']
+        productId= data['productCode']
       else:
         productId = current_app.config['globalConfig'].Config.get('Stripe','VendingProduct')
       if 'description' in data:
@@ -1355,8 +1355,11 @@ Total Charge: ${5:0.2f}
 New Vending Balance: ${4:0.2f}""".format(
             data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0,data['totalCharge']/100.0)
 
-      invoiceItem = stripe.InvoiceItem.create(customer=cid, description=description,
-              currency="usd",amount=data['addAmount'])
+      price = stripe.Price.create(
+        unit_amount=data['addAmount'],
+        currency='usd',
+        product=productId)
+      invoiceItem = stripe.InvoiceItem.create(customer=cid, description=description,price=price)
 
       invoice = stripe.Invoice.create(
         customer=cid,

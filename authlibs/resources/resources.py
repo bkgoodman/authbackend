@@ -582,7 +582,11 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
         stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
         commentstr="Billing"
         try:
-            invoiceItem = stripe.InvoiceItem.create(customer=cid, amount=totalCents, currency='usd', description=stripedesc) 
+            price = stripe.Price.create(
+              unit_amount=totalCents,
+              currency='usd',
+              product=res.prodcode)
+            invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc) 
 
             invoice = stripe.Invoice.create(
             customer=cid,
