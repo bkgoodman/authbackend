@@ -84,6 +84,7 @@ from authlibs.prostore import prostore
 from authlibs.vending import vending
 from authlibs.purchasables import purchasables
 from authlibs.facility import facility
+from authlibs.finrep import finrep
 
     
 
@@ -573,7 +574,7 @@ with app.app_context():
     except:
         pass
 
-    app.jinja_env.globals['VERSION'] = "2.2.14"
+    app.jinja_env.globals['VERSION'] = "2.2.15"
     if app.config['globalConfig'].DeployType.lower() != "production":
         app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
     if app.config['globalConfig'].backgroundColor:
@@ -604,6 +605,7 @@ with app.app_context():
     tools.register_pages(app)
     kvopts.register_pages(app)
     comments.register_pages(app)
+    finrep.register_pages(app)
     apikeys.register_pages(app)
     prostore.register_pages(app)
     training.register_pages(app)

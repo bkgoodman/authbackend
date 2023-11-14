@@ -108,6 +108,12 @@ def get_raw_menu():
                     'title':"HVAC"
             },
             {
+                    'url':url_for('finrep.finrep'),
+                    'privs':'Finance',
+                    'alt':"Financial Reports",
+                    'title':"Financial Reports"
+            },
+            {
                     'url':url_for('prostore.grid'),
                     'img':url_for("static",filename="ProStoreBin.png"),
                     'alt':"Manage storage bins & locations",
