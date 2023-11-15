@@ -142,6 +142,19 @@ You might want to edit some things in the file before running the server.
 Make sure that if you are running a TEST server, that you set "Deployment:" 
 to something other thatn "Production"
 
+## Financial Reports Product Codes
+The `repgroups.dat` file contains a list of Stripe product codes, and the groups by which you would like to combine them for reporting. It is in a format like:
+
+```
+prod_1234       Workspace
+prod_2345       Workspace
+prod_000        Membership
+prod_111        Membership
+```
+
+If this is not set, each product will be reported individually. Get product codes from Stripe (and assign your own group names). This file should be restored from a backup if it is missing
+
+
 ## Setup Database
 
 (This deals mostly with importing a 2018-vintage DB - or starting from a totally clean slate!)
