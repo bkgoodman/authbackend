@@ -9,6 +9,7 @@ import calendar
 import json
 import pickle
 import re
+from pytz import UTC
 
 blueprint = Blueprint("finrep", __name__, template_folder='templates', static_folder="static",url_prefix="/finrep")
 
@@ -20,9 +21,11 @@ def do_report(month,year):
     # https://stripe.com/docs/search#search-query-language
 
     startperiod = datetime(year, month, 1)
+    startperiod.replace(tzinfo=UTC)
     # Calculate the end of the month
     lastday = calendar.monthrange(year, month)[1]
     endperiod = datetime(year, month, lastday, 23, 59, 59)  # Set the time to the end of the day
+    endperiod.replace(tzinfo=UTC)
 
 
     print("Start period:", startperiod, " to End period:", endperiod)
