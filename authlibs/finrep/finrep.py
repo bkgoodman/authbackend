@@ -21,14 +21,16 @@ def do_report(month,year):
     # https://stripe.com/docs/search#search-query-language
 
     startperiod = datetime(year, month, 1)
-    startperiod.replace(tzinfo=UTC)
+    startperiod = startperiod.replace(tzinfo=UTC)
     # Calculate the end of the month
     lastday = calendar.monthrange(year, month)[1]
     endperiod = datetime(year, month, lastday, 23, 59, 59)  # Set the time to the end of the day
-    endperiod.replace(tzinfo=UTC)
+    endperiod = endperiod.replace(tzinfo=UTC)
+
 
 
     print("Start period:", startperiod, " to End period:", endperiod)
+    print("Start period:", startperiod.timestamp(), " to End period:", endperiod.timestamp())
 
     group={}
     for x in [x.strip() for x in open("repgroups.dat","r").readlines()]:
@@ -47,14 +49,22 @@ def do_report(month,year):
 
 
     invoices = stripe.Invoice.auto_paging_iter(
-        created={"gte": int(startperiod.timestamp()), "lte": int(endperiod.timestamp())}
+        created={"gte": int((startperiod-timedelta(days=16)).timestamp()), "lte": int((endperiod+timedelta(days=16)).timestamp())}
     )
 
     for invoice in invoices:
 
-        #print("Invoice ID:", invoice.id, " Created:", datetime.fromtimestamp(invoice.created))
-        #print ("INVOICE:",invoice['amount_paid'], invoice['status'],invoice['billing_reason'])
-        for l in invoice['lines']['data']:
+        print("Invoice ID:", invoice.id, " Created:", datetime.fromtimestamp(invoice.created))
+        print ("   INVOICE:",invoice['amount_paid'], invoice['status'],invoice['billing_reason'])
+        print ("   FINALIZED:",invoice.status_transitions.paid_at)
+
+        # See if invoice was FINALIZED within given period!!
+
+        if ((invoice.status_transitions.paid_at is not None) and (invoice.status_transitions.paid_at >= startperiod.timestamp()) and (invoice.status_transitions.paid_at <= endperiod.timestamp())):
+         for l in invoice['lines']['data']:
+
+
+            # Process it
             product = None
             if l['plan'] is not None and 'product' in l['plan'] and l['plan']['product'] is not None: product = l['plan']['product']
             if 'price' in l and 'product' in l['price'] and l['price']['product'] is not None: product = l['price']['product']
@@ -82,6 +92,11 @@ def do_report(month,year):
                 print ("DISCOUNT",d)
                 amount -= d['amount']
 
+            applied_balance = invoice.ending_balance - invoice.starting_balance
+            if ((applied_balance >= 0) and (invoice.starting_balance < 0)):
+                # Paid from an APPLIED BALANCE (i.e. not)
+                amount -= applied_balance
+
             if product is not None:
                 if product not in products:
                       #print ("ADD",product)
@@ -101,6 +116,8 @@ def do_report(month,year):
                     'invoice': invoice.id,
                     'status': invoice['status']
                     })
+        else:
+            print ("***** NOT WITHIN FINALIZED PERIOD ****")
 
     # pickle.dump(gen,open("invoices.data","wb"))
     print ()
