@@ -1575,7 +1575,7 @@
          id="tspan33527"
          style="fill:#e6e6e6;stroke-width:0.176389"
          x="286.10431"
-         y="83.465752">Hall</tspan></text><text
+         y="83.465752">Foyer</tspan></text><text
        xml:space="preserve"
        style="font-size:8.38149px;font-family:'Franklin Gothic Demi Cond';-inkscape-font-specification:'Franklin Gothic Demi Cond, Normal';text-orientation:upright;opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.772977;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        x="304.06979"
@@ -1585,7 +1585,7 @@
          id="tspan30274"
          style="text-align:center;text-anchor:middle;fill:#ff0000;stroke:none;stroke-width:0.772977"
          x="304.06979"
-         y="83.543205">--</tspan></text><text
+         y="83.543205">{{ roomtemp['foyer'] }}</tspan></text><text
        xml:space="preserve"
        style="font-size:8.38149px;font-family:'Franklin Gothic Demi Cond';-inkscape-font-specification:'Franklin Gothic Demi Cond, Normal';text-orientation:upright;opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.772977;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        x="339.35547"
@@ -1595,7 +1595,7 @@
          id="tspan31016"
          style="text-align:center;text-anchor:middle;fill:#ff0000;stroke:none;stroke-width:0.772977"
          x="339.35547"
-         y="113.83918">--</tspan></text><text
+         y="113.83918">{{ roomtemp['class'] }}</tspan></text><text
        xml:space="preserve"
        style="font-size:8.38149px;font-family:'Franklin Gothic Demi Cond';-inkscape-font-specification:'Franklin Gothic Demi Cond, Normal';text-orientation:upright;opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.772977;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        x="272.67767"
@@ -1605,7 +1605,7 @@
          id="tspan32127"
          style="text-align:center;text-anchor:middle;fill:#ff0000;stroke:none;stroke-width:0.772977"
          x="272.67767"
-         y="113.83918">--</tspan></text><text
+         y="113.83918">{{ roomtemp['first'] }}</tspan></text><text
        xml:space="preserve"
        style="font-size:8.38149px;font-family:'Franklin Gothic Demi Cond';-inkscape-font-specification:'Franklin Gothic Demi Cond, Normal';text-orientation:upright;opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.772977;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        x="375.83521"
@@ -1615,7 +1615,7 @@
          id="tspan32428"
          style="text-align:center;text-anchor:middle;fill:#ff0000;stroke:none;stroke-width:0.772977"
          x="375.83521"
-         y="113.83918">--</tspan></text><text
+         y="113.83918">{{ roomtemp['av'] }}</tspan></text><text
        xml:space="preserve"
        style="font-size:8.38149px;font-family:'Franklin Gothic Demi Cond';-inkscape-font-specification:'Franklin Gothic Demi Cond, Normal';text-orientation:upright;opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.772977;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        x="310.25247"
@@ -1625,7 +1625,7 @@
          id="tspan32432"
          style="text-align:center;text-anchor:middle;fill:#ff0000;stroke:none;stroke-width:0.772977"
          x="310.25247"
-         y="113.83918">--</tspan></text><text
+         y="113.83918">{{ roomtemp['hamshack'] }}</tspan></text><text
        xml:space="preserve"
        style="font-size:8.38149px;font-family:'Franklin Gothic Demi Cond';-inkscape-font-specification:'Franklin Gothic Demi Cond, Normal';text-orientation:upright;opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.772977;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        x="397.51605"
@@ -1635,7 +1635,7 @@
          id="tspan32436"
          style="text-align:center;text-anchor:middle;fill:#ff0000;stroke:none;stroke-width:0.772977"
          x="397.51605"
-         y="99.725952">--</tspan></text><text
+         y="99.725952">{{ roomtemp['offices'] }}</tspan></text><text
        xml:space="preserve"
        style="font-size:8.38149px;font-family:'Franklin Gothic Demi Cond';-inkscape-font-specification:'Franklin Gothic Demi Cond, Normal';text-orientation:upright;opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.772977;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        x="352.13129"
@@ -1645,7 +1645,7 @@
          id="tspan32440"
          style="text-align:center;text-anchor:middle;fill:#ff0000;stroke:none;stroke-width:0.772977"
          x="352.13129"
-         y="83.543205">--</tspan></text><text
+         y="83.543205">{{ roomtemp['textiles'] }}</tspan></text><text
        xml:space="preserve"
        style="font-size:8.38149px;font-family:'Franklin Gothic Demi Cond';-inkscape-font-specification:'Franklin Gothic Demi Cond, Normal';text-orientation:upright;opacity:1;fill:#ff0000;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.772977;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        x="330.71655"
@@ -1655,7 +1655,7 @@
          id="tspan32444"
          style="text-align:center;text-anchor:middle;fill:#ff0000;stroke:none;stroke-width:0.772977"
          x="330.71655"
-         y="83.543205">--</tspan></text><text
+         y="83.543205">{{ roomtemp['lounge'] }}</tspan></text><text
        xml:space="preserve"
        style="font-size:5.85733px;font-family:'Franklin Gothic Demi Cond';-inkscape-font-specification:'Franklin Gothic Demi Cond, Normal';text-orientation:upright;fill:#e6e6e6;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.134962;stroke-linecap:butt;stroke-linejoin:round;stroke-dasharray:0.269924, 0.134962;stroke-dashoffset:0;stroke-opacity:1"
        x="387.33948"
@@ -1665,4 +1665,4 @@
          id="tspan34614"
          style="fill:#e6e6e6;stroke-width:0.134962"
          x="387.33948"
-         y="105.17722">Cubes</tspan></text></g></svg>
+         y="105.17722">Offices</tspan></text></g></svg>

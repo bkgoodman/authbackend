@@ -105,14 +105,14 @@ def minisplit():
     r = redis.Redis()
     roomtemp={}
     roomtemp["archer"]='--'
-    roomtemp["hall"]='--'
-    roomtemp["classroom"]='--'
+    roomtemp["foyer"]='--'
+    roomtemp["class"]='--'
     roomtemp["first"]='--'
     roomtemp["av"]='--'
-    roomtemp["ham"]='--'
+    roomtemp["hamshack"]='--'
     roomtemp["textiles"]='--'
     roomtemp["lounge"]='--'
-    roomtemp["cubes"]='--'
+    roomtemp["offices"]='--'
 
     minisplits=[]
     now=datetime.datetime.now()
@@ -159,7 +159,7 @@ def minisplit():
             })
         print (j)
         print (minisplits)
-        roomtemp[ m.decode('utf-8').replace("minisplit/","")] = j['roomTemp']
+        roomtemp[ m.decode('utf-8').replace("minisplit/minisplit-","")] = j['roomTemp']
     return render_template('minisplits.html',minisplits=minisplits,roomtemp=roomtemp,temperatures=temperatures)
 
 def register_pages(app):
