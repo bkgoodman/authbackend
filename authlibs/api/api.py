@@ -1370,7 +1370,7 @@ New Vending Balance: ${4:0.2f}""".format(
       finalize=stripe.Invoice.finalize_invoice(invoice)
       if (finalize['status'] != 'open'):
         result = {'error':'success','description':"Stripe Error"}
-        logger.warning("Stripe Finalize error for {0} status is {1} productId {2} customerId {3}".format(m.Member.member,pay['status'],productId,cid))
+        logger.warning("Stripe Finalize error for {0} status is {1} productId {2} customerId {3}".format(m.Member.member,finalize['status'],productId,cid))
       else:
         pay = stripe.Invoice.pay(invoice)
         if (pay['status'] != 'paid'):
