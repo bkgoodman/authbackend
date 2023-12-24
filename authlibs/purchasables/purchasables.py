@@ -185,18 +185,20 @@ def purchasable_purchase():
         )
 
         finalize=stripe.Invoice.finalize_invoice(invoice)
-        if (finalize['status'] != 'open'):
-            #result = {'error':'success','description':"Stripe Error"}
-            flash(f"Charge error: {finalize['status']}","danger")
-            logger.warning("Stripe Finalize error for {0} status is {1} productId {2} customerId {3}".format(m.Member.member,pay['status'],r.product,cid))
-            return redirect(url_for('purchasables.purchasables'))
-        else:
+        if (finalize['status'] == 'paid'):
+            pass
+        elif (finalize['status'] == 'open'):
             pay = stripe.Invoice.pay(invoice)
             if (pay['status'] != 'paid'):
               #result = {'error':'success','description':"Payment Declined"}
               flash("Payment was Declined","danger")
-              logger.warning("Stripe Payment error for {0} status is {1} productId {2} customerId {3}".format(m.Member.member,pay['status'],r.product,cid))
+              logger.warning("Stripe Payment error for {0} status is {1} productId {2} customerId {3}".format(current_user.member,pay['status'],r.product,cid))
               return redirect(url_for('purchasables.purchasables'))
+        else:
+            #result = {'error':'success','description':"Stripe Error"}
+            flash(f"Charge error: {finalize['status']}","danger")
+            logger.warning("Stripe Finalize error for {0} status is {1} productId {2} customerId {3}".format(current_user.member,pay['status'],r.product,cid))
+            return redirect(url_for('purchasables.purchasables'))
     except BaseException as e:
       flash(f"Stripe error: {e}","danger")
       logger.warning("Stripe Payment error for {0} productId {1} customerId {2}: {3}".format(current_user.member,r.product,cid,e))
