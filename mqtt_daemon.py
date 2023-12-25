@@ -309,6 +309,9 @@ def on_message(client,userdata,msg):
                     log_event_type = RATTBE_LOGEVENT_TOOL_SAFETY.id
                     log_text = reason
 
+                elif sst == 'storagepass':
+                    log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_STORAGEPASS.id
+                    log_text = "Temporary Storage Pass Issued"
                 elif sst=="access":
                     if 'error' in message and message['error'] == True:
                         #log_event_type = RATTBE_LOGEVENT_TOOL_UNRECOGNIZED_FOB.id

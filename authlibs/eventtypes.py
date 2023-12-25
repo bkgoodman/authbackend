@@ -126,6 +126,12 @@ class RATTBE_LOGEVENT_DOOR_CLOSED:
     slack_icon=':arrow_backward:'
     slack_color='#777777'
 
+class RATTBE_LOGEVENT_MEMBER_ENTRY_STORAGEPASS:
+    id=1029
+    desc='Temp Storage Pass Issued'
+    slack_icon=':white_check_mark:'
+    slack_color='#00aa00'
+
 class RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE:
     id=1100
     desc='Charge for Leased Space'
