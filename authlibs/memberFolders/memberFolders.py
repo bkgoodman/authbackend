@@ -517,7 +517,7 @@ def upload_file():
             tempfilePath = config['cache']+tempfileName
             file.save(tempfilePath)
 
-            path = config['base']+"/"+member.memberFolder+"/"+folder+filename
+            path = config['base']+"/"+current_user.memberFolder+"/"+folder+filename
             try:
                 with paramiko.Transport((config['server'],22)) as transport:
                     transport.connect(None,config['user'],config['password'])
