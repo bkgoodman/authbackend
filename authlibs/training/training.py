@@ -136,7 +136,7 @@ def verify_training(train,user=current_user):
             
             
         # ...or they don't meet days/hours requirements...
-        if r2 and (train.hours > 0):
+        if r2 and ((train.hours is not None) and (train.hours > 0)):
           q = UsageLog.query.filter(UsageLog.resource_id==r2.id)
           q = q.filter(UsageLog.time_logged >= datetime.datetime.now()-datetime.timedelta(days=365*2))
           q = q.filter(UsageLog.member_id == user.id)
@@ -158,7 +158,7 @@ def verify_training(train,user=current_user):
           if total_hours < train.hours:
             ar['desc'] = 'Must meet expereince prerequisites on '+r2.description
             ar['status'] = 'cannot'
-        if r2 and (train.days > 0):
+        if r2 and (train.days is not None) and ((train.days > 0)):
           # Check how long they have been authorized for
           q = Logs.query.filter(Logs.resource_id==r2.id)
           q = q.filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id)
@@ -404,7 +404,7 @@ def get_endorsements(resid):
   e = Resource.query.filter(Resource.id==int(resid)).one()
   if e.permissions:
     res = e.permissions.strip().split()
-    return json_dump(res, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(res,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   
   
