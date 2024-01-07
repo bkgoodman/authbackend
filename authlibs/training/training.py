@@ -4,6 +4,7 @@ import random
 import string
 import datetime
 from authlibs import accesslib
+from authlibs.slackutils import send_slack_message
 from ..slackutils import add_user_to_channel
 
 blueprint = Blueprint("training", __name__, template_folder='templates', static_folder="static",url_prefix="/training")
@@ -458,9 +459,18 @@ def quiz(quizid):
           db.session.add(ac)
           flash("Congratulations! You are authorized!","success")
           authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,resource_id=train.resource_id,message="Self-Auth",member_id=current_user.id,commit=0)
+          try:
+              if (res.slack_admin_chan is not None) and (res.slack_admin_chan.strip() != ""):
+                  send_slack_message(res.slack_admin_chan,f":moneybag: {current_user.firstname} {current_user.lastname} self-authorized on {res.name}")
+          except BaseException as e:
+              logger.error(f"Failed to send slack message {e}")
+              pass
           
         if res.slack_chan and res.slack_chan.strip() != "":
-          add_user_to_channel(res.slack_chan,current_user)
+          try:
+            add_user_to_channel(res.slack_chan,current_user)
+          except:
+            pass
 
 
       # Add Endorsements (if we need to)

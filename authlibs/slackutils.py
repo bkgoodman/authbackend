@@ -215,10 +215,32 @@ def send_slack_message(towho,message):
   sc = SlackClient(slack_token)
   #if sc.rtm_connect():
   #  print "SLACK-SEND",towho,message
-  res = sc.chat_postMessage(
-      channel=towho,
-      text=message
+  for chan in towho.split(","):
+    try:
+      #cid = get_channel_id(sc,chan.replace("#",""))
+      #if not cid:
+      #  logger.error("ID for channel {0} not found".format(chan))
+      #  continue
+      # Bot can't invite users to channels it doesn't belong to
+      #res = api_call_ratelimit(sc,
+      #  "conversations.join",
+      #  channel=cid
+      #  )
+
+      #res = sc.chat_postMessage(
+      #    channel=chan.replace("#",""),
+      #    text=message
+      #    )
+
+      res = sc.api_call(
+        "chat.postMessage",
+        json = {
+            'channel':chan,
+            'text':message
+        }
       )
+    except BaseException as e:
+        logger.error(f"Error posting Slack channel \"{chan}\": {e}")
 
 def get_channel_id(sc,channel):
   channel = channel.strip().lower()
