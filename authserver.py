@@ -574,7 +574,7 @@ with app.app_context():
     except:
         pass
 
-    app.jinja_env.globals['VERSION'] = "2.2.17"
+    app.jinja_env.globals['VERSION'] = "2.2.18"
     if app.config['globalConfig'].DeployType.lower() != "production":
         app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
     if app.config['globalConfig'].backgroundColor:

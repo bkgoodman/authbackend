@@ -620,8 +620,14 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
                     error = "Stripe Payment error for {0} Invoice {1}".format(name,invoice.id)
                     tabledata['status']=f"Stripe Pay Error {str(e)}"
                 else:
-                    paid=True
-                    tabledata['status']="Paid"
+                    if (pay['status'] != 'paid'):
+                        paid=False
+                        error = f"Payment returned bad status {pay['status']}"
+                        tabledata['status']=f"Bad Status {pay['status']}"
+                        authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_BILL_FAILED.id,resource_id=res.id,member_id=member_id,message=logmsg,commit=0)
+                    else:
+                        paid=True
+                        tabledata['status']="Paid"
         except BaseException as e:
             logmsg = f"Error: {e}"
             tabledata['status']=f"Exception Error {str(e)}"

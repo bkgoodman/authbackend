@@ -49,8 +49,9 @@ ALTER TABLE usageLog ADD COLUMN payTier INTEGER;
 #sqlite3 makeit.db '
 #INSERT INTO storageGrid VALUES(8,"Garage","Garage",6,8);
 #INSERT INTO storageGrid VALUES(9,"Cleanspace","Cleanspace",4,2);
-#INSERT INTO purchasable VALUES(10,"Broken Drill Bit","Broken Drill Bit",2000,"prod_MIERLuABAuCcLR","Broken Drill Bit","#test-resource-admins",5);
-#'
+sqlite3 makeit.db '
+INSERT INTO purchasable VALUES(10,"Staging Test","Staging Test Purchasable",100,"prod_MIERLuABAuCcLR","Staging Test","#test-resource-admins",5);
+'
 
 
 # Changes Brad to use my Test Stripe Account
@@ -84,8 +85,8 @@ sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,
 sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,time_reported,idleSecs,activeSecs,enabledSecs,payTier) VALUES (239,36,5024,"2023-05-01 02:00:00","2023-05-01 02:00:00",3600,1800,3600,0);'
 
 sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,time_reported,idleSecs,activeSecs,enabledSecs) VALUES (470,36,5024,"2023-04-28 01:00:00","2023-04-28 01:00:00",3600,1800,3600);'
-sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,time_reported,idleSecs,activeSecs,enabledSecs) VALUES (13,36,5024,"2023-08-09 01:00:00","2023-08-09 01:00:00",3600,1800,3600);'
-sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,time_reported,idleSecs,activeSecs,enabledSecs) VALUES (13,36,5024,"2023-08-10 01:00:00","2023-08-10 01:00:00",3600,1800,3600);'
+sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,time_reported,idleSecs,activeSecs,enabledSecs) VALUES (13,36,5024,"2024-01-09 01:00:00","2023-08-09 01:00:00",3600,1800,3600);'
+sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,time_reported,idleSecs,activeSecs,enabledSecs) VALUES (13,36,5024,"2024-01-10 01:00:00","2023-08-10 01:00:00",3600,1800,3600);'
 
 
 echo "DONT FORGET TO:"
