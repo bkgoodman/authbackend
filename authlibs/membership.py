@@ -11,6 +11,7 @@ from . import config
 import sys
 import argparse
 from .db_models import db, Subscription, Member, Blacklist, Logs
+from authlibs.memberFolders.memberFolders import createMemberFolder
 import configparser
 from . import eventtypes
 from datetime import datetime
@@ -241,6 +242,7 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
             except BaseException as e:
               msg = "Failed createing Google account for %s: %s" % (m.alt_email,str(e))
               logger.error(msg)
+            createMemberFolder(m)
         
 
         
@@ -332,3 +334,7 @@ Options:
         isTest=True
 
     syncWithSubscriptions(isTest)  
+
+def cli_creatememberfoldertest(cmd,**kwargs):
+    bkg = Member.query.filter(Member.member=="Bradley.Goodman").one()
+    createMemberFolder(bkg)

@@ -71,6 +71,9 @@ def getFolderConfig(member=current_user):
 
     if config['cache'][-1] != '/': config['cache']+= "/"
 
+    if (member is None):
+        return (config,None)
+
     if (member.memberFolder is None) or (member.memberFolder.strip() == ""):
         return (None,"Please ask an administrator to set up your member folder")
 
@@ -337,6 +340,35 @@ def uploaded(folder=""):
     if m is not None and m.strip() != "" :
         flash(m)
     return infolder(folder=folder)
+
+def createMemberFolder(user):
+  try:
+    foldername = user.member.replace("."," ")
+    (config,error) = getFolderConfig(None)
+    if (error is not None):
+      logger.error(f"Error getting member folder config {error}")
+      return 
+
+    path = config['base']+"/"+foldername
+    if path.find("../") != -1 or path.find("/..") != -1:
+      logger.error(f"Bad member folder pathname {path}")
+      return 
+
+    try:
+        with paramiko.Transport((config['server'],22)) as transport:
+            transport.connect(None,config['user'],config['password'])
+            with paramiko.SFTPClient.from_transport(transport) as sftp:
+                try:
+                    sftp.stat(path)
+                    logger.error(f"Member Folder {path} already exists")
+                except:
+                    sftp.mkdir(path)
+                    logger.info(f"Created {path} for {user.member}")
+    except BaseException as e:
+        logger.error(f"Create Member Folder {path} Error: {e}")
+  except BaseException as e:
+    logger.error(f"Create Member Folder {user.member} Error: {e}")
+    user.memberFolder = foldername
 
 @blueprint.route('/createFolder', methods=['GET', 'POST'])
 @login_required
