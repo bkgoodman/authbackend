@@ -363,12 +363,12 @@ def createMemberFolder(user):
                     logger.error(f"Member Folder {path} already exists")
                 except:
                     sftp.mkdir(path)
+                    user.memberFolder = foldername
                     logger.info(f"Created {path} for {user.member}")
     except BaseException as e:
         logger.error(f"Create Member Folder {path} Error: {e}")
   except BaseException as e:
     logger.error(f"Create Member Folder {user.member} Error: {e}")
-    user.memberFolder = foldername
 
 @blueprint.route('/createFolder', methods=['GET', 'POST'])
 @login_required
