@@ -335,6 +335,9 @@ Options:
 
     syncWithSubscriptions(isTest)  
 
+def cli_createmembertest(cmd,**kwargs):
+    google.createUser("Testy","McTesterson","testy.testerson","test@example.com","test123abcd!")
+
 def cli_creatememberfoldertest(cmd,**kwargs):
     bkg = Member.query.filter(Member.member=="Bradley.Goodman").one()
     createMemberFolder(bkg)
