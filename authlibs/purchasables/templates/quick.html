@@ -12,13 +12,21 @@
 
   <p>
   Please confirm that you wish to make a purchase for {{ purchasable.name }} {{ ident }}
-  This will charge {{ chargeStr }} to the card you have on file with your MakeIt Labs Memebership.
+  This will charge ${{ chargeStr }} to the card you have on file with your MakeIt Labs Memebership.
   </p>
 
+
   <form method="POST" action="{{ url_for('purchasables.purchasable_purchase') }}">
-          <button type="submit" name="confirm" value="confirm" class="btn btn-primary">Yes</button>
+	  <input type="hidden" name="pricestr" value="{{ chargeStr }}" />
+	  <input type="hidden" name="purchase_item_id" value="{{ purchasable.id }}" />
+	  {% if cost != 0 %}
+          <button type="submit" name="Purchase" value="Purchase" class="btn btn-danger">Purchase</button>
+	  {% else  %}
+	  <!-- NOT DONE YET -->
+          <xx-button type="submit" name="Continue" value="Continue" class="btn btn-danger">Continue</xx-button>
+	  {% endif %}
+	  <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
   </form>
-  <button class="btn btn-danger">No</button>
 
 
 {% endblock %}
