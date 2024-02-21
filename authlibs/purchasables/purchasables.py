@@ -118,7 +118,9 @@ def purchasable_delete(purchasable):
     flash("Purchasable deleted.")
     return redirect(url_for('purchasables.purchasables'))
 
+@blueprint.route('/quick/<int:purchasable>',defaults={'ident':"",'cost': 0}, methods=['GET'])
 @blueprint.route('/quick/<int:purchasable>/<int:cost>/<string:ident>', methods=['GET'])
+@blueprint.route('/quick/<int:purchasable>/<int:cost>',defaults={'ident': ""}, methods=['GET'])
 @login_required
 def quick(purchasable,cost,ident):
 
@@ -134,7 +136,15 @@ def quick(purchasable,cost,ident):
     if r.product is None or r.product.strip() =="":
         flash("Error: Product code is undefined","danger")
         return redirect(url_for('purchasables.purchasables'))
-    cs = f"${cost/100:0.2f}"
+    if cost == 0:
+        cost = r.price
+    if cost is None:
+        cost = 0
+    cs = f"{cost/100:0.2f}"
+    if ident == "":
+        ident = r.description
+    if (ident != ""):
+        ident = "("+ident+")"
     return render_template('quick.html',purchasable=r,cost=cost,ident=ident,chargeStr=cs)
 
 @blueprint.route('/purchase', methods=['POST'])
@@ -145,7 +155,8 @@ def purchasable_purchase():
     if sub is None:
         flash("No subscription found","danger")
         return redirect(url_for('purchasables.purchasables'))
-    cents = int(float(request.form['pricestr'])*100.0)
+    ps = request.form['pricestr'].replace('$','')
+    cents = int(float(ps)*100.0)
 
     cid = sub.customerid
     #print("Customer ID is",cid)
