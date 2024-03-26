@@ -163,8 +163,8 @@ def authinit(app):
                         if (session["after_login"] != request.root_url) and (session["after_login"] != ""):
                             red = session["after_login"]
                             del session["after_login"]
-                            if red.endswith("/"):
-                                red = red[:-1]
+                            #if red.endswith("/"):
+                            #    red = red[:-1]
                             logger.error("REDIRECTING TO %s"%red)
                             login_user(user, remember=True)
                             return redirect(red)

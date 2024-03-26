@@ -55,6 +55,65 @@ slack_token = Config.get('Slack','BOT_API_TOKEN')
 # This is to remember last time user was announced via door entry audio
 lastMemberAccess = {}
 
+
+def custom_decoder(obj):
+    if 'time' in obj:
+        obj['time']= datetime.fromisoformat(obj['time'])
+    return obj
+
+# Minisplit temperatures
+def ingest_record(minisplit,r,src):
+    rr= r.get("minisplit_data/"+minisplit)
+    if rr is None:
+        datapoints = []
+    else:
+        datapoints = json.loads(rr, object_hook=custom_decoder)
+    dest = {}
+    dest['time'] = datetime.strptime(src['time'], "%a %b %d %H:%M:%S %Y")
+    dest['setpoint'] = src['setpoint']
+    dest['roomTemp'] = src['roomTemp']
+    dest['operating'] = 0 if src['operating']=='OFF' else 1
+    #print ("DEST",dest)
+    datapoints.append(dest)
+    datapoints = datapoints[-90:]
+    #print ("DATAPOINTS:", datapoints)
+
+    rr= r.get("minisplit_hours/"+minisplit)
+    if rr is None:
+        hours = []
+    else:
+        hours = json.loads(rr, object_hook=custom_decoder)
+
+
+    if (len(hours) == 0) or (dest['time'] >= hours[-1]['time'].replace(minute=59,second=59,microsecond=999999)):
+        hour = {}
+        hour['time'] =  dest['time'].replace(minute=0,second=0,microsecond=0)
+        hours.append(hour)
+
+    #print ("HOURS:", hours)
+    # Re-average last hour
+    count=0
+    setpoint=0
+    roomTemp=0
+    operating=0
+    starttime = hours[-1]['time']
+    endtime = hours[-1]['time'].replace(minute=59,second=59,microsecond=999999)
+    for e in datapoints:
+        if (starttime <= e['time']) and (e['time'] <= endtime):
+            count += 1
+            roomTemp += e['roomTemp']
+            setpoint += e['setpoint']
+            operating += e['operating']
+    if count == 0: count=1
+    hours[-1]['roomTemp'] = roomTemp/count
+    hours[-1]['setpoint'] = setpoint/count
+    hours[-1]['operating'] = operating/count
+
+    hours = datapoints[-(24*14):]
+
+    r.set("minisplit_data/"+minisplit,json.dumps(datapoints, default=str))
+    r.set("minisplit_hours/"+minisplit,json.dumps(hours,default=str))
+
 def get_mqtt_opts(app):
   Config = configparser.ConfigParser({})
   Config.read('makeit.ini')
@@ -148,9 +207,14 @@ def on_message(client,userdata,msg):
             if topic[0]=="facility" and topic[1]=="minisplit" and topic[2]=="report":
                 r = redis.Redis()
                 minisplit = topic[3]
-                print ("GOT",minisplit,message)
+                #print ("GOT",minisplit,message)
                 r.set("minisplit/"+minisplit,msg.payload)
-                # We end here because we would get an index error below looking up subtopic
+
+                # minisplit-class {'power': 'ON', 'setpoint': 66, 'roomTemp': 66, 'mode': 'HEAT', 'fan': 'AUTO', 'ip': '10.25.6.207', 'rssid': -52, 'fw': '0.0.9', 'time': 'Tue Mar 26 12:07:26 2024', 'managed': 'HEAT', 'managed_setpoint': 67, 'override_setpoint': 72, 'override_time': 120, 'override_end': '', 'managed_setpoint_unoccupied': 52, 'ir_interval': 15, 'operating': 'ON', 'alarm': 'Disarmed', 'last_ir': 'Tue Mar 26 12:01:15 2024'}
+                j = json.loads(msg.payload)
+                ingest_record(minisplit,r,j)
+
+                # We return here because we would get an index error below looking up subtopic
                 return
 
             # base_topic+"/control/broadcast/acl/update"
