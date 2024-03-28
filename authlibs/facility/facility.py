@@ -10,6 +10,7 @@ import redis
 import json
 import datetime
 from authlibs.slackutils import send_slack_message
+from flask import make_response
 import paho.mqtt.publish as mqtt_pub
 
 blueprint = Blueprint("facility", __name__, template_folder='templates', static_folder="static",url_prefix="/facility")
@@ -36,6 +37,115 @@ def normalize_temp(temp):
             if ((temp >= h) and (temp < l)):
                 return round_to_closest(temp,l,h)
         return 0
+
+@blueprint.route('/graphs/<string:minisplit>/<string:data>', methods=['GET'])
+@login_required
+def graphs(minisplit,data):
+    return render_template('graphs.html',minisplit=minisplit,data=data)
+
+@blueprint.route('/tempgraph/<string:minisplit>/<string:data>', methods=['GET'])
+@login_required
+def tempgraph(minisplit,data):
+    ysize=300
+    xsize=700
+    maxtemp=90
+    mintemp=20
+
+    xoffset = 50
+    yoffset = 50
+    maxtime_small = (90*60)
+    maxtime_big = (14*24*60*60)
+    maxtime_day = (24*60*60)
+    now = datetime.datetime.utcnow()
+    utcdelta = now - datetime.datetime.now()
+    if data == "hours":
+        maxtime = maxtime_big
+    elif data == "day":
+        maxtime = maxtime_day
+        data = "hours"
+    else:
+        maxtime = maxtime_small
+    r = redis.Redis()
+    x = r.get(f"minisplit_{data}/{minisplit}")
+    j = json.loads(x, object_hook=custom_decoder)
+    #print ("M")
+    circles=[]
+    points=[]
+
+    ii = 0
+    for i in sorted(j,key = lambda x:x['time']):
+        ii += 1
+        #print (i)
+        rt = i['roomTemp']
+        td = (now - i['time']).total_seconds()
+        x = (700 * td) / (maxtime)
+
+        if (x>0) and (x < 700):
+            #print (rt, td,"xcoord=",700-x,"=",scale_temperature_to_pixel(rt,mintemp,maxtemp,0,ysize))
+            y=scale_temperature_to_pixel(rt,mintemp,maxtemp,0,ysize)
+            x = (700-x)+xoffset
+            points.append(f"{x} {y+yoffset}")
+            green = 255-int(i['operating']*255)
+            red = int(i['operating']*255)
+            color = f"{red:02x}{green:02x}00"
+            circles.append(
+                    f'<circle style="fill:#{color};fill-rule:evenodd;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:8, 8;stroke-opacity:1" id="circle{ii}" cx="{x}" cy="{y+yoffset}" r="4"> <title>\
+                            Temp={int(rt)} Setpoint={int(i["setpoint"])} Running {int(i["operating"]*100)}% at {datetime.datetime.strftime(i["time"]-utcdelta,"%a %b-%d %-I:%M %p")}</title> /> </circle>'
+
+                    )
+
+    #print ()
+    expanded = "M " + " ".join(points)
+    #print (f'<path style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" id="BKGpath" d="{expanded}" />')
+    custom = f'<path style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" id="BKGpath" d="{expanded}" />'
+
+    for x in circles:
+        custom += x
+
+    # time labels
+    label=[]
+    for i in range(5):
+        ago = (maxtime/5)*i
+        if (ago < (60*60*18)):
+            label.append(datetime.datetime.strftime(datetime.datetime.now() - datetime.timedelta(seconds=ago),"%-I:%M %p"))
+        elif (ago < (60*60*24*6)):
+            label.append(datetime.datetime.strftime(datetime.datetime.now() - datetime.timedelta(seconds=ago),"%a %-I:%M %p"))
+        else:
+            label.append(datetime.datetime.strftime(datetime.datetime.now() - datetime.timedelta(seconds=ago),"%a %b-%d"))
+    response = make_response(render_template('tempgraph.svg',title=minisplit,custom=custom,label=label))
+    response.headers['Content-Type'] = 'image/svg+xml'
+    return response
+
+
+def custom_decoder(obj):
+    if 'time' in obj:
+        obj['time']= datetime.datetime.fromisoformat(obj['time'])
+        #obj['starttime']= obj['time'].replace(minute=0,second=0,microsecond=0)
+        #obj['endtime']= obj['time'].replace(minute=59,second=59,microsecond=999999)
+    return obj
+
+
+def scale_temperature_to_pixel(temperature, mintemp, maxtemp, ymin, ymax):
+    """
+    Scales a temperature value to screen pixel coordinates.
+
+    Args:
+        temperature (float): Temperature value to scale.
+        mintemp (float): Minimum temperature.
+        maxtemp (float): Maximum temperature.
+        ymin (int): Minimum y-coordinate (pixel).
+        ymax (int): Maximum y-coordinate (pixel).
+
+    Returns:
+        int: Scaled y-coordinate (pixel).
+    """
+    # Normalize temperature to [0, 1] range
+    normalized_temp = (temperature - mintemp) / (maxtemp - mintemp)
+
+    # Invert the mapping to handle higher temperatures resulting in lower y-coordinates
+    scaled_y = ymax - int(normalized_temp * (ymax - ymin))
+
+    return scaled_y
 
 @blueprint.route('/minisplits', methods=['GET','POST'])
 @login_required

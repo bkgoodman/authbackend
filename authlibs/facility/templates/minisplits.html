@@ -19,6 +19,7 @@
 	    </form>
 	<table class="table table-sm">
         <tr>
+            <th></th>
             <th>Name</th>
             <th>Power</th>
             <th>Mode</th>
@@ -35,6 +36,9 @@
         </tr>
 	{% for m in minisplits %}
 	  <tr>
+            <td>
+                    <a  href="{{ url_for("facility.graphs",minisplit=m.name,data="data") }}"><img style="height:20px" src="static/graph_icon.svg" /></a>
+            </td>
 		<td>{{ m.name }}</td>
 		<td>{{ m.power }}</td>
 		<td>{{ m.mode }}</td>

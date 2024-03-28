@@ -109,7 +109,7 @@ def ingest_record(minisplit,r,src):
     hours[-1]['setpoint'] = setpoint/count
     hours[-1]['operating'] = operating/count
 
-    hours = datapoints[-(24*14):]
+    hours = hours[-(24*14):]
 
     r.set("minisplit_data/"+minisplit,json.dumps(datapoints, default=str))
     r.set("minisplit_hours/"+minisplit,json.dumps(hours,default=str))
