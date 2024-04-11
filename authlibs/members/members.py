@@ -1065,6 +1065,46 @@ def getDoorAccess(id):
   (warning,allowed) = accesslib.determineAccess(acc,"Door access pending orientation")
   return (warning,allowed.lower()=='allowed',acc)
 
+@blueprint.route('/webhook', methods=['POST','GET'])
+def webhook():
+    event = None
+    payload = request.data
+    sig_header = request.headers['STRIPE_SIGNATURE']
+
+    stripe.apk_key = current_app.config['globalConfig'].Config.get('Stripe','webhook_apk_key')
+    endpoint_secret =  current_app.config['globalConfig'].Config.get('Stripe','webhook_endpoint_secret')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+        # Handle the event
+        logger.warning(f"Stripe Webhook Success {event}")
+        logger.warning(f'Object {event["data"]["eventect"]}')
+        logger.warning(f'Type {event["type"]}')
+        logger.warning(f'ID {event["data"]["eventect"]["id"]}')
+        logger.warning(f'Product {event["data"]["eventect"]["plan"]["product"]}')
+        logger.warning(f'Active {event["data"]["eventect"]["plan"]["active"]}')
+        logger.warning(f'Name {event["data"]["eventect"]["plan"]["name"]}')
+
+    except ValueError as e:
+        # Invalid payload
+        logger.error(f"Stripe Webook Value error: {e}")
+        return json_dump({'success':True},indent=2), 200, {'Content-type': 'application/json'}
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        logger.error(f"Stripe Webook Signature verification error: {e}")
+        return json_dump({'success':True},indent=2), 200, {'Content-type': 'application/json'}
+    except BaseException as e:
+        logger.error(f"Stripe Webook error: {e}")
+        return json_dump({'success':True},indent=2), 200, {'Content-type': 'application/json'}
+
+    if ((obj["data"]["object"] == "customer.subscription.created") and (obj["type"] == "customer.subscription.created")):
+        pass
+
+    # We meed to add (comma separated string) "names" and "emails" to Subscription metadata
+    return json_dump({'success':True},indent=2), 200, {'Content-type': 'application/json'}
+
 
 def register_pages(app):
   app.register_blueprint(blueprint)
