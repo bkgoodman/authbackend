@@ -3,8 +3,9 @@
 {% endblock %}
 
 
-{% block widebody %}
+{% block body %}
     <div class="body">
+    <div class="container">
         <h2 class="mb-4">Membership Registration</h2>
         <form method="POST" action="payment">
             <div class="mb-3">
@@ -13,49 +14,46 @@
 		    </p>
             </div>
             <!-- First Name -->
-            <div class="mb-3">
-                <label for="firstName" class="form-label mb-2">First Name</label>
+            <div class="input-group mb-3">
+                <label for="firstName" class="input-group-text mb-2">First Name</label>
                 <input type="text" class="form-control mb-2" name="firstname" id="firstName" placeholder="Enter your first name" required>
-            </div>
-
-            <!-- Last Name -->
-            <div class="mb-3">
-                <label for="lastName" class="form-label mb-2">Last Name</label>
+                <label for="lastName" class="input-group-text mb-2">Last Name</label>
                 <input type="text" class="form-control mb-2" name="lastname" id="lastName" placeholder="Enter your last name" required>
             </div>
 
-            <!-- email -->
-            <div class="mb-3">
-                <label for="email" class="form-label mb-2">email</label>
-                <input type="tel" class="form-control mb-2" name="email" id="email" placeholder="Enter your email address" required>
-            </div>
 
-            <!-- Phone Number -->
-            <div class="mb-3">
-                <label for="phoneNumber" class="form-label mb-2">Phone Number</label>
+            <!-- email -->
+            <div class="input-group mb-3">
+                <label for="email" class="input-group-text mb-2">email</label>
+                <input type="tel" class="form-control mb-2" name="email" id="email" placeholder="Enter your email address" required>
+                <label for="phoneNumber" class="input-group-text  mb-2">Phone Number</label>
                 <input type="tel" class="form-control mb-2" name="phone" id="phoneNumber" placeholder="Enter your phone number" required>
             </div>
 
 
+
 	                <!-- Membership Type -->
             <div class="mb-3">
-                <label class="form-label">Select Membership Type</label>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="membershipType" id="proMembership" value="pro">
-                    <label class="form-check-label" for="proMembership">Professional Membership - $65.00 per Month</label>
+                <label class="form-label">Select Membership Type: </label>
+                            <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                  <label class="btn btn-outline-primary active">
+                    <input type="radio" name="membershipType" id="option1" value="hobbyist" autocomplete="off" checked> Hobbiest Membership - $49.95/mo
+                  </label>
+                  <label class="btn btn-outline-primary">
+                    <input type="radio" name="membershipType" id="option2" value="pro" autocomplete="off"> Pro Membership - $64.95/mo
+                  </label>
                 </div>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="membershipType" id="hobbyistMembership" value="hobbyist">
-                    <label class="form-check-label" for="hobbyistMembership">Hobbyist Membership - $50.00 per Month</label>
-                </div>
+                    <p style="font-size:x-small">Pro memberships are intended for people using the facility on behalf of companies, or for profit endevors. They also provide certian benefits, such as on-site storage, class discounts, and area rentals.</p>
             </div>
+
 	                <!-- Checkbox -->
             <div class="mb-3 form-check">
                 <input type="checkbox" class="form-check-input" id="termsAgreement" name="termsAgreement" required>
-                <label class="form-check-label" for="termsAgreement">I agree to the terms and conditions</label>
+                <label class="form-check-label" for="termsAgreement">&nbsp;I agree to the terms and conditions</label>
             </div>
             <!-- Submit Button -->
             <button type="submit" name="Payment" value="Payment" class="btn btn-primary">Continue to Payment</button>
         </form>
+    </div>
     </div>
 {% endblock %}
