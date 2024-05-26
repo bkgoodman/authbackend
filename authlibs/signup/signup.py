@@ -227,6 +227,11 @@ def start_payment_session():
     #return jsonify({"session_id": session.id})
 
 
+@blueprint.route("/modify")
+def modify():
+    url = current_app.config['globalConfig'].Config.get('Stripe','modify_billing_url')
+    return redirect(url, code=303)
+
 
 """
 

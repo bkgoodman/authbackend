@@ -16,7 +16,7 @@ blueprint = Blueprint("finrep", __name__, template_folder='templates', static_fo
 def do_report(month,year):
     products = {}
     stripe.api_version = '2020-08-27'
-    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','ReportsToken')
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','Token')
     # Status can be "open" or "paid"
     # https://stripe.com/docs/search#search-query-language
 

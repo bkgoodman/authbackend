@@ -361,6 +361,7 @@ def grid():
       ab[b.location] = {
         'binid':b.ProBin.id,
       }
+
       if b.ProBin.name:
         ab[b.location]['binname']=b.ProBin.name
       else:
@@ -373,6 +374,12 @@ def grid():
       else:
         ab[b.location]['firstname']=""
         ab[b.location]['lastname']=""
+
+      # Check for dupes
+      for bb in bins:
+          if bb.location:
+            if (b.location != bb.location) and (b.member == bb.member):
+              ab[b.location]['style'] = "background-color:#ff4040"
 
       if (current_user.privs('ProStore','Finance')):
         if not b.waiverDate:
@@ -464,6 +471,13 @@ def notices():
     if b.waiverCount is None or b.waiverCount <1: rcmd.append("NoWaiver")
     if b.active != "Active": rcmd.append("Subscription")
     if b.rate_plan not in ('pro', 'produo'): rcmd.append("NonPro")
+
+    # Check Dups
+    for bbb in bins:
+      if b.location and bbb.location:
+        pass
+        if (b.location != bbb.location) and (b.member == bbb.member):
+          rcmd.append("Dup")
 
     if b.ProBin.status == ProBin.BINSTATUS_GONE:
       rcmd.append("BinGone")
