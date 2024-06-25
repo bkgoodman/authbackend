@@ -255,6 +255,10 @@ def member_folder(folder,member,asshared=False):
 def download(filename):
     return download_member(filename,current_user)
 
+@blueprint.route('/view/<path:filename>', methods=['GET'])
+@login_required
+def view(filename):
+    return download_member(filename,current_user,view=True)
 
 @blueprint.route('/shareddownload/<string:member>/<string:secret>/<path:filename>', methods=['GET'])
 @login_required
@@ -284,7 +288,7 @@ def downloadShared(filename,secret=None,member=None):
       return redirect(url_for("index"))
     return download_member(filename,m,asshared=True)
 
-def download_member(filename,member=current_user,asshared=False):
+def download_member(filename,member=current_user,asshared=False,view=False):
     @after_this_request
     def delete_after(response):
         try:
@@ -329,7 +333,7 @@ def download_member(filename,member=current_user,asshared=False):
     print  ("SENDING",config['cache'], fn)
     #return redirect(url_for("memberFolders.infolder"))
     ## return XX
-    return send_from_directory(config['cache'], tempfileName, attachment_filename=fn, as_attachment=True)
+    return send_from_directory(config['cache'], tempfileName, attachment_filename=fn, as_attachment=(not view))
 
 @blueprint.route('/uploaded', methods=['GET'])
 @blueprint.route('/uploaded/', methods=['GET'])
