@@ -83,6 +83,14 @@ def bins():
   locs=locs.all()
   return render_template('bins.html',bins=bins,bin=None,locations=locs,statuses=enumerate(ProBin.BinStatuses))
 
+@blueprint.route('/bin_add/<string:bin>', methods=['GET'])
+@roles_required(['Admin','ProStore'])
+@login_required
+def bin_add(bin):
+  #return render_template('bin.html',bin=b,locations=locs,statuses=enumerate(ProBin.BinStatuses),comments=comments)
+  locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).filter(ProLocation.location == bin).outerjoin(ProBin).group_by(ProLocation.id).all()
+  return render_template('bin_add.html',bin=bin,locations=locs,statuses=enumerate(ProBin.BinStatuses),forcestatus = 2,selectlocation=bin)
+  
 @blueprint.route('/bin/<string:id>', methods=['GET','POST'])
 @roles_required(['Admin','ProStore'])
 @login_required
@@ -402,8 +410,12 @@ def grid():
       return redirect(url_for('prostore.choose'))
 
   grids = StorageGrid.query.all()
+  locs = {}
+  for l in  ProLocation.query.all():
+      locs[l.location] = True
 
-  return render_template('grid.html',bins=ab,grids=grids)
+
+  return render_template('grid.html',bins=ab,grids=grids,locs=locs)
 
 
 @blueprint.route('/notices', methods=['GET','POST'])
