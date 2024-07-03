@@ -46,6 +46,7 @@ def do_report(month,year):
               products[p['id']]['name']=p['name']
               products[p['id']]['count'] = 0
               products[p['id']]['total'] = 0
+              products[p['id']]['items'] = []
 
 
     invoices = stripe.Invoice.auto_paging_iter(
