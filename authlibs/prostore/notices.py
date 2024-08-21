@@ -22,6 +22,10 @@ def log_bin_event(bin,event,commit=0):
     authutil.log(eventtypes.RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT.id,member_id=member_id,message=message,doneby=current_user.id,commit=commit)
 
 notice_text = {
+        "NoWaiver" : """We do not have your \"Pro-Storage Waiver\" on file. (This is different/seperate from standard membership waiver). Please execute this waiver immediately at http://smartwaiver.com/v/prostoragebin  - To avoid further delay, please make sure to enter the following EXACTLY as shown:
+  email: {email}
+  First Name: {firstname}
+  Last Name: {lastname}""",
         "Dup" : """You have more than one bin associagted with your member account. Pro members are entitled to one bin only. Please consolodate your storage to a single bin and notify \"board@makeitlabs.com\" with which bin you are keeping.
 """,
     "Subscription" : """There is a problem with your subscription payment. This could be that you have canceled your account, or another problem processing your payment, such as the card on file has expired. Please rectify by going to the following url:
@@ -80,8 +84,10 @@ def sendnotices(bin_id,notices,debugOnly=False):
     debug['location']=bin.location
     if not debugOnly:
         try:
-            genericEmailSender("info@makeitlabs.com",member.email,"Your MakeIt Labs Pro-Storage Bin",text)
-            genericEmailSender("info@makeitlabs.com",member.alt_email,"Your MakeIt Labs Pro-Storage Bin",text)
+            sendTo = f"{member.email}, {member.alt_email}"
+            #genericEmailSender("info@makeitlabs.com",member.email,"Your MakeIt Labs Pro-Storage Bin",text)
+            #genericEmailSender("info@makeitlabs.com",member.alt_email,"Your MakeIt Labs Pro-Storage Bin",text)
+            genericEmailSender("info@makeitlabs.com",sendTo,"Your MakeIt Labs Pro-Storage Bin",text)
             authutil.log(eventtypes.RATTBE_LOGEVENT_PROSTORE_NOTICE_SENT.id,member_id=member.id,message=notices,doneby=current_user.id,commit=0)
         except BaseException as e:
             err=1
