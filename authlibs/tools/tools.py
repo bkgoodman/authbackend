@@ -52,7 +52,7 @@ def tools_show(tool):
     if (not current_user.privs('RATT')):
         readonly=True
     if privs < AccessByMember.LEVEL_ARM:
-        flash("You don't have access to this")
+        flash("You don't have access to this tool")
         return redirect(url_for('index'))
     resources=Resource.query.all()
     nodes=Node.query.all()
