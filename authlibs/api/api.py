@@ -1359,13 +1359,14 @@ New Vending Balance: ${4:0.2f}""".format(
         unit_amount=data['addAmount'],
         currency='usd',
         product=productId)
-      invoiceItem = stripe.InvoiceItem.create(customer=cid, description=description,price=price)
 
       invoice = stripe.Invoice.create(
         customer=cid,
         description=invoicevendstr
         #collection_method="charge_automatically",
       )
+
+      invoiceItem = stripe.InvoiceItem.create(customer=cid, description=description,price=price,invoice=invoice.id)
 
       finalize=stripe.Invoice.finalize_invoice(invoice)
       if (finalize['status'] == 'paid'):
