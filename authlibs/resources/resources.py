@@ -586,11 +586,12 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
               unit_amount=totalCents,
               currency='usd',
               product=res.prodcode)
-            invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc) 
 
             invoice = stripe.Invoice.create(
             customer=cid,
             description=stripedesc,
+            pending_invoice_items_behavior="exclude",
+            #auto_advance=False,
             #collection_method="charge_automatically",
             metadata = {
                 'X-MIL-resource':res.short,
@@ -600,6 +601,7 @@ def bill_member_for_resource(member_id,res,doBilling,month,year):
                 'X-MIL-usageRecords':str(usageRecords)
                 }
             )
+            invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc,invoice=invoice.id) 
 
             finalize=stripe.Invoice.finalize_invoice(invoice)
             logmsg = f"Invoiced {invoice.id} for ${totalCents/100.0:0.2f}"
