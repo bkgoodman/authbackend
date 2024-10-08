@@ -17,7 +17,7 @@ blueprint = Blueprint("signup", __name__, template_folder='templates', static_fo
 
 
 @blueprint.route('/', methods=['GET','POST'])
-def debug():
+def signup():
 
     debug = "DEBUG\n"
     for (k,v) in request.form.items():
@@ -26,6 +26,49 @@ def debug():
         debug += f"Args Key: {k} Value: {v}\n"
 
     return render_template('signup.html',debug=debug)
+
+def addMember(sub,plantype,firstname,lastname,email,subscription):
+    name= sessiondata['firstname']+" "+sessiondata['lastname']
+    membership = "stripe:"+name.replace(" ",".")+":"+sessiondata['email']
+    expires = datetime.utcfromtimestamp(sub['current_period_end'])
+    created = datetime.utcfromtimestamp(sub['created'])
+    updated = datetime.utcnow()
+
+    # Add Subscription to Database
+    s=Subscription(membership=membership)
+    s.paysystem = "stripe"
+    s.subid = checkout_session['subscription']
+    s.customerid = sub['customer']
+    s.name = (firstname+" "+lastname)
+    s.email = email
+    s.plan = plantype
+    s.rate_plan = sub['plan']['id']
+    s.expires_date = expires
+    s.created_date = created
+    s.updated_date = updated
+    s.membership = membership
+    s.checked_date = datetime.utcnow()
+    s.active = 'true'
+
+    # Add Member to Database
+    mm = Member()
+    mm.member = (firstname+" "+lastname).replace(" ",".")
+    mm.firstname = firstname
+    mm.lastname = lastname
+    mm.alt_email = email
+    mm.active = 'true'
+    mm.plan = plantype
+    mm.stripe_name = firstname+" "+lastname
+    mm.time_created = created
+    mm.time_updated = updated
+    mm.email_confirmed_at = datetime.now()
+    db.session.add(mm)
+    db.session.flush()
+    logger.debug("Adding new member %s for subscription %s MemberID %s" % (name, subscription,mm.id))
+    s.member_id=mm.id
+    db.session.add(s)
+    db.session.add(Logs(member_id=mm.id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id))
+    return (s,mm)
 
 @blueprint.route('/postpay', methods=['GET','POST'])
 def postpay():
@@ -58,11 +101,17 @@ def postpay():
     # Put it all together.
 
     
+    names = sessiondata['firstname']+" "+sessiondata['lastname']
+    emails = sessiondata['email']
+    if sessiondata['mtype'] == 'produo':
+        names += ", "+sessiondata['firstname2']+" "+sessiondata['lastname2']
+        emails += ", "+sessiondata['email2']
+
     stripe.Subscription.modify(
       checkout_session['subscription'],
       metadata={
-          "emails": sessiondata['email'],
-          "names": sessiondata['firstname']+" "+sessiondata['lastname']
+          "emails": emails,
+          "names": names
           }
     )
 
@@ -77,8 +126,6 @@ def postpay():
     r.set("checkoutsession/"+checkout_session['id'],json.dumps(sessiondata))
     r.expire("checkoutsession/"+checkout_session['id'],600)
 
-    name= sessiondata['firstname']+" "+sessiondata['lastname']
-    membership = "stripe:"+name.replace(" ",".")+":"+sessiondata['email']
     plan = sub['plan']['id']
     planname = "hobbyist"
     if plan in ['hobbyist']:
@@ -90,48 +137,18 @@ def postpay():
     elif "group" in plan:
         plantype = 'hobbyist'
 
-    expires = datetime.utcfromtimestamp(sub['current_period_end'])
-    created = datetime.utcfromtimestamp(sub['created'])
-    updated = datetime.utcnow()
+    addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
+            sessiondata['email'],checkout_session['subscription'])
 
-    # Add Subscription to Database
-    s=Subscription(membership=membership)
-    s.paysystem = "stripe"
-    s.subid = checkout_session['subscription']
-    s.customerid = sub['customer']
-    s.name = name
-    s.email = sessiondata['email']
-    s.plan = plantype
-    s.rate_plan = sub['plan']['id']
-    s.expires_date = expires
-    s.created_date = created
-    s.updated_date = updated
-    s.membership = membership
-    s.checked_date = datetime.utcnow()
-    s.active = 'true'
+    if (plan == "produo"):
+        addMember(sub,plantype,sessiondata['firstname2'],sessiondata['lastname2'],
+            sessiondata['email2'],checkout_session['subscription'])
 
-    # Add Member to Database
-    mm = Member()
-    mm.member = name
-    mm.firstname = sessiondata['firstname']
-    mm.lastname = sessiondata['lastname']
-    mm.alt_email = sessiondata['email']
-    mm.active = 'true'
-    mm.plan = plantype
-    mm.stripe_name = name
-    mm.time_created = created
-    mm.time_updated = updated
-    mm.email_confirmed_at = datetime.now()
-    db.session.add(mm)
-    db.session.flush()
-    logger.debug("Adding new member %s for subscription %s MemberID %s" % (name, checkout_session['subscription'],mm.id))
-    s.member_id=mm.id
-    db.session.add(s)
-    db.session.add(Logs(member_id=mm.id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id))
+
     db.session.commit()
 
     createMissingMemberAccounts([mm],isTest=False)
-    return render_template('complete.html',debug=debug,email=sessiondata['email'])
+    return render_template('complete.html',debug=debug,email=sessiondata['email'],mtype=sessiondata['mtype'])
 
 @blueprint.route('/payment', methods=['GET','POST'])
 def payment():
@@ -143,17 +160,37 @@ def payment():
         debug += f"Args Key: {k} Value: {v}\n"
 
     #return render_template('debug.html',debug=debug)
+
+    mtype = request.form.get("membershipType")
+
+    if (mtype == "produo"):
+        if (
+                (request.form.get("firstname2").strip() == "") or
+                (request.form.get("lastname2").strip() == "") or
+                (request.form.get("email2").strip() == "") or
+                (request.form.get("phone2").strip() == "")):
+            flash("Please make sure ALL fields are complete")
+            return redirect(url_for("signup.signup"))
+
+    discounts=[]
+    line_item = {
+                "price": mtype,  # or "hobbiest"
+                "quantity": 1,
+            }
+    if mtype == "militarypro":
+        line_item['price'] = "pro"
+        discounts = [
+                {
+                    "coupon": "militarypro"
+                    }
+                ]
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
-        line_items=[
-            {
-                "price": request.form.get("membershipType"),  # or "hobbiest"
-                "quantity": 1,
-            }
-        ],
+        line_items=[ line_item ],
         mode="subscription",
+        discounts = discounts,
         success_url=baseurl+url_for('signup.postpay')+"?session_id={CHECKOUT_SESSION_ID}",
         cancel_url=baseurl+url_for('signup.failure')
     )
@@ -167,7 +204,14 @@ def payment():
             "lastname":request.form.get("lastname"),
             "phone":request.form.get("phone"),
             "email":request.form.get("email"),
+            "mtype":mtype
             }
+    if (mtype == "produo"):
+        sessiondata["firstname2"] = request.form.get("firstname2"),
+        sessiondata["lastname2"] = request.form.get("lastname2"),
+        sessiondata["phone2"] = request.form.get("phone2"),
+        sessiondata["email2"] = request.form.get("email2"),
+            
     r.set("checkoutsession/"+session['id'],json.dumps(sessiondata))
     r.expire("checkoutsession/"+session['id'],600)
     return redirect(session.url, code=303)
