@@ -137,11 +137,13 @@ def bin_edit(id):
   b=ProBin.addBinStatusStr(b)
   #print "QUERY",b
   b=b.one()
-  #print b
 
+  sub = Subscription.query.filter(Subscription.member_id == b.ProBin.member_id).one_or_none()
+  print ("BiNSub",sub,sub.rate_plan)
+  iamPro = True if sub is not None and sub.rate_plan in ('pro', 'produo') else False
   locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
   locs=locs.all()
-  return render_template('bin.html',bin=b,locations=locs,statuses=enumerate(ProBin.BinStatuses),comments=comments)
+  return render_template('bin.html',bin=b,locations=locs,iAmPro=iamPro,statuses=enumerate(ProBin.BinStatuses),comments=comments)
 
 @blueprint.route('/locations', methods=['GET','POST'])
 @roles_required(['Admin','ProStore'])

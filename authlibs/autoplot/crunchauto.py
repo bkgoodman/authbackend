@@ -223,7 +223,7 @@ def do_payment(customer,price,leaseid,description,test=False,pay=False):
   pendingleases={}
   while True:
       ii= stripe.InvoiceItem.list(
-        limit=2,
+        limit=99,
         #customer="cus_J0mrDmtpzbfYOk", # Stripe Test Customer
         customer=customer, # MIL Brad Goodman
         starting_after=lastItem
