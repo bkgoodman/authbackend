@@ -1362,6 +1362,7 @@ New Vending Balance: ${4:0.2f}""".format(
 
       invoice = stripe.Invoice.create(
         customer=cid,
+        pending_invoice_items_behavior="exclude",
         description=invoicevendstr
         #collection_method="charge_automatically",
       )

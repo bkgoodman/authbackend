@@ -187,13 +187,15 @@ def purchasable_purchase():
           unit_amount=cents,
           currency='usd',
           product=r.product)
-        invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc)
 
         invoice = stripe.Invoice.create(
         customer=cid,
+        pending_invoice_items_behavior="exclude",
         description=stripedesc
         #collection_method="charge_automatically",
         )
+
+        invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description=stripedesc, invoice=invoice.id)
 
         finalize=stripe.Invoice.finalize_invoice(invoice)
         if (finalize['status'] == 'paid'):
