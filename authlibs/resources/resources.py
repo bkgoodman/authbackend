@@ -422,6 +422,15 @@ def end_of_month(date):
         return date.replace(day=31)
     return(date.replace(month=date.month+1, day=1) - datetime.timedelta(days=1))
 
+
+# month, year = previous_month()
+def previous_month():
+    today = datetime.date.today()
+    first_day_of_this_month = today.replace(day=1)
+    last_day_of_last_month = first_day_of_this_month - datetime.timedelta(days=1)
+    return last_day_of_last_month.month, last_day_of_last_month.year
+
+
 # bill_member_for_resource
 # Params:
 #   doBilling: True to actualy bill and collect to Stripe - False to just display
@@ -962,6 +971,24 @@ def billing(resource):
     if (len(errors)>0):
         debug = debug + ["Errors:"]+errors
     return render_template('resource_billing.html',resource=res,debug=debug,table=tabledata,month=month,year=year)
+
+# Automatic resource billing
+def autobill(resname):
+    res = Resource.query.filter(Resource.name == resname).one()
+    month, year = previous_month()
+    users = UsageLog.query.filter(UsageLog.resource_id == res.id).distinct().group_by(UsageLog.member_id).all()
+    errors = []
+    debug = []
+    for x in users:
+        d,e,t,userdata = bill_member_for_resource(x.member_id,res,True,month,year)
+        if e is not None:
+            errors.append(e)
+        debug += d
+    result = {
+            "errors":errors,
+            "debug":debug
+            }
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 #TODO: Create safestring converter to replace string; converter?
 @blueprint.route('/<string:resource>/log', methods=['GET','POST'])

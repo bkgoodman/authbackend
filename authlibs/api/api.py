@@ -4,6 +4,7 @@ from authlibs import accesslib
 
 from authlibs.ubersearch import ubersearch
 from authlibs import membership
+from authlibs.resources.resources import autobill
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
@@ -1402,3 +1403,8 @@ New Vending Balance: ${4:0.2f}""".format(
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message=vendstr,member_id=m.Member.id,commit=0)
     db.session.commit()
   return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+@blueprint.route("/v2/autobill/<string:resource>", methods = ['GET'])
+@api_only
+def api_autobill(resource):
+    return autobill(resource)
