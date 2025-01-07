@@ -4,6 +4,7 @@ from authlibs import accesslib
 
 from authlibs.ubersearch import ubersearch
 from authlibs import membership
+from authlibs.resources.resources import autobill
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
@@ -1359,23 +1360,28 @@ New Vending Balance: ${4:0.2f}""".format(
         unit_amount=data['addAmount'],
         currency='usd',
         product=productId)
-      invoiceItem = stripe.InvoiceItem.create(customer=cid, description=description,price=price)
 
       invoice = stripe.Invoice.create(
         customer=cid,
+        pending_invoice_items_behavior="exclude",
         description=invoicevendstr
         #collection_method="charge_automatically",
       )
 
+      invoiceItem = stripe.InvoiceItem.create(customer=cid, description=description,price=price,invoice=invoice.id)
+
       finalize=stripe.Invoice.finalize_invoice(invoice)
-      if (finalize['status'] != 'open'):
+      if (finalize['status'] == 'paid'):
+        logger.info("Stripe Vending PAID status is {1} productId {2} customerId {3}".format(m.Member.member,finalize['status'],productId,cid))
+      elif (finalize['status'] != 'open'):
         result = {'error':'success','description':"Stripe Error"}
-        logger.warning("Stripe Finalize error for {0} status is {1} productId {2} customerId {3}".format(m.Member.member,finalize['status'],productId,cid))
+        logger.warning("Stripe Vending Finalize error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(m.Member.member,finalize['status'],productId,cid,invoice.id))
       else:
         pay = stripe.Invoice.pay(invoice)
         if (pay['status'] != 'paid'):
           result = {'error':'success','description':"Payment Declined"}
-          logger.warning("Stripe Payment error for {0} status is {1} productId {2} customerId {3}".format(m.Member.member,pay['status'],productId,cid))
+          logger.warning("Stripe Vending Payment error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(m.Member.member,pay['status'],productId,cid,invoice.id))
+
       result = {'status':'success','member':m.Member.member,'customer':cid}
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message=vendstr,member_id=m.Member.id,commit=0)
       m.Member.balance = data['newBalance']
@@ -1393,7 +1399,12 @@ New Vending Balance: ${4:0.2f}""".format(
       db.session.add(vl)
     except BaseException as e:
       result = {'status':'error','description':'Payment Error'}
-      logger.warning("Stripe 1 error for {0} {1}".format(m.Member.member,str(e)))
+      logger.warning("Stripe Vending 1 error for {0} {1}".format(m.Member.member,str(e)))
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message=vendstr,member_id=m.Member.id,commit=0)
     db.session.commit()
   return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+@blueprint.route("/v2/autobill/<string:resource>", methods = ['GET'])
+@api_only
+def api_autobill(resource):
+    return autobill(resource)

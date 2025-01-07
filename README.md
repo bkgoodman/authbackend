@@ -142,6 +142,11 @@ You might want to edit some things in the file before running the server.
 Make sure that if you are running a TEST server, that you set "Deployment:" 
 to something other thatn "Production"
 
+# Stripe Token
+Should be in `[Stripe]` section of `makeit.ini` under `Token` and must have the following permissions:
+* Read and Write: Checkout Sessions
+* Read Only: Charges, Coupons, Customers, Events, Invoices, PaymentIntents, Prices, Products, Promotion Codes & Subscriptions
+
 ## Financial Reports Product Codes
 The `repgroups.dat` file contains a list of Stripe product codes, and the groups by which you would like to combine them for reporting. It is in a format like:
 

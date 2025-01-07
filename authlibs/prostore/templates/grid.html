@@ -41,6 +41,12 @@
         {% if current_user.privs("ProStore") %}
           </a>
         {% endif %}
+        {% else %}
+                {% if current_user.privs("ProStore") %}
+                {% if locs[name+'-'+x+'-'+y] %}
+                <a href="{{ url_for('prostore.bin_add',bin=name+'-'+x+'-'+y) }}">+</a>
+                {% endif %}
+                {% endif %}
         {% endif %}
     </td>
     {% endfor %}

@@ -83,6 +83,14 @@ def bins():
   locs=locs.all()
   return render_template('bins.html',bins=bins,bin=None,locations=locs,statuses=enumerate(ProBin.BinStatuses))
 
+@blueprint.route('/bin_add/<string:bin>', methods=['GET'])
+@roles_required(['Admin','ProStore'])
+@login_required
+def bin_add(bin):
+  #return render_template('bin.html',bin=b,locations=locs,statuses=enumerate(ProBin.BinStatuses),comments=comments)
+  locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).filter(ProLocation.location == bin).outerjoin(ProBin).group_by(ProLocation.id).all()
+  return render_template('bin_add.html',bin=bin,locations=locs,statuses=enumerate(ProBin.BinStatuses),forcestatus = 2,selectlocation=bin)
+  
 @blueprint.route('/bin/<string:id>', methods=['GET','POST'])
 @roles_required(['Admin','ProStore'])
 @login_required
@@ -129,11 +137,13 @@ def bin_edit(id):
   b=ProBin.addBinStatusStr(b)
   #print "QUERY",b
   b=b.one()
-  #print b
 
+  sub = Subscription.query.filter(Subscription.member_id == b.ProBin.member_id).one_or_none()
+  print ("BiNSub",sub,sub.rate_plan)
+  iamPro = True if sub is not None and sub.rate_plan in ('pro', 'produo') else False
   locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
   locs=locs.all()
-  return render_template('bin.html',bin=b,locations=locs,statuses=enumerate(ProBin.BinStatuses),comments=comments)
+  return render_template('bin.html',bin=b,locations=locs,iAmPro=iamPro,statuses=enumerate(ProBin.BinStatuses),comments=comments)
 
 @blueprint.route('/locations', methods=['GET','POST'])
 @roles_required(['Admin','ProStore'])
@@ -361,6 +371,7 @@ def grid():
       ab[b.location] = {
         'binid':b.ProBin.id,
       }
+
       if b.ProBin.name:
         ab[b.location]['binname']=b.ProBin.name
       else:
@@ -373,6 +384,12 @@ def grid():
       else:
         ab[b.location]['firstname']=""
         ab[b.location]['lastname']=""
+
+      # Check for dupes
+      for bb in bins:
+          if bb.location:
+            if (b.location != bb.location) and (b.member == bb.member):
+              ab[b.location]['style'] = "background-color:#ff4040"
 
       if (current_user.privs('ProStore','Finance')):
         if not b.waiverDate:
@@ -395,8 +412,12 @@ def grid():
       return redirect(url_for('prostore.choose'))
 
   grids = StorageGrid.query.all()
+  locs = {}
+  for l in  ProLocation.query.all():
+      locs[l.location] = True
 
-  return render_template('grid.html',bins=ab,grids=grids)
+
+  return render_template('grid.html',bins=ab,grids=grids,locs=locs)
 
 
 @blueprint.route('/notices', methods=['GET','POST'])
@@ -464,6 +485,13 @@ def notices():
     if b.waiverCount is None or b.waiverCount <1: rcmd.append("NoWaiver")
     if b.active != "Active": rcmd.append("Subscription")
     if b.rate_plan not in ('pro', 'produo'): rcmd.append("NonPro")
+
+    # Check Dups
+    for bbb in bins:
+      if b.location and bbb.location:
+        pass
+        if (b.location != bbb.location) and (b.member == bbb.member):
+          rcmd.append("Dup")
 
     if b.ProBin.status == ProBin.BINSTATUS_GONE:
       rcmd.append("BinGone")

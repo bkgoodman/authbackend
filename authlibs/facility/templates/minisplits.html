@@ -147,7 +147,7 @@
 <div class="btn-group btn-group-toggle" data-toggle="buttons">
 	<label class="lab">Managed:</label>
 	  <label class="btn btn-outline-secondary {% if m.managed == "UNMANAGED" %} active {% endif %}" >
-		    <input type="radio" name="managed" value="OFF" id="managed_unmanaged"  {% if m.managed == "UNMANAGED" %} checked {% endif %}> Unmanaged
+		    <input type="radio" name="managed" value="UNMANAGED" id="managed_unmanaged"  {% if m.managed == "UNMANAGED" %} checked {% endif %}> Unmanaged
 	  </label>
 
 	  <label class="btn btn-outline-secondary {% if m.managed == "HEAT" %} active {% endif %}" >

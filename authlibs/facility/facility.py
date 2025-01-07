@@ -183,7 +183,7 @@ def minisplit():
         command = {}
         if 'managed' in request.form:
             command['managed'] = request.form['managed']
-        if ('managed' not in command) or (command['managed'] == "OFF"):
+        if ('managed' not in command) or (command['managed'] == "UNMANAGED"):
             if 'power' in request.form:
                 command['power'] = request.form['power'].upper()
             if 'fan' in request.form:

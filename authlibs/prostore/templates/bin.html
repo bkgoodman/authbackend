@@ -70,6 +70,9 @@
           {% if not bin.waiverDate %}
             <span style="background-color:#ffff80">No waiver</span>
           {% endif %}
+          {% if not iAmPro %}
+          <span style="background-color:#ffff80">Non-Pro</span>
+          {% endif %}
         {% endif %}
       </div>
       <div class="form-group col-md-4">

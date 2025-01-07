@@ -96,7 +96,10 @@
         <td>{{ f['ext'] }}</td>
         <td sortvalue={{ f['size'] }}>{{ f['sizeText'] }}</td>
       {% if asshared == false %}
-        <td><a href="{{ url_for("memberFolders.download",filename=f['path']) }}" class="btn btn-outline-secondary glyphicon glyphicon-download"></a></td>
+        <td>
+                <a href="{{ url_for("memberFolders.download",filename=f['path']) }}" class="btn btn-outline-secondary glyphicon glyphicon-download"></a>
+                <a href="{{ url_for("memberFolders.view",filename=f['path']) }}" class="btn btn-outline-secondary glyphicon glyphicon-eye-open"></a>
+        </td>
         {% else %}
         <td><a href="{{ f['sharedurl'] }}" class="btn btn-outline-secondary glyphicon glyphicon-download"></a></td>
         {% endif %}

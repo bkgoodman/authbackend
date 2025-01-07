@@ -54,7 +54,8 @@
 					<option name="unspecified" value="Unspecified">Unspecified</option>
 				{% for loc in locations %}
 					<option name="{{ loc.ProLocation.location }}" value="{{ loc.ProLocation.location }}"
-					{% if loc.usecount > 0  and loc.ProLocation.loctype == 0 %}disabled{% endif %}
+					{% if loc.usecount > 0  and loc.ProLocation.loctype == 0 %} disabled{% endif %}
+					{% if loc.ProLocation.location == selectlocation %} selected{% endif %}
 					>{{ loc.ProLocation.location }}</option>
 				{% endfor %}
 			</select>
@@ -62,7 +63,7 @@
 			<select class="form-control" name="input_status">
 				{% for stat in statuses %}
 					<option name="{{ stat[0] }}" value="{{ stat[0] }}"
-					{% if bin.status == stat[0] %}selected{% endif %}
+					{% if ((forcestatus is defined) and (stat[0] == forcestatus)) or (bin.status == stat[0]) %}selected{% endif %}
 					>
 					{{ stat[1] }}</option>
 				{% endfor %}

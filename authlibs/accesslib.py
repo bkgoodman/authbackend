@@ -342,7 +342,18 @@ def user_privs_on_resource(member=None,member_id=None,resource=None,resource_id=
   if (member.privs('HeadRM','RATT')):
     return AccessByMember.LEVEL_ADMIN
 
-  q = AccessByMember.query.filter(AccessByMember.resource_id == resource.id)
+  if type(resource) is Tool: 
+      res_id = resource.resource_id
+      #print ("USE TOOL ID")
+  elif type(resource) is Node: 
+      res_id = resource.resource_id
+      #print ("USE Node ID")
+  else:
+      #print ("USE REsoruce ID")
+      res_id = resource.id
+  #print (f"Check reousrce {resource} type {type(resource)}")
+
+  q = AccessByMember.query.filter(AccessByMember.resource_id == res_id)
   q = q.filter(AccessByMember.member_id == member.id).one_or_none()
   if not q:
     return AccessByMember.LEVEL_NOACCESS
