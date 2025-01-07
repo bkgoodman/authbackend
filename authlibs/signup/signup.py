@@ -4,6 +4,7 @@ from ..templateCommon import  *
 
 from authlibs import accesslib
 import stripe
+import qrcode,io
 from datetime import datetime,timedelta
 from ..membership import createMissingMemberAccounts
 import calendar
@@ -12,6 +13,7 @@ import pickle
 import re
 import redis
 from pytz import UTC
+from flask import make_response
 
 blueprint = Blueprint("signup", __name__, template_folder='templates', static_folder="static",url_prefix="/signup")
 
@@ -26,6 +28,17 @@ def signup():
         debug += f"Args Key: {k} Value: {v}\n"
 
     return render_template('signup.html',debug=debug)
+
+@blueprint.route('/gift', methods=['GET','POST'])
+def gift():
+
+    debug = "DEBUG\n"
+    for (k,v) in request.form.items():
+        debug += f"Form Key: {k} Value {v}\n"
+    for (k,v) in request.args.items():
+        debug += f"Args Key: {k} Value: {v}\n"
+
+    return render_template('gift.html',debug=debug)
 
 def addMember(sub,plantype,firstname,lastname,email,subscription):
     name= sessiondata['firstname']+" "+sessiondata['lastname']
@@ -150,6 +163,24 @@ def postpay():
     createMissingMemberAccounts([mm],isTest=False)
     return render_template('complete.html',debug=debug,email=sessiondata['email'],mtype=sessiondata['mtype'])
 
+# Process user form to redeem a membership
+@blueprint.route('/redeem_activate', methods=['POST'])
+def redeem_activate():
+    # Re-Verify that gift purchase is valid and has not been redeemed
+
+
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+    # Create Subscription
+
+    addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
+            sessiondata['email'],checkout_session['subscription'])
+
+    db.session.commit()
+    createMissingMemberAccounts([mm],isTest=False)
+
+    # Mark gift purchase as Redeemed
+    return render_template('complete.html',debug=debug,email=sessiondata['email'],mtype=sessiondata['mtype'])
+
 @blueprint.route('/payment', methods=['GET','POST'])
 def payment():
     r = redis.Redis()
@@ -216,6 +247,74 @@ def payment():
     r.expire("checkoutsession/"+session['id'],600)
     return redirect(session.url, code=303)
 
+@blueprint.route('/gift_payment', methods=['GET','POST'])
+def gift_payment():
+    try:
+        r = redis.Redis()
+        debug = "gift_payment\n"
+        for (k,v) in request.form.items():
+            debug += f"Form Key: {k} Value {v}\n"
+        for (k,v) in request.args.items():
+            debug += f"Args Key: {k} Value: {v}\n"
+
+        discounts=[]
+        line_item = {
+                    "price": "3mogift",
+                    "quantity": 1,
+                }
+
+        recipname = ""
+        if request.form.get("gift_to") is not None:
+            recipname = request.form.get("gift_to")
+
+        giftfrom = ""
+        if request.form.get("gift_from") is not None:
+            giftfrom = request.form.get("gift_from")
+
+        customtext = ""
+        if recipname != "":
+            customtext = "Gift membership for "+recipname
+        
+        stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+        baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
+        session = stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            customer_email=request.form.get("email"),
+            line_items=[ line_item ],
+            mode="payment",
+            custom_text={"submit":{"message":f"Enter YOUR information above. {customtext}"}},
+            payment_intent_data={
+                "metadata": {
+                    "recipient":recipname,
+                    "giftfrom":giftfrom
+                    },
+                "description": f"Gift Membership for {recipname}"
+                },
+            discounts = discounts,
+            success_url=baseurl+url_for('signup.gift_postpay')+"?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=baseurl+url_for('signup.gift_failure')
+        )
+        logger.warning("FORM DATA: "+str(request.form.items()))
+        logger.warning("SESSION INFO: "+str(session))
+        logger.warning("Session ID: "+str(session['id']))
+
+
+        sessiondata = {
+                "gift_from":request.form.get("gift_from"),
+                "phone":request.form.get("phone"),
+                "email":request.form.get("email"),
+                "gift_to":request.form.get("gift_to"),
+                "to_email":request.form.get("to_email")
+                }
+                
+        r.set("checkoutsession/"+session['id'],json.dumps(sessiondata))
+        r.expire("checkoutsession/"+session['id'],3600)
+    except BaseException as e:
+        flash(f"Error: {e}",'danger')
+        return redirect(url_for("signup.gift"))
+
+    return redirect(session.url, code=303)
+
 @blueprint.route('/success', methods=['GET','POST'])
 def success():
     debug = "SUCCESS\n"
@@ -235,6 +334,92 @@ def failure():
         debug += f"Args Key: {k} Value: {v}\n"
 
     return render_template('debug.html',debug=debug)
+
+@blueprint.route('/gift_failure', methods=['GET','POST'])
+def gift_failure():
+    debug = "GIFT FAILURE\n"
+    for (k,v) in request.form.items():
+        debug += f"Form Key: {k} Value {v}\n"
+    for (k,v) in request.args.items():
+        debug += f"Args Key: {k} Value: {v}\n"
+
+    return render_template('debug.html',debug=debug)
+
+@blueprint.route('/gift_postpay', methods=['GET','POST'])
+def gift_postpay():
+    debug = "GIFT POSTPAY\n"
+    for (k,v) in request.form.items():
+        debug += f"Form Key: {k} Value {v}\n"
+    for (k,v) in request.args.items():
+        debug += f"Args Key: {k} Value: {v}\n"
+
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+    checkout_session_id = request.args.get('session_id')
+    checkout_session = stripe.checkout.Session.retrieve(checkout_session_id)
+
+    debug += f"\n\nid: {checkout_session['id']}\n"
+    debug += f"object: {checkout_session['object']}\n"
+    debug += f"payment code: {checkout_session['payment_intent']}\n"
+    debug += f"object: {checkout_session}\n"
+
+    r = redis.Redis()
+    ses = r.get("checkoutsession/"+checkout_session['id'])
+    if ses is None:
+        debug += "No session data"
+    sessiondata = json.loads(ses)
+    debug += "Session data: "+ses.decode('utf8')
+    opts = {
+        "gift_to":sessiondata['gift_to'],
+        "gift_from":sessiondata['gift_from'],
+        "code":checkout_session['payment_intent'],
+        "baseurl": current_app.config['globalConfig'].Config.get('General','baseurl')
+            }
+
+    return render_template('gift_post.html',debug=debug, **opts)
+
+@blueprint.route("/redeem",methods=['POST','GET'])
+@blueprint.route("/redeem/<string:code>",methods=['GET'])
+def redeem(code=None):
+    if 'code' in request.form:
+        code = request.form.get('code')
+    if code is None:
+        return render_template('redeem_code.html')
+    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+    debug=f"code = {code}"
+    try:
+        pi = stripe.PaymentIntent.retrieve(code)
+        md = pi['metadata']
+        debug += "\n\n"+str(md)
+
+        if 'activated' in md:
+            flash ('This gift membership has already been activated. if you believe you have received this message in error, please email info@makeitlabs.com for help.','danger')
+            return redirect(url_for("signup.redeem"))
+
+        return render_template('redeem.html',gift_to=md['recipient'],debug=debug,code=code)
+    except stripe.error.InvalidRequestError as e:
+        flash ("The specified redemption code does not exist.  If you believe you have received this message in error, please email info@makeitlabs.com for help.",'danger')
+        return redirect(url_for("signup.redeem"))
+
+    except BaseException as e:
+        debug += f"\nError getting code: {e} {type(e)}"
+
+    debug += "\n\nPlease email info@makeitlabs.com for more assitance"
+    return render_template('debug.html',debug=debug)
+
+
+@blueprint.route("/qrcode/<string:code>")
+def qr(code):
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=4)
+    baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
+    qr.add_data(baseurl+url_for("signup.redeem",code=code))
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    byte_data = buffer.getvalue()
+    response = make_response(byte_data)
+    response.headers['Content-Type'] = 'image/png'
+    return response
 
 @blueprint.route("/start_payment_session")
 def start_payment_session():

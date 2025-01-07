@@ -137,18 +137,34 @@ def sharedfolder(folder,secret=None,member=None):
       return redirect(url_for("index"))
     return member_folder(folder,m,asshared=True)
 
+# Public, Open for Plasma
+@blueprint.route('/allFolders', methods=['GET','POST'])
+@login_required
+def allFolders():
+    return member_folder(None,None)
+
+@login_required
+# This is the entry point for a specific user and their own folder
+def infolder(folder=""):
+    return member_folder(folder,current_user)
+
 # This is the worker function for any member or foler
 # "As Shared" will give shared links
 def member_folder(folder,member,asshared=False):
-    folder = folder.rstrip("/")
-    #print ("INFOLDER",folder)
-    if folder.find("../") != -1 or folder.find("/..") != -1:
-      flash("Invalid Filename","warning")
-    (config,error) = getFolderConfig(member=member)
-    if (error is not None):
-      flash(error,"warning")
-      return redirect(url_for("index"))
-    path = config['base']+"/"+member.memberFolder+"/"+folder
+    if folder is None:
+        (config,error) = getFolderConfig(member=None)
+        path = config['base']+"/"
+        folder = ""
+    else:
+        folder = folder.rstrip("/")
+        #print ("INFOLDER",folder)
+        if folder.find("../") != -1 or folder.find("/..") != -1:
+          flash("Invalid Filename","warning")
+        (config,error) = getFolderConfig(member=member)
+        if (error is not None):
+          flash(error,"warning")
+          return redirect(url_for("index"))
+        path = config['base']+"/"+member.memberFolder+"/"+folder
     files = []
 
     if current_app.config['globalConfig'].Config.has_option('MemberFolders','folderSecret'):
@@ -191,7 +207,7 @@ def member_folder(folder,member,asshared=False):
                     fullpath = folder+"/"+entry.filename
 
                     sharedurl=""
-                    if sharedSecret is not None:
+                    if sharedSecret is not None and member is not None:
                         if (mode & statmod.S_IFDIR):
                             hashstring = f"{sharedSecret}|{member.id}|{fullpath}"
                         else:
@@ -203,6 +219,8 @@ def member_folder(folder,member,asshared=False):
                             sharedurl = (url_for('memberFolders.sharedfolder',member=member.member,secret=actual,folder=fullpath))
                         else:
                             sharedurl = (url_for('memberFolders.downloadShared',filename=fullpath,secret=actual,member=member.member))
+                    else:
+                        sharedurl = ""
 
                     files.append({
                         'name':entry.filename,
@@ -219,12 +237,12 @@ def member_folder(folder,member,asshared=False):
                         'sharedurl':sharedurl
                       })
     except BaseException as e:
-        flash(f"Failed {e} path {path}","warning")
+        flash(f"Failed {e} path {path} folder {folder}","warning")
         return redirect(url_for("index"))
 
 
     sharedlink = None
-    if asshared == False and sharedSecret is not None:
+    if asshared == False and sharedSecret is not None and member is not None:
         hashstring = f"{sharedSecret}|{member.id}|{folder}"
         h = hashlib.sha224()
         h.update(str(hashstring).encode())
