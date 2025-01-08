@@ -273,6 +273,14 @@ def redeem_activate(code=None):
     debug += "isTest is {isTest}\n"
 
     # Mark gift purchase as Redeemed
+    try:
+        stripe.PaymentIntent.modify(
+            code,
+            metadata={"activated": f"SubID: {sub.id} for {firstname} {lastname}"},
+        )
+    except BaseException as e:
+        logger.error(f"Could not mark Gift Purchase as activated: {e}")
+
     return render_template('complete.html',debug=debug,email=email,mtype="hobbyist")
     #return render_template('debug.html',debug=debug)
 
