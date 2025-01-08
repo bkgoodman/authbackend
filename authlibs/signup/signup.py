@@ -11,6 +11,7 @@ import calendar
 import json
 import pickle
 import re
+import socket
 import redis
 from pytz import UTC
 from flask import make_response
@@ -40,9 +41,11 @@ def gift():
 
     return render_template('gift.html',debug=debug)
 
-def addMember(sub,plantype,firstname,lastname,email,subscription):
-    name= sessiondata['firstname']+" "+sessiondata['lastname']
-    membership = "stripe:"+name.replace(" ",".")+":"+sessiondata['email']
+# Takes Stripe Subscription Object and subcription id
+# Returns subscription and member object
+def addMember(sub,plantype,firstname,lastname,email):
+    name= firstname+" "+lastname
+    membership = "stripe:"+name.replace(" ",".")+":"+email
     expires = datetime.utcfromtimestamp(sub['current_period_end'])
     created = datetime.utcfromtimestamp(sub['created'])
     updated = datetime.utcnow()
@@ -50,7 +53,7 @@ def addMember(sub,plantype,firstname,lastname,email,subscription):
     # Add Subscription to Database
     s=Subscription(membership=membership)
     s.paysystem = "stripe"
-    s.subid = checkout_session['subscription']
+    s.subid = sub.id
     s.customerid = sub['customer']
     s.name = (firstname+" "+lastname)
     s.email = email
@@ -77,11 +80,17 @@ def addMember(sub,plantype,firstname,lastname,email,subscription):
     mm.email_confirmed_at = datetime.now()
     db.session.add(mm)
     db.session.flush()
-    logger.debug("Adding new member %s for subscription %s MemberID %s" % (name, subscription,mm.id))
+
+    logger.debug("Adding new member %s for subscription %s MemberID %s" % (name, sub.id,mm.id))
     s.member_id=mm.id
     db.session.add(s)
     db.session.add(Logs(member_id=mm.id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id))
     return (s,mm)
+
+def sanistring(str):
+    if str is None:
+        return ""
+    return str.strip()
 
 @blueprint.route('/postpay', methods=['GET','POST'])
 def postpay():
@@ -150,36 +159,122 @@ def postpay():
     elif "group" in plan:
         plantype = 'hobbyist'
 
-    addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
-            sessiondata['email'],checkout_session['subscription'])
+    isTest = socket.gethostname()  == "staging"
+    (s,mm) = addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
+            sessiondata['email'])
+    createMissingMemberAccounts([mm],isTest=isTest)
 
     if (plan == "produo"):
-        addMember(sub,plantype,sessiondata['firstname2'],sessiondata['lastname2'],
-            sessiondata['email2'],checkout_session['subscription'])
+        (s,mm) = addMember(sub,plantype,sessiondata['firstname2'],sessiondata['lastname2'],
+            sessiondata['email2'])
+        createMissingMemberAccounts([mm],isTest=isTest)
 
 
     db.session.commit()
 
-    createMissingMemberAccounts([mm],isTest=False)
     return render_template('complete.html',debug=debug,email=sessiondata['email'],mtype=sessiondata['mtype'])
 
 # Process user form to redeem a membership
-@blueprint.route('/redeem_activate', methods=['POST'])
-def redeem_activate():
-    # Re-Verify that gift purchase is valid and has not been redeemed
+@blueprint.route('/redeem_activate/<string:code>', methods=['GET','POST'])
+@blueprint.route('/redeem_activate', methods=['POST','GET'])
+def redeem_activate(code=None):
 
+    debug="Redeem Activate\n"
+    if code is None:
+        code = request.form.get("code")
+
+    if (code is None) or (code == "") or (not code.startswith("pi_")):
+            flash ('Please specify a valid activation code',"danger")
+            return redirect(url_for("signup.redeem"))
 
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
-    # Create Subscription
+    debug += f"Redeem code: {code}\n"
 
-    addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
-            sessiondata['email'],checkout_session['subscription'])
+    firstname = sanistring(request.form.get("firstname"))
+    lastname = sanistring(request.form.get("lastname"))
+    email = sanistring(request.form.get("email"))
+    phone = sanistring(request.form.get("phone"))
+    debug += "Name: {firstname} {lastname} Phone: {phone} Email: {email}\n"
+
+    pattern = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+    if (re.match(pattern, email) is None):
+        flash ('Please specify a valid email address',"danger")
+        return redirect(url_for("signup.redeem",code=code))
+
+    pattern = r"^\d\d\d-\d\d\d-\d\d\d\d$"
+    if (re.match(pattern, phone) is None):
+        flash ('Please specify a valid phone number with area code in the form of XXX-XXX-XXXX',"danger")
+        return redirect(url_for("signup.redeem",code=code))
+
+    if (email == "" ) or (firstname == "") or (lastname ==""):
+        flash ('Please enter all fields',"danger")
+        return redirect(url_for("signup.redeem",code=code))
+
+
+    # Re-Verify that gift purchase is valid and has not been redeemed
+    try:
+        pi = stripe.PaymentIntent.retrieve(code)
+        md = pi['metadata']
+        debug += "\n\n"+str(md)
+
+        if 'activated' in md:
+            flash ('This gift membership has already been activated. if you believe you have received this message in error, please email info@makeitlabs.com for help.','danger')
+            return redirect(url_for("signup.redeem"))
+
+    except stripe.error.InvalidRequestError as e:
+        flash ("The specified redemption code does not exist.  If you believe you have received this message in error, please email info@makeitlabs.com for help.",'danger')
+        return redirect(url_for("signup.redeem"))
+
+    except BaseException as e:
+        flash (f"\nError getting code: {e} {type(e)}","danger")
+        return redirect(url_for("signup.redeem"))
+
+    fullname = f"{firstname} {lastname}"
+    # Create new Customer
+    try:
+        customer = stripe.Customer.create(
+          name=fullname,
+          email=email,
+          phone=phone,
+          description=fullname
+        )
+    except BaseException as e:
+        flash (f"\nError creating customer: {e}","danger")
+        return redirect(url_for("signup.redeem"))
+
+    # Create Subscription
+    try:
+        sub = stripe.Subscription.create(
+            customer=customer,
+            items = [
+                {
+                    "price": "hobbyist",
+                    "discounts": [
+                        {
+                            "coupon":"3mogift",
+                        }
+                        ],
+                    "metadata": {
+                      "emails": email,
+                      "names": fullname
+              }
+                    }
+                ],
+        )
+    except BaseException as e:
+        flash (f"\nError creating subscription: {e}","danger")
+        return redirect(url_for("signup.redeem"))
+
+    (s,mm) = addMember(sub,"hobbyist",firstname,lastname,email)
 
     db.session.commit()
-    createMissingMemberAccounts([mm],isTest=False)
+    isTest = socket.gethostname()  == "staging"
+    # REMOVE createMissingMemberAccounts([mm],isTest=isTest)
+    debug += "isTest is {isTest}\n"
 
     # Mark gift purchase as Redeemed
-    return render_template('complete.html',debug=debug,email=sessiondata['email'],mtype=sessiondata['mtype'])
+    return render_template('complete.html',debug=debug,email=email,mtype="hobbyist")
+    #return render_template('debug.html',debug=debug)
 
 @blueprint.route('/payment', methods=['GET','POST'])
 def payment():
@@ -382,7 +477,8 @@ def gift_postpay():
 def redeem(code=None):
     if 'code' in request.form:
         code = request.form.get('code')
-    if code is None:
+    code = request.args.get('code',code)
+    if code is None or code == "":
         return render_template('redeem_code.html')
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     debug=f"code = {code}"
