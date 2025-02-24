@@ -1,0 +1,198 @@
+{% extends "layout_bootstrap.html" %}
+{% block head %}
+
+  <script type="text/javascript" src="static/polyfill.js"></script> 
+  
+  <script type="text/javascript" src="static/cv.js"></script> 
+  <script type="text/javascript" src="static/aruco.js"></script> 
+  <script type="text/javascript" src="static/aruco_4x4_1000.js"></script> 
+
+  <script>
+    var video, canvas, context, imageData, detector;
+  
+async	  function getCameraStream() {
+   /* get user's permission to muck around with video devices */
+	const tempStream = await navigator.mediaDevices.getUserMedia({video:true})
+	const devices = await navigator.mediaDevices.enumerateDevices()
+	let frontDeviceId
+	let backDeviceId
+	if (devices.length > 0) {
+	  /* defaults so all this will work on a desktop */
+	  frontDeviceId = devices[0].deviceId;
+	  backDeviceId = devices[0].deviceId;
+	}
+	/* look for front and back devices */
+	devices.forEach (device => {
+			  alert(device.label);
+	  if( device.kind === 'videoinput' ) {
+	    if( device.label && device.label.length > 0 ) {
+	      if( device.label.toLowerCase().indexOf( 'back' ) >= 0 )
+		backDeviceId = device.deviceId
+	      else if( device.label.toLowerCase().indexOf( 'front' ) >= 0 )
+		frontDeviceId = device.deviceId
+	    }
+	  }
+	})
+	/* close the temp stream */
+	const tracks = tempStream.getTracks()
+	if( tracks )
+	  for( let t = 0; t < tracks.length; t++ ) tracks[t].stop()
+	/* open the device you want */
+	const constraints = {
+	  video: true,
+	  deviceId: {exact: backDeviceId }
+	}
+	const stream = navigator.mediaDevices.getUserMedia(constraints)
+
+}
+
+function findCamera() {
+	    getCameraStream()
+    .then(stream => {
+        // Use the stream here (e.g., set it as the srcObject of a video element)
+        const videoElement = document.getElementById('myVideo'); // Replace 'myVideo' with your video element's ID
+        videoElement.srcObject = stream;
+    })
+    .catch(error => {
+        console.error('Error getting camera stream:', error);
+    });
+}
+
+    function onLoad(){
+      video = document.getElementById("video");
+      canvas = document.getElementById("canvas");
+      context = canvas.getContext("2d");
+
+	//findCamera();
+    
+      canvas.width = parseInt(canvas.style.width);
+      canvas.height = parseInt(canvas.style.height);
+      
+      if (navigator.mediaDevices === undefined) {
+        navigator.mediaDevices = {};
+      }
+      
+      if (navigator.mediaDevices.getUserMedia === undefined) {
+        navigator.mediaDevices.getUserMedia = function(constraints) {
+          var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+          
+          if (!getUserMedia) {
+            return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+          }
+
+          return new Promise(function(resolve, reject) {
+            getUserMedia.call(navigator, constraints, resolve, reject);
+          });
+        }
+      }
+ 
+     //navigator.mediaDevices.getUserMedia({ video: { facingMode: {exact:"environment" }})
+     //navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" })
+		
+
+	const constraints = {
+			  video: {facingMode: "environment"}
+		  }
+     navigator.mediaDevices.getUserMedia(constraints)
+        .then(function(stream) {
+          if ("srcObject" in video) {
+            video.srcObject = stream;
+          } else {
+            video.src = window.URL.createObjectURL(stream);
+          }
+        })
+        .catch(function(err) {
+          console.log(err.name + ": " + err.message);
+        }
+      );
+	 
+        
+      detector = new AR.Detector({
+        dictionaryName: 'ARUCO_4X4_1000'
+      });
+
+      requestAnimationFrame(tick);
+    }
+    
+    function tick(){
+      requestAnimationFrame(tick);
+      
+      if (video.readyState === video.HAVE_ENOUGH_DATA){
+        snapshot();
+
+        var markers = detector.detect(imageData);
+        drawCorners(markers);
+        drawId(markers);
+      }
+    }
+
+    function snapshot(){
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    }
+          
+    function drawCorners(markers){
+      var corners, corner, i, j;
+    
+      context.lineWidth = 3;
+
+      for (i = 0; i !== markers.length; ++ i){
+        corners = markers[i].corners;
+        
+        context.strokeStyle = "red";
+        context.beginPath();
+        
+        for (j = 0; j !== corners.length; ++ j){
+          corner = corners[j];
+          context.moveTo(corner.x, corner.y);
+          corner = corners[(j + 1) % corners.length];
+          context.lineTo(corner.x, corner.y);
+        }
+
+        context.stroke();
+        context.closePath();
+        
+        context.strokeStyle = "green";
+        context.strokeRect(corners[0].x - 2, corners[0].y - 2, 4, 4);
+      }
+    }
+
+    function drawId(markers){
+      var corners, corner, x, y, i, j;
+      
+      context.strokeStyle = "blue";
+      context.lineWidth = 1;
+      
+      for (i = 0; i !== markers.length; ++ i){
+        corners = markers[i].corners;
+        
+        x = Infinity;
+        y = Infinity;
+        
+        for (j = 0; j !== corners.length; ++ j){
+          corner = corners[j];
+          
+          x = Math.min(x, corner.x);
+          y = Math.min(y, corner.y);
+        }
+
+        context.strokeText(markers[i].id, x, y)
+      }
+    }
+
+    window.onload = onLoad;
+  </script>
+
+{% endblock %}
+
+{% block body %}
+<body style="font-family: monospace;">
+
+	<h1>ProBin Aruco Scanner</h1>
+  <center>
+    <video id="video" playsinline playinline  autoplay="true" style="xxdisplay:none;height:10px;width:10px;"></video>
+    <canvas id="canvas" style="width:640px; height:480px;"></canvas>
+  </center>
+
+{% endblock %}
+  
