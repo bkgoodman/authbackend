@@ -760,6 +760,10 @@ def grid_delete(grid):
     flash("Grid deleted.")
     return redirect(url_for('prostore.grid'))
 
+@blueprint.route('/aruco',methods=['GET','POST'])
+@roles_required(['Admin','ProStore'])
+def aruco():
+    return render_template('aruco.html')
 
 ## END GRID MANAGEMENT
 

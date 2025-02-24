@@ -8,6 +8,7 @@
 	<table class="table table-lg table-striped">
         <tr>
             <th>Location</th>
+            <th>Aruco</th>
             <th></th>
         </tr>
 	{% for loc in locations %}
@@ -15,6 +16,7 @@
 		<td>
 			<a href="{{ url_for("prostore.locations",delete=loc.ProLocation.location) }}"><span class="glyphicon glyphicon-trash" /></a> &nbsp;
 		{{ loc.ProLocation.location }}</td>
+		{{ loc.ProLocation.aruco }}</td>
 		<td>{{ loc.loctypestr }}</td>
 	  </tr>
 	{% endfor %}
@@ -36,6 +38,7 @@
 
 <div class="input-group">
   <input type="text" name="addloc_name" class="form-control" placeholder="Location Name" aria-label="Location Name" aria-describedby="basic-addon2">
+  <input type="text" name="addloc_aruco" class="form-control" placeholder="Code:( 500-999)" aria-label="Aruco" aria-describedby="basic-addon2">
   <select name="input_loctype" class="custom-select" id="inputGroupSelect04">
     <option value="0" selected>Single Bin</option>
     <option value="1">Multiple Bins</option>

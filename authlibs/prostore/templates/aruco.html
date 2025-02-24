@@ -9,54 +9,6 @@
 
   <script>
     var video, canvas, context, imageData, detector;
-  
-async	  function getCameraStream() {
-   /* get user's permission to muck around with video devices */
-	const tempStream = await navigator.mediaDevices.getUserMedia({video:true})
-	const devices = await navigator.mediaDevices.enumerateDevices()
-	let frontDeviceId
-	let backDeviceId
-	if (devices.length > 0) {
-	  /* defaults so all this will work on a desktop */
-	  frontDeviceId = devices[0].deviceId;
-	  backDeviceId = devices[0].deviceId;
-	}
-	/* look for front and back devices */
-	devices.forEach (device => {
-			  alert(device.label);
-	  if( device.kind === 'videoinput' ) {
-	    if( device.label && device.label.length > 0 ) {
-	      if( device.label.toLowerCase().indexOf( 'back' ) >= 0 )
-		backDeviceId = device.deviceId
-	      else if( device.label.toLowerCase().indexOf( 'front' ) >= 0 )
-		frontDeviceId = device.deviceId
-	    }
-	  }
-	})
-	/* close the temp stream */
-	const tracks = tempStream.getTracks()
-	if( tracks )
-	  for( let t = 0; t < tracks.length; t++ ) tracks[t].stop()
-	/* open the device you want */
-	const constraints = {
-	  video: true,
-	  deviceId: {exact: backDeviceId }
-	}
-	const stream = navigator.mediaDevices.getUserMedia(constraints)
-
-}
-
-function findCamera() {
-	    getCameraStream()
-    .then(stream => {
-        // Use the stream here (e.g., set it as the srcObject of a video element)
-        const videoElement = document.getElementById('myVideo'); // Replace 'myVideo' with your video element's ID
-        videoElement.srcObject = stream;
-    })
-    .catch(error => {
-        console.error('Error getting camera stream:', error);
-    });
-}
 
     function onLoad(){
       video = document.getElementById("video");
@@ -86,10 +38,6 @@ function findCamera() {
         }
       }
  
-     //navigator.mediaDevices.getUserMedia({ video: { facingMode: {exact:"environment" }})
-     //navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" })
-		
-
 	const constraints = {
 			  video: {facingMode: "environment"}
 		  }
@@ -100,6 +48,9 @@ function findCamera() {
           } else {
             video.src = window.URL.createObjectURL(stream);
           }
+     var canvasNode = document.getElementById('canvas');
+    canvasNode.style.width = canvasNode.parentNode.clientWidth;
+    canvasNode.height = canvasNode.parentNode.clientHeight;
         })
         .catch(function(err) {
           console.log(err.name + ": " + err.message);
@@ -123,8 +74,52 @@ function findCamera() {
         var markers = detector.detect(imageData);
         drawCorners(markers);
         drawId(markers);
+        bkg(markers);
+
       }
     }
+
+    // Aruco IDs
+    var lastUpper=-999;
+    var lastLower=-999;
+
+    function bkg(markers){
+      for (i = 0; i !== markers.length; ++ i){
+                        var highest = -999;
+                        var lowest = 999;
+                        for (c = 0; c !== markers[i].corners.length; ++ c){
+                                          if (markers[i].corners[c].y < lowest) {
+                                                            lowest = markers[i].corners[c].y;
+                                          }
+                                          if (markers[i].corners[c].y > highest) {
+                                                            highest = markers[i].corners[c].y;
+                                          }
+                        }
+                                markers[i].highest = highest;
+                                markers[i].lowest = lowest;
+                                //console.log("MARKER",markers[i].id,markers[i],lowest,highest);
+      }
+
+     var upper,lower;
+     if (markers.length == 2) {
+                       if (markers[0].lowest > markers[1].highest) {
+                                upper = markers[0].id;
+                                lower = markers[1].id;
+                                 } else {
+                                upper = markers[1].id;
+                                lower = markers[0].id;
+                       }
+        if ((upper != lastUpper) || (lower != lastLower)) {
+                          lastUpper = upper;
+                          lastLower = lower;
+                        console.log("MARKER",upper,"above",lower);
+			document.getElementById("toptext").innerHTML=upper;
+			document.getElementById("bottomtext").innerHTML=lower;
+        }
+     }
+
+    }
+
 
     function snapshot(){
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -180,6 +175,7 @@ function findCamera() {
       }
     }
 
+
     window.onload = onLoad;
   </script>
 
@@ -189,9 +185,14 @@ function findCamera() {
 <body style="font-family: monospace;">
 
 	<h1>ProBin Aruco Scanner</h1>
+
+	<p id="toptext"></p>
+	<p id="bottomtext"></p>
   <center>
-    <video id="video" playsinline playinline  autoplay="true" style="xxdisplay:none;height:10px;width:10px;"></video>
-    <canvas id="canvas" style="width:640px; height:480px;"></canvas>
+    <div id="canvas_div" style="width:100%">
+    <video id="video" playsinline playinline  autoplay="true" style="xxdisplay:none;xxheight:10px;width:100%;"></video>
+    <canvas id="canvas" style="display:none;width:480px; height:640px;"></canvas>
+    </div>
   </center>
 
 {% endblock %}
