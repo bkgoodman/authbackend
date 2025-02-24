@@ -42,9 +42,9 @@
 				{% endif %}
 			</td>
 			<td>
-				{% if bin.active == "Active" %}
+				{% if bin.ProBin.aruco is not none %}
+				{{ bin.ProBin.aruco }}
 				{% else %}
-				{{ bin.aruco }}
 				{% endif %}
 			</td>
 			<td>

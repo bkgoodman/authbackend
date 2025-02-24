@@ -115,6 +115,8 @@
                         console.log("MARKER",upper,"above",lower);
 			document.getElementById("toptext").innerHTML=upper;
 			document.getElementById("bottomtext").innerHTML=lower;
+			doquery(upper,lower)
+
         }
      }
 
@@ -175,6 +177,22 @@
       }
     }
 
+  function doquery(bin,loc) {
+	  fetch('aruco_query/'+bin+"/"+loc, {
+	  method: 'GET', // or 'POST', 'PUT', 'DELETE'
+	  headers: {
+	    'Content-Type': 'application/json'
+	  }
+	})
+	.then(response => response.json())
+	.then(data => {
+	  console.log(data);
+	document.getElementById("querytext").innerHTML=data['text'];
+	})
+	.catch(error => {
+	  console.error('There was a problem with the fetch operation:', error);
+	});
+  }
 
     window.onload = onLoad;
   </script>
@@ -182,12 +200,16 @@
 {% endblock %}
 
 {% block body %}
+{% with page="aruco" %}
+{% include 'header.html' %}
+{% endwith %}
 <body style="font-family: monospace;">
 
 	<h1>ProBin Aruco Scanner</h1>
 
-	<p id="toptext"></p>
-	<p id="bottomtext"></p>
+	Bin: <span id="toptext"></span>
+	Location: <span id="bottomtext"></span>
+	<p id="querytext"></p>
   <center>
     <div id="canvas_div" style="width:100%">
     <video id="video" playsinline playinline  autoplay="true" style="xxdisplay:none;xxheight:10px;width:100%;"></video>

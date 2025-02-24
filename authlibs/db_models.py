@@ -269,6 +269,7 @@ class ProBin(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(15), nullable=True,unique=True)
     status = db.Column(db.Integer,nullable=False)
+    aruco = db.Column(db.Integer)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     location_id = db.Column(db.Integer(), db.ForeignKey('prostorelocations.id', ondelete='CASCADE'))
 
@@ -327,6 +328,7 @@ class ProLocation(db.Model):
   __bind_key__ = 'main'
   location = db.Column(db.String(50), nullable=False, unique=True)
   loctype = db.Column(db.Integer())
+  aruco = db.Column(db.Integer)
   id = db.Column(db.Integer(), primary_key=True)
 
   LOCATION_TYPE_SINGLE=0
@@ -483,6 +485,7 @@ class StorageGrid(db.Model):
     short = db.Column(db.String(20))
     rows = db.Column(db.Integer(),nullable=False)
     columns = db.Column(db.Integer(),nullable=False)
+    aruco = db.Column(db.Integer)
 
 # A node can have multiple KV entries for config
 class NodeConfig(db.Model):

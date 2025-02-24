@@ -16,7 +16,7 @@
 		<td>
 			<a href="{{ url_for("prostore.locations",delete=loc.ProLocation.location) }}"><span class="glyphicon glyphicon-trash" /></a> &nbsp;
 		{{ loc.ProLocation.location }}</td>
-		{{ loc.ProLocation.aruco }}</td>
+		<td>{% if loc.ProLocation.aruco %}{{ loc.ProLocation.aruco }}{% endif %}</td>
 		<td>{{ loc.loctypestr }}</td>
 	  </tr>
 	{% endfor %}
