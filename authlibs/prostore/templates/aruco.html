@@ -80,8 +80,9 @@
     }
 
     // Aruco IDs
-    var lastUpper=-999;
-    var lastLower=-999;
+    var lastBin,lastLoc;
+	lastLoc=0;
+	lastBin=0;
 
     function bkg(markers){
       for (i = 0; i !== markers.length; ++ i){
@@ -100,27 +101,39 @@
                                 //console.log("MARKER",markers[i].id,markers[i],lowest,highest);
       }
 
-     var upper,lower;
-     if (markers.length == 2) {
-                       if (markers[0].lowest > markers[1].highest) {
-                                upper = markers[0].id;
-                                lower = markers[1].id;
-                                 } else {
-                                upper = markers[1].id;
-                                lower = markers[0].id;
-                       }
-        if ((upper != lastUpper) || (lower != lastLower)) {
-                          lastUpper = upper;
-                          lastLower = lower;
-                        console.log("MARKER",upper,"above",lower);
-			document.getElementById("toptext").innerHTML=upper;
-			document.getElementById("bottomtext").innerHTML=lower;
-			doquery(upper,lower)
+     var bin_id,loc_id;
+	 loc_id=0;
+	 bin_id=0;
+      for (i = 0; i !== markers.length; ++ i){
+		if ((markers[i].id >= 1) &&  (markers[i].id <= 499)) {
+				  bin_id=markers[i].id;
+		}
+		else if ((markers[i].id >= 500) &&  (markers[i].id <= 999)) {
+				  loc_id=markers[i].id;
+		}
+	}
+		      gotMarkers(bin_id,loc_id);
 
+	}
+	function gotMarkers(bin_id,loc_id) {
+	if ((bin_id != 0) && (loc_id != 0)) {
+		if ((bin_id != lastBin) || (loc_id != lastLoc)) {
+				doquery(bin_id,loc_id)
+		}
+	  }
+        if ((bin_id != 0) && (bin_id != lastBin)) {
+		document.getElementById("toptext").innerHTML=bin_id;
+		doquery_bin(bin_id)
+		lastBin = bin_id;
+        }
+        if ((loc_id != 0) && (loc_id != lastLoc)) {
+		document.getElementById("bottomtext").innerHTML=loc_id;
+		doquery_loc(loc_id)
+		lastLoc = loc_id;
         }
      }
 
-    }
+    
 
 
     function snapshot(){
@@ -177,6 +190,65 @@
       }
     }
 
+  function doquery_loc(loc) {
+	  fetch('aruco_query_loc/'+loc, {
+	  method: 'GET', // or 'POST', 'PUT', 'DELETE'
+	  headers: {
+	    'Content-Type': 'application/json'
+	  }
+	})
+	.then(response => response.json())
+	.then(data => {
+	  console.log(data);
+	document.getElementById("loc_querytext").innerHTML=data['text'];
+		var b = document.getElementById("loc_button");
+		if ('bin_id' in data ) {
+			b.style="display:block";
+			b.href="bin/"+data['bin_id'];
+		} else {
+			b.style="display:none";
+		  }
+		b = document.getElementById("loc_id");
+		if ('loc_id' in data ) {
+			b.innerHTML=data['loc_id'];
+		} else {
+			b.innerHTML="";
+		  }
+	})
+	.catch(error => {
+	  console.error('There was a problem with the fetch operation:', error);
+	});
+  }
+  function doquery_bin(bin) {
+	  fetch('aruco_query_bin/'+bin, {
+	  method: 'GET', // or 'POST', 'PUT', 'DELETE'
+	  headers: {
+	    'Content-Type': 'application/json'
+	  }
+	})
+	.then(response => response.json())
+	.then(data => {
+	  console.log(data);
+	document.getElementById("bin_querytext").innerHTML=data['text'];
+	var b = document.getElementById("bin_button");
+			  if (('status' in data) && ('bin_id' in data['status'])) {
+				b.style="display:block";
+				b.href="bin/"+data['status']['bin_id'];
+				    } else {
+				b.style="display:none";
+					      }
+		b = document.getElementById("bin_id");
+		if (('status' in data) && ('bin_id' in data['status']) ) {
+			b.innerHTML=data['status']['bin_id'];
+		} else {
+			b.innerHTML="";
+		  }
+	})
+	.catch(error => {
+	  console.error('There was a problem with the fetch operation:', error);
+	});
+  }
+
   function doquery(bin,loc) {
 	  fetch('aruco_query/'+bin+"/"+loc, {
 	  method: 'GET', // or 'POST', 'PUT', 'DELETE'
@@ -187,7 +259,7 @@
 	.then(response => response.json())
 	.then(data => {
 	  console.log(data);
-	document.getElementById("querytext").innerHTML=data['text'];
+		document.getElementById("querytext").innerHTML=data['text'];
 	})
 	.catch(error => {
 	  console.error('There was a problem with the fetch operation:', error);
@@ -207,9 +279,43 @@
 
 	<h1>ProBin Aruco Scanner</h1>
 
-	Bin: <span id="toptext"></span>
-	Location: <span id="bottomtext"></span>
-	<p id="querytext"></p>
+	<table class="table greenbar-table">
+		<tr>
+			<th />
+			<th>Aruco</th>
+			<th>ID</th>
+			<th></th>
+			<th></th>
+
+		</tr>
+		<tr>
+			<th>Bin:</th>
+			<td><span id="toptext"/></td>
+			<td><span id="bin_id" /></td>
+			<td><span id="bin_querytext" /></td>
+			<td>
+				<a id="bin_button" style="display:none" href="/" class="btn btn-primary">Edit Bin</a>
+			</td>
+		</tr>
+		<tr>
+			<th>Loc:</th>
+			<td><span id="bottomtext"/></td>
+			<td ><span id="loc_id" /></td>
+			<td ><span id="loc_querytext" /></td>
+			<td>
+				<a id="loc_button" style="display:none" href="/" class="btn btn-primary">Edit Bin at Loc</a>
+			</td>
+		</tr>
+		<tr>
+			<th>Status:</th>
+			<td />
+			<td />
+			<td colspan=1><span id="querytext" /></td>
+			<td>
+				<a id="move_button" style="display:none" href="/" class="btn btn-primary">Move to Loc</a>
+			</td>
+		</tr>
+	</table>
   <center>
     <div id="canvas_div" style="width:100%">
     <video id="video" playsinline playinline  autoplay="true" style="xxdisplay:none;xxheight:10px;width:100%;"></video>
