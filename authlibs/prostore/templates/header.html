@@ -9,6 +9,7 @@
 		<button onclick='location.href="{{ url_for("prostore.choose") }}";'  type="button" class="btn btn-{% if page!="choose" %}outline-{% endif %}info">Choose</button>
 		<button onclick='location.href="{{ url_for("prostore.waitlist") }}";'  type="button" class="btn btn-{% if page!="waitlist" %}outline-{% endif %}info">Waitlist</button>
 		<button onclick='location.href="{{ url_for("prostore.draft") }}";'  type="button" class="btn btn-{% if page!="draft" %}outline-{% endif %}info">Draft</button>
+		<button onclick='location.href="{{ url_for("prostore.aruco") }}";'  type="button" class="btn btn-{% if page!="aruco" %}outline-{% endif %}info">Scan Aruco</button>
 	</div>
 </div>
     {% endif %}

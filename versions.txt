@@ -274,4 +274,4 @@ URLObject==2.4.3
 Werkzeug==2.1.1
 WTForms==3.0.1
 zipp==3.8.0
-
+qrcode==8.0

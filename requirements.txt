@@ -66,3 +66,4 @@ icalendar==4.0.9
 pysftp==0.2.9
 slacker==0.14.0
 redis==4.5.3
+qrcode==8.0

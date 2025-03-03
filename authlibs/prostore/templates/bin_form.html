@@ -35,7 +35,7 @@
 			{% set ph = placeholder %}
 			{% endif %}
       <label for="input_{{ name }}">{{ label }}</label>
-      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{{ bin[name] }}">
+      <input type="{{ type }}" {{ ro }} class="form-control" name="input_{{ name }}" id="input_{{ name }}" placeholder="{{ ph }}" value="{% if bin['name'] is none %}{% else %}{{ bin[name] }}{% endif %}">
 			{% if small != '' %}
 			<small>{{ small }}</small>
 			{% endif %}
@@ -43,9 +43,12 @@
 
 <div class="container">
   <div class="form-row">
-    <div class="form-group col-md-6">
+    <div class="form-group col-md-3">
 			{{ input('name',"Bin ID",'',small="Optional Unique ID or name of bin") }}
     </div>
+	    <div class="form-group col-md-3">
+				{{ input('aruco',"Aruco Code",'',small="Barcode Number (1-499)") }}
+	    </div>
 	</div>
   <div class="form-row">
     <div class="form-group col-md-6">

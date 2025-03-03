@@ -89,7 +89,10 @@ def bins():
 def bin_add(bin):
   #return render_template('bin.html',bin=b,locations=locs,statuses=enumerate(ProBin.BinStatuses),comments=comments)
   locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).filter(ProLocation.location == bin).outerjoin(ProBin).group_by(ProLocation.id).all()
-  return render_template('bin_add.html',bin=bin,locations=locs,statuses=enumerate(ProBin.BinStatuses),forcestatus = 2,selectlocation=bin)
+  newbin = ProBin()
+  newbin.name=""
+  newbin.aruco=request.args.get('aruco','')
+  return render_template('bin_add.html',bin=newbin,locations=locs,statuses=enumerate(ProBin.BinStatuses),forcestatus = 2,selectlocation=bin)
   
 @blueprint.route('/bin/<string:id>', methods=['GET','POST'])
 @roles_required(['Admin','ProStore'])
@@ -117,6 +120,15 @@ def bin_edit(id):
       bin.name=None
     bin.status = request.form['input_status']
     bin.location_id = request.form['input_location']
+    p= request.form['input_aruco']
+    try:
+        bin.aruco = int(p)
+    except:
+        pass
+    if (bin.aruco != 0) and ((bin.aruco < 1) or (bin.aruco > 499)):
+        flash("Grid aruco codes must be 1-499")
+        return redirect(url_for('prostore.grid'))
+
     log_bin_event(bin,eventtypes.RATTBE_LOGEVENT_PROSTORE_CHANGED.id)
     db.session.commit()
     flash("Updates Saved","success")  
@@ -138,11 +150,15 @@ def bin_edit(id):
   #print "QUERY",b
   b=b.one()
 
+  if b.ProBin is None:
+    flash("Bin does not exist","danger")  
+    return redirect(url_for("prostore.locations"))
   sub = Subscription.query.filter(Subscription.member_id == b.ProBin.member_id).one_or_none()
   print ("BiNSub",sub,sub.rate_plan)
   iamPro = True if sub is not None and sub.rate_plan in ('pro', 'produo') else False
   locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
   locs=locs.all()
+  print ("BIN",b)
   return render_template('bin.html',bin=b,locations=locs,iAmPro=iamPro,statuses=enumerate(ProBin.BinStatuses),comments=comments)
 
 @blueprint.route('/locations', methods=['GET','POST'])
@@ -419,6 +435,72 @@ def grid():
 
   return render_template('grid.html',bins=ab,grids=grids,locs=locs)
 
+def singleBinStatus(bin_id):
+  mybin = {}
+  bins=ProBin.query
+  bins=bins.outerjoin(ProLocation)
+  bins=bins.add_column(ProLocation.location)
+  bins=bins.outerjoin(Member)
+  bins=bins.add_columns(Member.member,Member.lastname,Member.firstname)
+  bins=bins.add_column(Member.id.label("member_id"))
+  bins=bins.outerjoin(Waiver,((Waiver.member_id == ProBin.member_id) & (Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE)))
+  bins=bins.add_column(Waiver.created_date.label("waiverDate"))
+  bins = bins.outerjoin(Subscription,Subscription.member_id == Member.id)
+  bins=bins.add_columns(Subscription.rate_plan)
+  bins=addQuickAccessQuery(bins)
+  bins=ProBin.addBinStatusStr(bins).all()
+  
+  ab={}
+  iHaveABin=False
+  sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
+  iamPro = True if sub is not None and sub.rate_plan in ('pro', 'produo') else False
+  if not iamPro:
+      flash ("Storage bins are a \"Pro\"-Level membership perk. Please upgrade your membership to obtain bin privileges")
+      return redirect(url_for('index'))
+
+  for b in bins:
+    if b.ProBin.id == bin_id:
+      mybin = {
+        'location':b.location,
+        'bin_id':bin_id
+      }
+
+      if b.ProBin.name:
+        mybin['binname']=b.ProBin.name
+      else:
+        mybin['binname']=""
+        
+      if b.member:
+        mybin['member']=b.member
+        mybin['firstname']=b.firstname
+        mybin['lastname']=b.lastname
+      else:
+        mybin['firstname']=""
+        mybin['lastname']=""
+
+      # Check for dupes
+      for bb in bins:
+          if bb.location:
+            if (b.location != bb.location) and (b.member == bb.member):
+              mybin['style'] = "background-color:#ff4040"
+              mybin['error'] = "Duplicate Bins"
+
+      if (current_user.privs('ProStore','Finance')):
+        if not b.waiverDate:
+          mybin['style'] = "background-color:#ffffd0"
+          mybin['error'] = "No Waiver"
+        if b.rate_plan not in ('pro', 'produo'):
+          mybin['style'] = "background-color:#ffd49f"
+          mybin['error'] = "Non-Pro Member"
+        if b.ProBin.status > 2:
+          mybin['style'] = "background-color:#ffd49f"
+          mybin['error'] = "Bin Status: "+b.binstatusstr
+        if b.ProBin.status  == 0:
+          mybin['style'] = "background-color:#a3ff9f"
+        if b.active != "Active" and b.active != "Grace Period":
+          mybin['style'] = "background-color:#ffd0d0"
+          mybin['error'] = "Expired Membership"
+  return mybin
 
 @blueprint.route('/notices', methods=['GET','POST'])
 @roles_required(['Admin','RATT','ProStore','Useredit'])
@@ -600,6 +682,16 @@ def grids_create():
     except:
         pass
 
+    p= request.form['input_aruco']
+    r.aruco = 0
+    try:
+        r.aruco = int(p)
+    except:
+        pass
+    if (r.aruco != 0) and ((r.aruco < 500) or (r.aruco > 999)):
+        flash("Grid aruco codes must be 500-999")
+        return redirect(url_for('prostore.grid'))
+
     if r.columns <= 0:
         flash("Invalid number of columns","danger")
         return redirect(url_for('prostore.grid'))
@@ -615,7 +707,7 @@ def grids_create():
         flash("Invalid number of rows","danger")
         return redirect(url_for('prostore.grid'))
 
-    fixup_grid_locations(None,r.short,r.columns,r.rows)
+    fixup_grid_locations(None,r.short,r.columns,r.rows,r.aruco)
 
     db.session.add(r)
     db.session.commit()
@@ -640,7 +732,8 @@ def grids_show(grid):
 # If oldname is None, creates new locations
 # If oldame is specified, renames old locations to new
 # Caller must commit!
-def fixup_grid_locations(oldname,newname,columns,rows):
+# If aruco = 0 does not incrementally assign numbers
+def fixup_grid_locations(oldname,newname,columns,rows,aruco=0):
     for cc in range(1,columns+1):
         c = chr(64+cc)
         for r in range(1,rows+1):
@@ -653,14 +746,20 @@ def fixup_grid_locations(oldname,newname,columns,rows):
                     l = ProLocation()
                     l.loctype=0
                     l.location=newloc
+                    l.aruco = aruco
                     #print ("ADD LOCATION "+l.location)
                     db.session.add(l)
+                elif aruco != l.aruco:
+                    l.aruco = aruco
             else:
                 l = ProLocation()
                 l.loctype=0
                 l.location=newloc
+                l.aruco=aruco
                 db.session.add(l)
             l.location=newloc
+            if aruco != 0:
+                aruco = aruco + 1
 
     # Now prune excess locations
     if (oldname is not None and oldname != newname):
@@ -732,6 +831,18 @@ def grids_update(grid):
             r.rows = newrows
             change=True
 
+        p= request.form['input_aruco']
+        newaruco = 0
+        try:
+            newaruco = int(p)
+        except:
+            pass
+
+        if r.aruco != newaruco:
+            r.aruco = newaruco
+            change=True
+            flash("fixup aruco start")
+
         newshort = request.form['input_short'].strip()
         if re.fullmatch("[A-Za-z0-9]+",newshort) is None:
             flash("Invalid character in short code","danger")
@@ -741,7 +852,7 @@ def grids_update(grid):
             change=True
 
         if change:
-            fixup_grid_locations(r.short,newshort,r.columns,r.rows)
+            fixup_grid_locations(r.short,newshort,r.columns,r.rows,r.aruco)
 
         db.session.commit()
         flash("Grid updated")
@@ -760,6 +871,10 @@ def grid_delete(grid):
     flash("Grid deleted.")
     return redirect(url_for('prostore.grid'))
 
+@blueprint.route('/aruco',methods=['GET','POST'])
+@roles_required(['Admin','ProStore'])
+def aruco():
+    return render_template('aruco.html')
 
 ## END GRID MANAGEMENT
 
@@ -794,6 +909,117 @@ def cli_randobinz(*cmd,**kvargs):
         print("Skiping DANGEROUS operations on non-staging server")
 
     db.session.commit()
+
+@blueprint.route('/aruco_query_bin/<string:b>',methods=['GET'])
+@roles_required(['Admin','ProStore'])
+def aruco_query_bin(b):
+    try:
+        bn = int(b)
+    except:
+        bn=0
+    bins=ProBin.query.filter(ProBin.aruco==bn)
+    bins=bins.outerjoin(ProLocation)
+    bins=bins.add_column(ProLocation)
+    bins=bins.outerjoin(Member)
+    bins=bins.add_column(Member)
+    r = bins.one_or_none()
+    res = {}
+    if r is None:
+        res['text']=f"Not found"
+    else:
+        res['text']=f"{r.ProLocation.location} {r.Member.member}"
+        res['status'] = singleBinStatus(r.ProBin.id)
+        if ('error' in res['status']):
+                res['text']+=f"</br><b>Error:{res['status']['error']}</b>"
+        
+
+    return (json_dump(res,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+@blueprint.route('/aruco_query_loc/<string:l>',methods=['GET'])
+@roles_required(['Admin','ProStore'])
+def aruco_query_loc(l):
+    try:
+        ln = int(l)
+    except:
+        ln=0
+
+    loc = ProLocation.query.filter(ProLocation.aruco == ln)
+    loc=loc.outerjoin(ProBin,ProLocation.id == ProBin.location_id)
+    loc=loc.add_column(ProBin)
+    loc=loc.outerjoin(Member)
+    loc=loc.add_column(Member)
+    loc = loc.one_or_none()
+    res = {}
+
+    if loc is None:
+        res['text'] = f"Aruco {ln} not found"
+    else:
+        if loc.ProLocation is not None:
+            res['loc_id'] = loc.ProLocation.id
+        if loc.Member is None:
+            res['text'] = f"{loc.ProLocation.location}"
+        else:
+            res['text'] = f"{loc.ProLocation.location} {loc.Member.member}"
+        if loc.ProBin is not None:
+            res['bin_id'] = loc.ProBin.id
+
+    return (json_dump(res,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+
+@blueprint.route('/aruco_query/<string:b>/<string:l>',methods=['GET'])
+@roles_required(['Admin','ProStore'])
+def aruco_query(b,l):
+    try:
+        bn = int(b)
+    except:
+        bn=0
+    try:
+        ln = int(l)
+    except:
+        ln=0
+    bin = ProBin.query.filter(aruco==bn).one_or_none()
+
+    loc = ProLocation.query.filter(ProLocation.aruco == ln)
+    loc=loc.outerjoin(ProBin,ProLocation.id == ProBin.location_id)
+    loc=loc.add_column(ProBin)
+    loc=loc.one_or_none()
+
+    bins=ProBin.query.filter(ProBin.aruco==bn)
+    bins=bins.outerjoin(ProLocation)
+    bins=bins.add_column(ProLocation)
+    bins=bins.outerjoin(Member)
+    bins=bins.add_column(Member)
+    r = bins.one_or_none()
+    res = {}
+    if r is None:
+        res['text']=f"Not found"
+    else:
+        res['text']=f"{r.ProLocation.location} {r.Member.member}"
+        res['bin_id']= r.ProBin.id,
+
+    if loc is None:
+        res['text'] += f"</br>Location: Aruco {ln} not found"
+    else:
+        res['text'] += f"</br>Location: {ln} is {loc.ProLocation.location}"
+        res['loc_id']= loc.ProLocation.id
+        res['location']= loc.ProLocation.location
+
+    
+    if loc is not None and loc.ProLocation is not None and r is not None:
+        if (r.ProBin.location_id != loc.ProLocation.id):
+            if loc.ProBin is None:
+                res['text'] += f"</br><b>Mismatch:</b> Bin should be in {r.ProLocation.location} EMPTY"
+                res['move_to_loc'] = r.ProBin.id
+            else:
+                res['text'] += f"</br><b>Mismatch:</b> Bin should be in {r.ProLocation.location}"
+        else:
+            res['text'] += f"</br><b>Correct</b>"
+
+    print ("LOC",loc)
+    print ("BIN",r)
+
+
+    return (json_dump(res,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
     
 

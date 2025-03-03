@@ -28,18 +28,23 @@ scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/log.db .
 #        FOREIGN KEY(location_id) REFERENCES prostorelocations (id) ON DELETE CASCADE
 #);'
 
-echo sqlite3 makeit.db '
-ALTER TABLE resources ADD COLUMN prodcode VARCHAR(50);
-ALTER TABLE resources ADD COLUMN price INTEGER;
-ALTER TABLE resources ADD COLUMN price_pro INTEGER;
-ALTER TABLE resources ADD COLUMN free_min INTEGER;
-ALTER TABLE resources ADD COLUMN free_min_pro INTEGER;
-'
+#echo sqlite3 makeit.db '
+#ALTER TABLE resources ADD COLUMN prodcode VARCHAR(50);
+#ALTER TABLE resources ADD COLUMN price INTEGER;
+#ALTER TABLE resources ADD COLUMN price_pro INTEGER;
+#ALTER TABLE resources ADD COLUMN free_min INTEGER;
+#ALTER TABLE resources ADD COLUMN free_min_pro INTEGER;
+#'
 
-echo sqlite3 log.db '
-ALTER TABLE usageLog ADD COLUMN payTier INTEGER;
-'
+#echo sqlite3 log.db '
+#ALTER TABLE usageLog ADD COLUMN payTier INTEGER;
+#'
 
+sqlite3 makeit.db '
+ALTER TABLE prostorelocations ADD COLUMN aruco INTEGER;
+ALTER TABLE prostorebins ADD COLUMN aruco INTEGER;
+ALTER TABLE storagegrid ADD COLUMN aruco INTEGER;
+'
 
 ###
 ### All this is TEMPORARY stuff only for STAGING 

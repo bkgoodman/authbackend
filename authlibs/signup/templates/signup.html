@@ -13,6 +13,34 @@
 		    Please enter information below for the individual signing up for membership. Select the basic membership type below. Any discounts (such as military, ProDuo, etc.) will be applied to successive billing cycles during orientation. You may cancel at any time, effective at the beginning of the next-months billing cycle. By signing up you are agreeing to be automatically billed for membership each month, in addition to any incedental (vending, materials) charges/purchases you may opt for.
 		    </p>
             </div>
+
+	                <!-- Membership Type -->
+            <div class="mb-3">
+                <label class="form-label">Select Membership Type: </label>
+                 <div class="btn-group btn-group-toggle" data-toggle="buttons">
+			 <label class="btn btn-outline-primary {% if mtype == "hobbyist" %} active {% endif %}" data-target=".collapseOne.show" data-toggle="collapse">
+                    <input type="radio" name="membershipType" id="option1" value="hobbyist" autocomplete="off" required> Hobbiest Membership - $49.95/mo
+                  </label>
+                  <label class="btn btn-outline-primary {% if mtype == "pro" %} active {% endif %}" data-target=".collapseOne.show" data-toggle="collapse">
+                    <input type="radio" name="membershipType" id="option2" value="pro" autocomplete="off"> Pro Membership - $64.95/mo
+                  </label>
+		  <label class="btn btn-outline-primary {% if mtype == "produo" %} active {% endif %}" data-target=".collapseOne:not(.show)" data-toggle="collapse">
+                    <input type="radio" name="membershipType" id="option3" value="produo" autocomplete="off" data-target=".collapse.show">Pro Duo (Two People) - $109.95/mo
+                  </label>
+		  <label class="btn btn-outline-primary {% if mtype == "military" %} active {% endif %}" data-target=".collapseOne.show" data-toggle="collapse">
+                    <input type="radio" name="membershipType" id="option4" value="militarypro" autocomplete="off">Military Pro - $49.95/mo
+                  </label>
+                </div>
+                <p style="font-size:x-small">
+		  Pro memberships are intended for people using the facility on behalf of companies, 
+		  or for profit endevors. They also provide certian benefits, such as on-site storage, class discounts, and area rentals.
+		</p>
+            </div>
+
+
+
+	    <h4>Member Information:</h4>
+
             <!-- First Name -->
             <div class="input-group mb-3">
                 <label for="firstName" class="input-group-text mb-2">First Name</label>
@@ -32,19 +60,34 @@
 
 
 
-	                <!-- Membership Type -->
-            <div class="mb-3">
-                <label class="form-label">Select Membership Type: </label>
-                            <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                  <label class="btn btn-outline-primary active">
-                    <input type="radio" name="membershipType" id="option1" value="hobbyist" autocomplete="off" checked> Hobbiest Membership - $49.95/mo
-                  </label>
-                  <label class="btn btn-outline-primary">
-                    <input type="radio" name="membershipType" id="option2" value="pro" autocomplete="off"> Pro Membership - $64.95/mo
-                  </label>
-                </div>
-                    <p style="font-size:x-small">Pro memberships are intended for people using the facility on behalf of companies, or for profit endevors. They also provide certian benefits, such as on-site storage, class discounts, and area rentals.</p>
+	    <!-- Second Member --> 
+	    <div class="collapseOne collapse" id="secondMember">
+	    <hr />
+	    <h4>Second Member Information:</h4>
+		    <div class="card card-body" style="background:none;border:none">
+			    <!-- Begin second member info -->
+            <!-- First Name -->
+            <div class="input-group mb-3">
+                <label for="firstName" class="input-group-text mb-2">First Name</label>
+                <input type="text" class="form-control mb-2" name="firstname2" id="firstName2" placeholder="Additional Member's First Name" >
+                <label for="lastName" class="input-group-text mb-2">Last Name</label>
+                <input type="text" class="form-control mb-2" name="lastname2" id="lastName2" placeholder="Addiotnal Member's Last Name" >
             </div>
+
+
+            <!-- email -->
+            <div class="input-group mb-3">
+                <label for="email" class="input-group-text mb-2">email</label>
+                <input type="tel" class="form-control mb-2" name="email2" id="email2" placeholder="Additional Member's Email Address" >
+                <label for="phoneNumber" class="input-group-text  mb-2">Phone Number</label>
+                <input type="tel" class="form-control mb-2" name="phone2" id="phoneNumber2" placeholder="Additional Member's Phone Number" >
+            </div>
+			    <!-- End second member info -->
+		    </div>
+	    <hr />
+
+	    </div>
+
 
 	                <!-- Checkbox -->
             <div class="mb-3 form-check">

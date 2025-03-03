@@ -1,15 +1,16 @@
-{% extends "layout_bootstrap.html" %}
+{% extends "layout_public.html" %}
 {% block head %}
 {% endblock %}
 
 
 {% block widebody %}
   <div class=body>
-	<div class="sectionhead">Signup</div>
+	<div class="sectionhead">
+	  <h1>Oops!</h2>
+	</div>
 
-	<pre>
-	{{ debug }}
-	</pre>
+	<p>An error has occured. Please report the URL and the contents to follow to <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a></p>
+	<pre style="background-color:beige;padding:5px">{{ debug }} </pre>
 
   </div>
 {% endblock %}
