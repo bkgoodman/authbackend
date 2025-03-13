@@ -25,10 +25,7 @@ if __name__ == "__main__":
 
     for x in stripe.Customer.auto_paging_iter(False):
     #for x in stripe.Customer.search(query="-name~\"M\"").auto_paging_iter():
-        if  x.description is None:
-                    print (f"No Description {x.name}")
-                    err += 1
-        elif  x.description.startswith("MakeIt Labs"):
+        if  x.description is None or x.description.startswith("MakeIt Labs"):
             #subscriptions = stripe.Subscription.list(customer=x.id,status="canceled")
             subscriptions = stripe.Subscription.list(customer=x.id)
             for s in subscriptions:
@@ -38,7 +35,7 @@ if __name__ == "__main__":
                         x.description = s.metadata['names']
                         x.save()
                 else:
-                    print (f"No Name in Metadata! {x.name} {x.description}")
+                    print (f"No Name in Metadata! {x.id} {s.id} {x.name} {x.description}")
                     err += 1
         else:
             #print (f"LeaveAlone: {x.description} {x.name}")
