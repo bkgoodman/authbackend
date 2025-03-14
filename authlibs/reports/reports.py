@@ -9,12 +9,14 @@ from flask_user import current_user, login_required, roles_required, UserManager
 from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey, Blacklist
 from functools import wraps
 import json
+import subprocess
 #from .. import requireauth as requireauth
 from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
 from authlibs import payments as pay
 from sqlalchemy import case, DateTime
+import json
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -29,12 +31,21 @@ blueprint = Blueprint("reports", __name__, template_folder='templates', static_f
 # Reporting controllers
 # ------------------------------------------------------------
 
+@blueprint.route('/oldreports', methods=['GET'])
+@roles_required(['Admin','Finance'])
+@login_required
+def oldreports():
+    """(Controller) Display some pre-defined report options"""
+    stats = {} #getDataDiscrepancies()
+    return render_template('oldreports.html',stats=stats)
+
 @blueprint.route('/', methods=['GET'])
+@roles_required(['Admin','Finance'])
 @login_required
 def reports():
     """(Controller) Display some pre-defined report options"""
-    stats = {} #getDataDiscrepancies()
-    return render_template('reports.html',stats=stats)
+    return render_template('reports.html')
+
 
 # Not used right now - I think it is exclusivley old "pinpayments" stuff??
 def getDataDiscrepancies():
@@ -81,6 +92,29 @@ def blacklist():
     #blacklist = db.session.execute(sqlstr)
     blacklist = Blacklist.query.all()
     return render_template('blacklist.html',blacklist=blacklist)
+
+@blueprint.route('/runreport/<string:report>', methods=['GET'])
+@login_required
+@roles_required(['Admin','Finance'])
+def runreport(report):
+    report = report.replace("/","")
+    report = report.replace(".","")
+    try:
+        res = {
+                "status": "ok",
+                "text":f"This is a run of report {report}"
+                }
+        f = subprocess.Popen(["./"+report+".py"],cwd="authlibs/reports/reports/",stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        txt = f.stdout.read().decode("utf-8")
+        txt += f.stderr.read().decode("utf-8")
+        result = f.wait()
+        res['text']=txt + f"Result: {result}"
+    except BaseException as e:
+        res = {
+                "status": "error",
+                "text":f"BaseException {e}"
+                }
+    return (json.dumps(res,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
 def register_pages(app):
