@@ -40,11 +40,11 @@ scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/log.db .
 #ALTER TABLE usageLog ADD COLUMN payTier INTEGER;
 #'
 
-sqlite3 makeit.db '
-ALTER TABLE prostorelocations ADD COLUMN aruco INTEGER;
-ALTER TABLE prostorebins ADD COLUMN aruco INTEGER;
-ALTER TABLE storagegrid ADD COLUMN aruco INTEGER;
-'
+#sqlite3 makeit.db '
+#ALTER TABLE prostorelocations ADD COLUMN aruco INTEGER;
+#ALTER TABLE prostorebins ADD COLUMN aruco INTEGER;
+#ALTER TABLE storagegrid ADD COLUMN aruco INTEGER;
+#'
 
 ###
 ### All this is TEMPORARY stuff only for STAGING 
