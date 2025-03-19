@@ -246,6 +246,10 @@ def redeem_activate(code=None):
     try:
         sub = stripe.Subscription.create(
             customer=customer,
+            metadata= {
+                      "emails": email,
+                      "names": fullname
+                },
             items = [
                 {
                     "price": "hobbyist",
