@@ -97,7 +97,7 @@ def bin_add(bin):
   locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).filter(ProLocation.location == bin).outerjoin(ProBin).group_by(ProLocation.id).all()
   newbin = ProBin()
   newbin.name=""
-  newbin.aruco=request.args.get('aruco','')
+  newbin.aruco=db.session.query(func.max(ProBin.aruco)).scalar()
   return render_template('bin_add.html',bin=newbin,locations=locs,statuses=enumerate(ProBin.BinStatuses),forcestatus = 2,selectlocation=bin)
   
 @blueprint.route('/bin/<string:id>', methods=['GET','POST'])
