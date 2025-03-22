@@ -43,6 +43,12 @@ def bins():
           return redirect(url_for("prostore.bins"))
       brec.location_id = loc.id
 
+    arucono= request.form['input_aruco']
+    try:
+        bin.aruco = int(arucono)
+    except:
+        pass
+
     if 'member_radio' in request.form:
       m = request.form['member_radio']
       mem = Member.query.filter(Member.member == m).one()

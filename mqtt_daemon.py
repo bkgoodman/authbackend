@@ -564,9 +564,10 @@ def on_message(client,userdata,msg):
                         logger.error ("Send MQTT Failed %s" % str(e))
 
                 if send_mqtt_status is not None and toolname is not None:
-                    logger.error(f"Update Displayboard Status for {toolname} {send_mqtt_status}")
+                    logger.error(f"Update Displayboard Status for {toolname} {toolDisplay} {send_mqtt_status}")
                     try:
                         if send_mqtt_status:
+                            send_mqtt_status['name']=toolDisplay
                             client.publish("displayboard/read/status/"+toolname,json.dumps(send_mqtt_status,indent=2),retain=True)
                         else:
                             # If dictionary is empty, send an empty payload with retain flag to CLEAR the retained message
