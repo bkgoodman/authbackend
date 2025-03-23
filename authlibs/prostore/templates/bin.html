@@ -108,6 +108,9 @@
     <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">
       Unassign & Delete
     </button>
+    <button type="button" class="btn btn-primary" onClick="printlabel()">
+      Print Label
+    </button>
     <!-- Modal for Delete resource confirmation -->
     <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModal" aria-hidden="true">
       <div class="modal-dialog" role="document">
@@ -136,6 +139,19 @@
   </div>
 
 <script type="text/javascript">
+function printlabel(file) {
+      console.log("Printing","{{ bin.member}}","{{ bin.ProBin.aruco }}")
+
+        fetch('{{ url_for("prostore.print_label", member=bin.member, code=bin.ProBin.aruco) }}')
+        .then((response) => response.json())
+        .then((data) => {
+          // Handle the server's response (if needed)
+          console.log("Print successful:", data);
+        })
+        .catch((error) => {
+          console.error("Error printing:", error);
+        });
+    }
 function unassign() {
   var x = $("#unassign_button")[0];
   var m = $("#assign_to_member");
