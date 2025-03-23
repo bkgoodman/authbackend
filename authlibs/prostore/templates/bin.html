@@ -139,10 +139,12 @@
   </div>
 
 <script type="text/javascript">
-function printlabel(file) {
+function printlabel() {
       console.log("Printing","{{ bin.member}}","{{ bin.ProBin.aruco }}")
+      {% if bin.ProBin.aruco is not none and bin.member is not none %}
+      
 
-        fetch('{{ url_for("prostore.print_label", member=bin.member, code=bin.ProBin.aruco) }}')
+      fetch('{{ url_for("prostore.print_label", member=bin.member, code=bin.ProBin.aruco) }}')
         .then((response) => response.json())
         .then((data) => {
           // Handle the server's response (if needed)
@@ -151,6 +153,7 @@ function printlabel(file) {
         .catch((error) => {
           console.error("Error printing:", error);
         });
+                {% endif %}
     }
 function unassign() {
   var x = $("#unassign_button")[0];
