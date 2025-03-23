@@ -8,6 +8,7 @@ from authlibs import ago
 from authlibs.accesslib import addQuickAccessQuery
 from .notices import sendnotices
 from sqlalchemy.sql.expression import label
+import urllib
 
 blueprint = Blueprint("prostore", __name__, template_folder='templates', static_folder="static",url_prefix="/prostore")
 
@@ -95,11 +96,11 @@ def bins():
 def print_label(member,code):
     try:
         data = urllib.parse.urlencode({'number': code, 'name': member}).encode('utf-8')
-        req = urllib.request.Request("http://labelpriter:8080", data=data, method='POST')
+        req = urllib.request.Request("http://labelprinter:8080", data=data, method='POST')
         with urllib.request.urlopen(req) as response:
             html = response.read().decode('utf-8')
     except BaseException as e:
-        pass
+        return (json_dump({"result": "error", "message":str(e)} ,indent=2), 500, {'Content-type': 'application/json', 'Content-Language': 'en'})
     return (json_dump({"result": "ok", "member":member, "code": code} ,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 @blueprint.route('/bin_add/<string:bin>', methods=['GET'])
