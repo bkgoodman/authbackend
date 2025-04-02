@@ -246,6 +246,10 @@ def redeem_activate(code=None):
     try:
         sub = stripe.Subscription.create(
             customer=customer,
+            metadata= {
+                      "emails": email,
+                      "names": fullname
+                },
             items = [
                 {
                     "price": "hobbyist",
@@ -469,6 +473,8 @@ def gift_postpay():
     ses = r.get("checkoutsession/"+checkout_session['id'])
     if ses is None:
         debug += "No session data"
+        flash ("Session Expired")
+        return redirect(url_for("signup.gift"))
     sessiondata = json.loads(ses)
     debug += "Session data: "+ses.decode('utf8')
     opts = {
@@ -481,12 +487,13 @@ def gift_postpay():
     return render_template('gift_post.html',debug=debug, **opts)
 
 @blueprint.route("/redeem",methods=['POST','GET'])
-@blueprint.route("/redeem/<string:code>",methods=['GET'])
+@blueprint.route("/redeem/<string:code>",methods=['GET','POST'])
 def redeem(code=None):
     if 'code' in request.form:
         code = request.form.get('code')
     code = request.args.get('code',code)
     if code is None or code == "":
+        flash("Enter Redeem Code")
         return render_template('redeem_code.html')
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     debug=f"code = {code}"
