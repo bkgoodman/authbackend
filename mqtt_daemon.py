@@ -51,6 +51,7 @@ logger.addHandler(handler)
 Config = configparser.ConfigParser({})
 Config.read('makeit.ini')
 slack_token = Config.get('Slack','BOT_API_TOKEN')
+speakbot_slack_token = Config.get('Speakbot','slack_token')
 
 # This is to remember last time user was announced via door entry audio
 lastMemberAccess = {}
@@ -166,6 +167,7 @@ def on_connect(client,userdata,flags,res):
     print ("MQTT CONNECTED")
     client.subscribe("ratt/#")
     client.subscribe("facility/minisplit/report/#")
+    client.subscribe("facility/alarm/system")
     client.publish("displayboard/read/status","CONNECTED")
 # The callback for when a PUBLISH message is received from the server.
 # 2019-01-11 17:09:01.736307
@@ -181,7 +183,10 @@ def on_message(client,userdata,msg):
         with app.app_context():
             log=Logs()
             if (verbose>=2): print ("FROM WIRE",msg.topic,msg.payload)
-            message = json.loads(msg.payload)
+            try:
+                message = json.loads(msg.payload)
+            except:
+                message = msg.payload
             topic=msg.topic.split("/")
 
             # Is this a RATT status message?
@@ -204,7 +209,19 @@ def on_message(client,userdata,msg):
             send_mqtt_event=None
             send_mqtt_status=None
             
-            if topic[0]=="facility" and topic[1]=="minisplit" and topic[2]=="report":
+            if topic[0]=="facility" and topic[1]=="alarm" and topic[2]=="system":
+                print ("Facility Alarm:",message)
+                if message=="armed":
+                    speech = "Attention: Alarm Activated"
+                    url = 'http://cgimisc:8091/slack'
+                    data = {
+                        'command': 'flash',
+                        'text': speech,
+                        'token':speakbot_slack_token
+                    }
+                    urllib.request.urlopen(url,data)
+                    
+            elif topic[0]=="facility" and topic[1]=="minisplit" and topic[2]=="report":
                 r = redis.Redis()
                 minisplit = topic[3]
                 #print ("GOT",minisplit,message)
@@ -390,7 +407,7 @@ def on_message(client,userdata,msg):
                                 lastMemberAccess[memberId] = datetime.now()
                                 opts = []
                                 now = datetime.now()
-                                if (now.weekday() ==3) and ((now.hour >= 19) and (now.hour <= 21)):
+                                if (now.weekday() ==3) and ((now.hour >= 16) and (now.hour <= 22)):
                                     opts += [ "--quiet" ]
                                 subprocess.Popen(
                                     ["/var/www/authbackend/doorentry",str(memberId)]+opts, shell=False, stdin=None, stdout=None, stderr=None,
@@ -665,6 +682,7 @@ def on_message(client,userdata,msg):
 def on_connect(client, userdata, flags, rc):
     client.subscribe("ratt/#")
     client.subscribe("facility/minisplit/report/#")
+    client.subscribe("facility/alarm/system")
 
 if __name__ == '__main__':
     global verbose
