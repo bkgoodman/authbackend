@@ -58,7 +58,7 @@
         <input type="hidden" id="unassign_member_hidden" name="unassign_member_hidden"  value="no" />
         <input type="hidden" name="input_orig_member" value="{{ bin.ProBin.member_id }}" />
         <label for="input_status">Bin Status</label>
-        <select class="form-control" name="input_status">
+        <select class="form-control" id="status_select" name="input_status">
           {% for stat in statuses %}
             <option name="{{ stat[0] }}" value="{{ stat[0] }}"
             {% if bin.status == stat[0] %}selected{% endif %}>
@@ -159,6 +159,7 @@ function unassign() {
   var x = $("#unassign_button")[0];
   var m = $("#assign_to_member");
   var cmb = $("#change_member_button");
+  $("#status_select").val("2");
   if (cmb[0].classList.contains("active")) {
     cmb.button('toggle');
     $("#unassign_member_hidden")[0].value="no";
@@ -182,6 +183,7 @@ function change_member() {
   } else {
     $("#member_select_div").collapse('show');
     m[0].innerHTML="<strike>{{ bin.member }}</strike>";
+    $("#status_select").val("2");
     if (x.classList.contains("active")) {
       $("#unassign_button").button('toggle');
       $("#unassign_member_hidden")[0].value="no";
