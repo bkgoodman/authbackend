@@ -20,7 +20,7 @@
 	  <input type="hidden" name="pricestr" value="{{ chargeStr }}" />
 	  <input type="hidden" name="purchase_item_id" value="{{ purchasable.id }}" />
 	  {% if cost != 0 %}
-          <button type="submit" name="Purchase" value="Purchase" class="btn btn-danger">Purchase</button>
+          <button type="submit" name="Purchase" value="Purchase" class="btn btn-danger onclick="this.disabled=true; this.form.submit();"">Purchase</button>
 	  {% else  %}
 	  <!-- NOT DONE YET -->
           <xx-button type="submit" name="Continue" value="Continue" class="btn btn-danger">Continue</xx-button>
