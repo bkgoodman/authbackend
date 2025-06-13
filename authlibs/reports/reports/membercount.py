@@ -59,6 +59,9 @@ if __name__ == "__main__":
                 if p in memberships:
                     ccc = 1
                     if p == "produo": ccc=2
+                    t = f"{p} {coupon}"
+                    #if t=="pro 99% off in perpetuity":
+                    #    print (f"Pro99L : {s['metadata']['names']}\n")
                     if p not in subs: subs[p]={
                             'count':0, 'coupons':{}}
                     subs[p]['count'] = subs[p]['count']+ccc

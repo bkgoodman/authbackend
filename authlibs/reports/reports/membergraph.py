@@ -28,7 +28,8 @@ exempt = ['100PERCENTOFF',
 todaystamp = datetime.now().timestamp()
 today = datetime.now().date()
 date_array = [0] * 180
-def mark_dates_in_range(start_timestamp, end_timestamp,count):
+mtypes = {}
+def mark_dates_in_range(start_timestamp, end_timestamp,count,mtype,active):
     """
     Initializes an array representing the last 180 days and marks days
     covered by the provided date ranges.
@@ -59,6 +60,7 @@ def mark_dates_in_range(start_timestamp, end_timestamp,count):
         sys.exit(-1)
         return
 
+    #print (f"Chek {start_timestamp} {end_timestamp} {start_date} {end_date}\n")
     current_date = start_date
     while current_date <= end_date:
         delta = today - current_date
@@ -66,8 +68,15 @@ def mark_dates_in_range(start_timestamp, end_timestamp,count):
 
         if 0 <= days_ago < 180:
             index = 179 - days_ago
+            #print (f"{days_ago} index {index} for {current_date}")
             date_array[index] =  date_array[index] + count
 
+        if days_ago == 0:
+            if mtype not in mtypes:
+                mtypes[mtype]=0
+            mtypes[mtype] += count
+            if not active:
+                print ("ERROR NOT ACTIVE!!")
         current_date += timedelta(days=1)
 
 
@@ -79,7 +88,7 @@ if __name__ == "__main__":
     stripe.api_key = open("stripenamefix.key").readline().strip()
     subs={}
     since = int((datetime.now() - timedelta(days=180)).timestamp())
-    print (f"SINCE {since}")
+    #print (f"SINCE {since}")
 
     # Status can be "open" or "paid"
     # https://stripe.com/docs/search#search-query-language
@@ -91,7 +100,11 @@ if __name__ == "__main__":
     #for s in  stripe.Subscription.list(limit=20):
     couponcodes={}
     subcount=0
+    processed={}
     for s in stripe.Subscription.search(query=f"canceled_at>{since} or status:\"active\"").auto_paging_iter():
+        if s['id'] in processed:
+            continue
+        processed[s['id']]= True
         subcount = subcount+1
         #print (s)
         coupon = "No Coupon"
@@ -102,16 +115,29 @@ if __name__ == "__main__":
                 coupon = s['discount']['coupon']['id']
             couponcodes[s['discount']['coupon']['id']] = coupon
         mcount = 1
-        if coupon ==  "produo": mcount=2
-        if coupon in exempt: mcount=0
-        print (f"MEMBER: Start={s['start_date']} cancel={s['canceled_at']} {s['ended_at']} plan={s['plan']['id']} Coupon={coupon} mcount={mcount}")
-        enddate = None
-        if s['canceled_at'] is not None: enddate=s['canceled_at']
-        if s['ended_at'] is not None: enddate=s['ended_at']
-        if (mcount != 0):
-            mark_dates_in_range(s['start_date'],enddate,mcount)
+        p=s['plan']['id']
+        if p in memberships:
+            if s['plan']['id'] ==  "produo": mcount=2
+            if coupon in exempt: mcount=0
+            #print (f"MEMBER: Start={s['start_date']} cancel={s['canceled_at']} {s['ended_at']} plan={s['plan']['id']} Coupon={coupon} mcount={mcount}")
+            enddate = None
+            if s['canceled_at'] is not None: enddate=s['canceled_at']
+            if s['ended_at'] is not None: enddate=s['ended_at']
 
-    print (f"Subcount {subcount}")
+            if ((s['plan']['active'] == True)
+                and (s['canceled_at'] is None)
+                and (s['ended_at'] is None)):
+                active= True
+            else:
+                active=False
+            t = coupon+" "+s['plan']['id']
+            if (mcount != 0):
+                mark_dates_in_range(s['start_date'],enddate,mcount,t,active)
+            #if t == "99% off in perpetuity pro":
+            #    print (f"99pro: {s['metadata']['names']} {s['id']} {subcount}")
+
+    #print (f"Subcount {subcount}")
     print (date_array)
+    #print (mtypes)
     sys.exit(0)
 
