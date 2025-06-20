@@ -186,7 +186,7 @@ def on_message(client,userdata,msg):
             try:
                 message = json.loads(msg.payload)
             except:
-                message = msg.payload
+                message = {'payload':  msg.payload}
             topic=msg.topic.split("/")
 
             # Is this a RATT status message?
@@ -211,7 +211,7 @@ def on_message(client,userdata,msg):
             
             if topic[0]=="facility" and topic[1]=="alarm" and topic[2]=="system":
                 print ("Facility Alarm:",message)
-                if message=="armed":
+                if message['payload']=="armed":
                     speech = "Attention: Alarm Activated"
                     url = 'http://cgimisc:8091/slack'
                     data = {
@@ -255,6 +255,7 @@ def on_message(client,userdata,msg):
                     toolname=topic[3]
 
             subt=topic[4]
+            if subt=="ping": return
             sst=topic[5]
             member=None
             if 'toolId' in message: toolId=message['toolId']
@@ -409,9 +410,10 @@ def on_message(client,userdata,msg):
                                 now = datetime.now()
                                 if (now.weekday() ==3) and ((now.hour >= 16) and (now.hour <= 22)):
                                     opts += [ "--quiet" ]
-                                subprocess.Popen(
-                                    ["/var/www/authbackend/doorentry",str(memberId)]+opts, shell=False, stdin=None, stdout=None, stderr=None,
-                                    close_fds=True)
+                                else:
+                                    subprocess.Popen(
+                                      ["/var/www/authbackend/doorentry",str(memberId)]+opts, shell=False, stdin=None, stdout=None, stderr=None,
+                                      close_fds=True)
                     else:
                         log_event_type = RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id
 
