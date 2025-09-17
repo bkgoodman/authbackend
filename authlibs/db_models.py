@@ -67,6 +67,7 @@ class Member(db.Model,UserMixin):
     warning_level = db.Column(db.Integer()) 
     draft = db.Column(db.Integer())  # Draft wave for ProStore Bin
     email_confirmed_at = db.Column(db.DateTime())
+    plates = db.Column(db.String(50)) # License Plates
     membership = db.Column(db.String(50),nullable=True,unique=True)
     memberFolder = db.Column(db.String(255))
 

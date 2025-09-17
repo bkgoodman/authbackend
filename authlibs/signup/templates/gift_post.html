@@ -47,13 +47,13 @@
 
 
 	<p class="descript">
-	Redeem at: {{ baseurl }}{{ url_for('signup.redeem',code=code) }}<br />
-	or by clicking <a href="{{ url_for('signup.redeem',code=code) }}">Here</a>
+	Redeem at: {{ baseurl }}{{ url_for('gift.redeem',code=code) }}<br />
+	or by clicking <a href="{{ url_for('gift.redeem',code=code) }}">Here</a>
 	</p>
 
 	<p class="descript">or redeem by scanning this QR code:</p>
 	<p>
-	<img class="center" src="{{ url_for('signup.qr',code=code) }}" />
+	<img class="center" src="{{ url_for('gift.qr',code=code) }}" />
 	</p>
 
 	</div>

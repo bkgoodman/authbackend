@@ -74,6 +74,7 @@ from authlibs.reports import reports
 from authlibs.tools import tools 
 from authlibs.nodes import nodes 
 from authlibs.memberAudio import memberAudio 
+from authlibs.memberInfo import memberInfo 
 from authlibs.autoplot import autoplot 
 from authlibs.kvopts import kvopts 
 from authlibs.comments import comments 
@@ -86,6 +87,8 @@ from authlibs.purchasables import purchasables
 from authlibs.facility import facility
 from authlibs.finrep import finrep
 from authlibs.signup import signup
+from authlibs.signup import update as membershipupdate
+from authlibs.signup import gift as giftmembership 
 
     
 
@@ -608,6 +611,8 @@ with app.app_context():
     comments.register_pages(app)
     finrep.register_pages(app)
     signup.register_pages(app)
+    membershipupdate.register_pages(app)
+    giftmembership.register_pages(app)
     apikeys.register_pages(app)
     prostore.register_pages(app)
     training.register_pages(app)
@@ -615,6 +620,7 @@ with app.app_context():
     vending.register_pages(app)
     memberFolders.register_pages(app)
     memberAudio.register_pages(app)
+    memberInfo.register_pages(app)
     facility.register_pages(app)
     purchasables.register_pages(app)
     slackutils.create_routes(app)

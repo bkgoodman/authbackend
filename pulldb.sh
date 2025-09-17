@@ -46,6 +46,10 @@ scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/log.db .
 #ALTER TABLE storagegrid ADD COLUMN aruco INTEGER;
 #'
 
+sqlite3 makeit.db '
+ALTER TABLE members ADD COLUMN plates VARCHAR(50);
+'
+
 ###
 ### All this is TEMPORARY stuff only for STAGING 
 ### Do NOT Do this in production!!!! 
@@ -61,9 +65,9 @@ INSERT INTO purchasable VALUES(10,"Staging Test","Staging Test Purchasable",100,
 
 # Changes Brad to use my Test Stripe Account
 # Test CC for Brad
-sqlite3 makeit.db 'update subscriptions set customerid="cus_MN5oo9gAnx3Vtn" where member_id=13;' 
+sqlite3 makeit.db 'update subscriptions set customerid="cus_SmYocjOvjXSAsv", subid="sub_1RqzhBI573ycCeJ1nZmOXIII" where member_id=13;' 
 # Invalid Test CC for Berndt
-sqlite3 makeit.db 'update subscriptions set customerid="cus_NxyWLTzuDOM62R" where member_id=470;' 
+sqlite3 makeit.db 'update subscriptions set customerid="cus_SmYtvt8CyfFvVc", subid="sub_1Rqzm7I573ycCeJ10jCehGs5" where member_id=470;' 
 #sqlite3 makeit.db 'update resources set price=1500 where id=36;' 
 #sqlite3 makeit.db 'update resources set price_pro=1000, prodcode="prod_NoaY9dJVuAh41m" where id=36;' 
 sqlite3 makeit.db 'update resources set prodcode="prod_NoaY9dJVuAh41m" where id=36;' 
@@ -93,6 +97,3 @@ sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,
 sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,time_reported,idleSecs,activeSecs,enabledSecs) VALUES (13,36,5024,"2024-01-09 01:00:00","2023-08-09 01:00:00",3600,1800,3600);'
 sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,time_reported,idleSecs,activeSecs,enabledSecs) VALUES (13,36,5024,"2024-01-10 01:00:00","2023-08-10 01:00:00",3600,1800,3600);'
 
-
-echo "DONT FORGET TO:"
-echo pip install --upgrade stripe
