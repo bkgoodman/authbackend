@@ -57,7 +57,10 @@ if __name__ == "__main__":
         try:
             print (f"{s['metadata']['names']:20s} Since: {datetime.fromtimestamp(ss['created']).date()} Notes: {s['cancellation_details']['comment']}")
         except:
-            print (f"<Missing Metadata> Since: {datetime.fromtimestamp(ss['created']).date()} Notes: {s['cancellation_details']['comment']}")
+            email = s['email'] if 'email' in s else "<Email Missing>"
+            description = s['description'] if 'description' in s else "<Description Missing>"
+            created = datetime.fromtimestamp(s['created']).date() if 'created' in s else "<Created Missing>"
+            print (f"<Missing Metadata> {description} {email} {created}")
         if ((s['plan']['active'] == True)
             and (s['canceled_at'] is None)
             and (s['ended_at'] is None)):
