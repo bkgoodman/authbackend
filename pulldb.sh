@@ -50,6 +50,20 @@ sqlite3 makeit.db '
 ALTER TABLE members ADD COLUMN plates VARCHAR(50);
 '
 
+sqlite3 makeit.db 'CREATE TABLE signs (
+	s_what VARCHAR(50),
+	s_when VARCHAR(50),
+	s_where VARCHAR(50),
+	s_desc VARCHAR(255),
+	s_qr  VARCHAR(255),
+	s_qr_desc  VARCHAR(255),
+        id INTEGER NOT NULL,
+	priority INTEGER DEFAULT 0,
+	start DATETIME,
+	end DATETIME,
+        PRIMARY KEY (id)
+);'
+
 ###
 ### All this is TEMPORARY stuff only for STAGING 
 ### Do NOT Do this in production!!!! 

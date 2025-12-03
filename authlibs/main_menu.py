@@ -172,6 +172,12 @@ def get_raw_menu():
                     'alt':"Search for RFID Tag"
             },
             {
+                    'privs':'Useredit',
+                    'url':url_for('signs.signs'),
+                    'title':"Lobby Sign",
+                    'alt':"Welcome sign messages"
+            },
+            {
                     'url':url_for('memberAudio.audio'),
                     'title':"Entrance Audio",
                     'img':url_for("static",filename="audioIcon.png"),

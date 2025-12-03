@@ -72,6 +72,7 @@ from authlibs.paylib import payments as paylib
 from authlibs.api import api 
 from authlibs.reports import reports 
 from authlibs.tools import tools 
+from authlibs.signboard import signboard 
 from authlibs.nodes import nodes 
 from authlibs.memberAudio import memberAudio 
 from authlibs.memberInfo import memberInfo 
@@ -607,6 +608,7 @@ with app.app_context():
     nodes.register_pages(app)
     autoplot.register_pages(app)
     tools.register_pages(app)
+    signboard.register_pages(app)
     kvopts.register_pages(app)
     comments.register_pages(app)
     finrep.register_pages(app)
