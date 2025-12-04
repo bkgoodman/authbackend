@@ -59,10 +59,14 @@ sqlite3 makeit.db 'CREATE TABLE signs (
 	s_qr_desc  VARCHAR(255),
         id INTEGER NOT NULL,
 	priority INTEGER DEFAULT 0,
+	retain INTEGER DEFAULT 0,
 	start DATETIME,
 	end DATETIME,
         PRIMARY KEY (id)
-);'
+);
+
+INSERT INTO roles VALUES(9,"Signpost");
+'
 
 ###
 ### All this is TEMPORARY stuff only for STAGING 

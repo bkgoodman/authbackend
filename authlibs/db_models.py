@@ -14,7 +14,7 @@ except:
 	from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
 
 
-defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore','LeaseMgr',"Facilities"]
+defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore','LeaseMgr',"Facilities","Signpost"]
 
 db = SQLAlchemy()
 
@@ -148,8 +148,9 @@ class Sign(db.Model):
     s_qr = db.Column(db.String(255))
     s_qr_desc = db.Column(db.String(255))
     priority = db.Column(db.Integer)
+    retain = db.Column(db.Integer)
     start = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
-    end = db.Column(db.DateTime(timezone=True), onupdate=db.func.now())
+    end = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
     
 class AccessByMember(db.Model):
     __tablename__ = 'accessbymember'

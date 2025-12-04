@@ -172,7 +172,7 @@ def get_raw_menu():
                     'alt':"Search for RFID Tag"
             },
             {
-                    'privs':'Useredit',
+                    'privs':'Signpost',
                     'url':url_for('signs.signs'),
                     'title':"Lobby Sign",
                     'alt':"Welcome sign messages"

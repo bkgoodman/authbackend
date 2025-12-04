@@ -49,24 +49,30 @@
 			{{ input('s_qr',"QR Code URL",small="(Optional URL for QR Code)") }}
     </div>
     <div class="form-group col-md-4">
-			{{ input('s_qr_desc',"QR Code Text",small="Optional: e.g. \"Scan to Register\"") }}
+			{{ input('s_qr_desc',"QR Code Caption",small="Optional: e.g. \"Scan to Register\"") }}
     </div>
   </div>
   <div class="form-row">
-    <div class="form-group col-md-4">
+    <div class="form-group col-md-3">
         <p>Start Displaying:</p>
 	<input type="datetime-local" id="start" name="input_start" value="{{ default_start.strftime('%Y-%m-%dT%H:%M') }}" autocomplete="off" />
     </div>
-    <div class="form-group col-md-4">
+    <div class="form-group col-md-3">
         <p>Stop Displaying:</p>
 	<input type="datetime-local" id="end" name="input_end" value="{{ default_end.strftime('%Y-%m-%dT%H:%M') }}" autocomplete="off" />
 	<br /><small>Max 30 days</small>
+    </div>
+    <div class="form-group col-md-2">
+        <label>Retain</label>
+	<input type="checkbox" id="retain" name="input_retain" {{ 'checked' if (rec['retain'] == 1) else '' }} autocomplete="off" />
+	<br /><small>Don't delete after end. i.e. Stuff to reuse</small>
     </div>
     <div class="form-group col-md-4">
       <label for="input_resource_id">Display</label>
 			<select {{ ro }} class="form-control" name="input_priority">
 				<option {{ 'selected' if (rec['priority'] == 0 ) else '' }} name="always" value="0">Always</option>
 				<option name="optional" {{ 'selected' if (rec['priority'] == 1 ) else '' }} value="1">Only if nothing else</option>
+				<option name="test" {{ 'selected' if (rec['priority'] == 2 ) else '' }} value="2">Test - Not yet "Live"</option>
 			</select>
     </div>
   </div>

@@ -2,7 +2,7 @@
 <h2>Resources</h2>
 {% block body %}
 <div class="signslist">
-	<h2>Tools:  {{ signs |length }} available</h2>
+	<h2>Postings:  {{ signs |length }} available</h2>
 	<table class="table table-sm">
         <tr>
             <th>What</th>
@@ -10,6 +10,7 @@
             <th>When</th>
             <th>Display Start</th>
             <th>Display End</th>
+            <th>Type</th>
         </tr>
 	{% for sign in signs %}
 	  <tr>
@@ -18,6 +19,17 @@
 		<td>{{ sign.s_when }}</td>
 		<td>{{ sign.start }}</td>
 		<td>{{ sign.end }}</td>
+		<td>
+			{% if sign.priority == 0 %}
+			Always
+			{% endif %}
+			{% if sign.priority == 1 %}
+			If Nothing Else
+			{% endif %}
+			{% if sign.priority == 2 %}
+			TEST
+			{% endif %}
+		</td>
 	  </tr>
 	{% endfor %}
 	</table>
@@ -31,6 +43,8 @@
   <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#signs-add-collapse" aria-expanded="false" aria-controls="signs-add-collapse">
     Add New Message Posting
   </button>
+<a href="{{ url_for('signs.signboard') }}" class="btn btn-secondary">See Live Board </a>
+<a href="{{ url_for('signs.signboard_debug') }}" class="btn btn-info">See TEST Board </a>
   <div class="collapse" id="signs-add-collapse">
 	<hr />
   <h3> Add New Message Posting </h3>
@@ -38,6 +52,7 @@
 	{% include 'sign_form.html' %}
 <input type="submit" value="Save" />
 </form>
+
 </div>
 {% endif %} <!-- Add New Resoruce -->
 {% endblock %}

@@ -4,27 +4,28 @@ from ..templateCommon import  *
 
 from authlibs.comments import comments
 from authlibs import accesslib
+from flask import make_response
 import datetime
+import hashlib
+import binascii
 
 blueprint = Blueprint("signs", __name__, template_folder='templates', static_folder="static",url_prefix="/signs")
 
 
 
 @blueprint.route('/', methods=['GET'])
-@roles_required(['Admin','UserEdit'])
+@roles_required(['Admin','Useredit',"Signpost"])
 @login_required
 def signs():
 	"""(Controller) Display Signs and controls"""
 	signs = _get_signs()
-	#start_datetime=datetime.datetime.strftime(datetime.datetime.now(),"%Y-%m-%dT%H:%M")
-	#end_datetime=datetime.datetime.strftime(datetime.datetime.now()+datetime.timedelta(days=7),"%Y-%m-%dT%H:%M")
 	start_datetime=datetime.datetime.now()
 	end_datetime=datetime.datetime.now()+datetime.timedelta(days=7)
 	return render_template('signs.html',signs=signs,default_start=start_datetime,default_end=end_datetime)
 
 @blueprint.route('/', methods=['POST'])
 @login_required
-@roles_required(['Admin','UserEdit'])
+@roles_required(['Admin','Useredit',"Signpost"])
 def signs_create():
     r = Sign()
     if sign_write(r,request):
@@ -35,7 +36,7 @@ def signs_create():
 
 @blueprint.route('/<string:sign>', methods=['POST'])
 @login_required
-@roles_required(['Admin','UserEdit'])
+@roles_required(['Admin','Useredit',"Signpost"])
 def signs_update(sign):
     tid = (sign)
     r = Sign.query.filter(Sign.id==tid).one_or_none()
@@ -51,10 +52,11 @@ def signs_update(sign):
 # Worker for Create and Update
 # returns TRUE if record should persist (by CALLER)
 def sign_write(r,request):
-    r.start = datetime.datetime.strptime(request.values['input_start'], "%Y-%m-%dT%H:%M")
-    r.end = datetime.datetime.strptime(request.values['input_end'], "%Y-%m-%dT%H:%M")
+    r.start = datetime.datetime.strptime(request.form['input_start'], "%Y-%m-%dT%H:%M")
+    r.end = datetime.datetime.strptime(request.form['input_end'], "%Y-%m-%dT%H:%M")
     farend = r.start + datetime.timedelta(days=31)
 
+    print (f"GOT END {r.end}\n")
     if (r.start >= r.end):
         flash("End date must be AFTER start date","danger")
         return False
@@ -101,6 +103,10 @@ def sign_write(r,request):
         r.s_qr_desc=None
 
     r.priority = int(request.form['input_priority'])
+    if ('input_retain' in request.form):
+        r.retain = 1
+    else:
+        r.retain=0
 
     return True
 
@@ -120,7 +126,7 @@ def signs_show(sign):
 
 
 @blueprint.route('/<string:sign>/delete', methods=['POST'])
-@roles_required(['Admin','UserEdit'])
+@roles_required(['Admin','Useredit',"Signpost"])
 def sign_delete(sign):
         """(Controller) Delete a sign. Shocking."""
         r = Sign.query.filter(Sign.id == sign).one()
@@ -128,6 +134,60 @@ def sign_delete(sign):
         db.session.commit()
         flash("Sign deleted.")
         return redirect(url_for('signs.signs'))
+
+
+def fingerprint_seq(seq):
+    # Serialize in a deterministic way
+    # Ensure every element is a string or int; convert others if needed.
+    h = hashlib.blake2b(seq.encode("utf-8"), digest_size=8)
+    return h.hexdigest()
+
+# Show LIVE signboard
+@blueprint.route('/_signboard')
+def signboard():
+    return do_signboard()
+
+# Show DEBUG signboard
+@blueprint.route('/_signboard_debug')
+def signboard_debug():
+    return do_signboard(debug=True)
+
+# Worker for live of debug signboards
+def do_signboard(debug=False):
+    signs = _get_signs()
+
+    # Make two lists. A PRIMARY that contains all valid posts
+    # and a SECONDARY that contains valid posts that are only "always"
+    # If the secondary list is empty - display the PRIMARY
+    primary=[]
+    secondary=[]
+
+    now = datetime.datetime.now()
+    for s in signs:
+        if (now > s.start and now < s.end):
+            primary.append(s)
+            if (s.priority == 0): secondary.append(s)
+            if debug:
+                if (s.priority == 2): secondary.append(s)
+        elif now > s.end and s.retain == 0:
+            # If after time and no retain, delete
+            db.session.delete(s)
+            db.session.commit()
+            
+
+    if (len(secondary)!=0):
+        go = secondary
+    else:
+        if (len(primary)==0):
+            go = [
+                    {'s_what':"Welcome to MakeIt Labs!"}
+                    ]
+        else:
+            go = primary
+    html =  render_template('welcome.html',signs=go)
+    response = make_response(html)
+    response.headers['X-Page-Hash'] = fingerprint_seq(html)
+    return response
 
 def _get_signs():
     return  Sign.query.all()
