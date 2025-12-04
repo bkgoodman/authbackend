@@ -155,7 +155,7 @@ def signboard_debug():
 # Worker for live of debug signboards
 def do_signboard(debug=False):
     signs = _get_signs()
-
+    print (f"{signs}")
     # Make two lists. A PRIMARY that contains all valid posts
     # and a SECONDARY that contains valid posts that are only "always"
     # If the secondary list is empty - display the PRIMARY
@@ -163,27 +163,36 @@ def do_signboard(debug=False):
     secondary=[]
 
     now = datetime.datetime.now()
+    print (f"--------------")
     for s in signs:
-        if (now > s.start and now < s.end):
-            primary.append(s)
-            if (s.priority == 0): secondary.append(s)
-            if debug:
-                if (s.priority == 2): secondary.append(s)
+        if s.start < now < s.end:
+            match s.priority:
+                case 0: # Always
+                    primary.append(s)
+                    print (f"Case 0 ALWAYS: {s.s_what}")
+                case 1: # If nothing else
+                    print (f"Case 1 IFNOTOTHER: {s.s_what}")
+                    secondary.append(s)
+                case 2: # Debug/Test only
+                    print (f"Case 2 TEST: {s.s_what}")
+                    if debug:
+                        primary.append(s)
+
         elif now > s.end and s.retain == 0:
             # If after time and no retain, delete
             db.session.delete(s)
-            db.session.commit()
             
 
-    if (len(secondary)!=0):
+    # Choose list to display
+    if primary:
+        go = primary
+    elif secondary:
         go = secondary
     else:
-        if (len(primary)==0):
-            go = [
-                    {'s_what':"Welcome to MakeIt Labs!"}
-                    ]
-        else:
-            go = primary
+        go = [{'s_what': "Welcome to MakeIt Labs!"}]
+
+
+    db.session.commit()
     html =  render_template('welcome.html',signs=go)
     response = make_response(html)
     response.headers['X-Page-Hash'] = fingerprint_seq(html)
