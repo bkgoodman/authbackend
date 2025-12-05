@@ -319,7 +319,7 @@ def payment():
         line_item['price'] = "pro"
         discounts = [
                 {
-                    "coupon": "militarypro"
+                    "coupon": "MILITARYPRO"
                     }
                 ]
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')

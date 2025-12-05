@@ -12,6 +12,8 @@ SELECT
 FROM main.log AS l
 JOIN makeit.resources AS r ON l.resource_id = r.id
 WHERE strftime('%m-%d', l.time_logged) <= '11-15'
+    AND  (l.event_type = 3013 OR l.event_type = 1025)
+    AND  l.member_id > 0
 GROUP BY r.name, strftime('%Y', l.time_logged)
 ORDER BY r.name, year;
 
