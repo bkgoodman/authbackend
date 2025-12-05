@@ -11,6 +11,7 @@
 		<p>
 		You are purchasing a prepaid 3 month gift membership for another individual. This purchase is limited to first-time memberships for new individuals who have never been a MakeIt Labs member before. 3 Month period will not begin until recipient activates memebership online. All sales are final. 
 		</p>
+		{% include "terms.html" %}
 	<hr />
 
 	    <h2>Your Information:</h2>
@@ -52,6 +53,11 @@
             </div>
 
 
+	    <!-- Checkbox -->
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="termsAgreement" name="termsAgreement" required>
+		<label class="form-check-label" for="termsAgreement">&nbsp;I acknowledge the above, and and agree to the Terms and Conditions listed above, and in MakeIt <a target="_blank" href="https://wiki.makeitlabs.com/policies">policies</a></label>
+            </div>
             <!-- Submit Button -->
 	    <p>Continue to payment page - please enter <b>your</b> information on next page</p>
             <button type="submit" name="Payment" value="Payment" class="btn btn-primary">Continue to Payment</button>

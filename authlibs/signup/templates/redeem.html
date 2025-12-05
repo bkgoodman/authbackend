@@ -7,7 +7,7 @@
     <div class="body">
     <div class="container">
         <h2 class="mb-4">Redeem Intoductory Membership</h2>
-	<form method="POST" action="{{ url_for("signup.redeem_activate") }}">
+	<form method="POST" action="{{ url_for("gift.redeem_activate") }}">
             <div class="mb-3">
 		    <p>
 		    Membership for: {{ gift_to }}
@@ -16,11 +16,14 @@
 		    Please enter your information below to redeem your introductory membership. Note that your membership will start immediatley after completing this form. Since you will be required to attend orientaton and receive your key-fob before using the space, it is recommended that you don't fill this form out until shortly before attending your orientation. Orientations are held in-person as the facility, every Thursday evening at 7pm (holidays aside). If you have any questions, please email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a>.
 		    </p>
 		    <p>
-		    Your membership will automatically cancel at the end of the gift-membership period, unless you opt to stay by adding a credit card to your account to activate automatic monthly payments and renewals.
+		    All members are required to keep a credit card on file. This will be used for any incedental payments that you would approve (such as vending machine items, or purchase of other supplies/materials).  You will <b>not</b> be charged for membership fees during your gift-membership period. Your gift membership will automatically cancel at the end of the gift-membership period. If you wish to stay, you must manually opt to extend your membership (we will send you a link to do so), afterwhich you will be charged monthly to your card on file.
 		    </p>
             </div>
 
+	    <hr />
+	    {% include "terms.html" %}
 
+	    <hr />
 	    <h4>New Member Information:</h4>
 
             <!-- First Name -->
@@ -43,11 +46,12 @@
 	    <!-- Checkbox -->
             <div class="mb-3 form-check">
                 <input type="checkbox" class="form-check-input" id="termsAgreement" name="termsAgreement" required>
-		<label class="form-check-label" for="termsAgreement">&nbsp;I acknowledge the above, and and agree to the terms and conditions listed in MakeIt <a target="_blank" href="https://wiki.makeitlabs.com/policies">policies</a></label>
+		<label class="form-check-label" for="termsAgreement">&nbsp;I acknowledge the above, and and agree to the Terms and Conditions listed above, and in MakeIt <a target="_blank" href="https://wiki.makeitlabs.com/policies">policies</a></label>
             </div>
 	    <input type="hidden" name="code" value="{{ code }}">
+	    <p>Click button below, to provide your payment card information, afterwhich your membership will be activated. (Card is just placed on file with our payment provider, and will <b>only</b> be charged for incedental purchases, or for future memberships dues when and if you elect to continue after your gift membership period)</p>
             <!-- Submit Button -->
-            <button type="submit" name="Payment" value="Payment" class="btn btn-primary">Activate Membership</button>
+            <button type="submit" name="Payment" value="Payment" class="btn btn-primary">Enter Card &amp; Activate</button>
         </form>
     </div>
     </div>

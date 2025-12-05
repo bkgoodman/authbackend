@@ -132,6 +132,10 @@ class RATTBE_LOGEVENT_MEMBER_ENTRY_STORAGEPASS:
     slack_icon=':white_check_mark:'
     slack_color='#00aa00'
 
+class RATTBE_LOGEVENT_MEMBER_REACTIVATED:
+    id=1030
+    desc='Member reactivated'
+
 class RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE:
     id=1100
     desc='Charge for Leased Space'

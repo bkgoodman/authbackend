@@ -62,7 +62,7 @@ def member_add():
                         
     member = {}
     mandatory_fields = ['firstname','lastname','memberid','plan','payment']
-    optional_fields = ['alt_email','phone','dob','nickname']
+    optional_fields = ['alt_email','phone','dob','nickname', 'plates']
     for f in mandatory_fields:
         member[f] = ''
         if f in request.form:
@@ -220,6 +220,7 @@ def member_edit(id):
           else:
             flash("Invalid Date of Birth Format - must be \"MM/DD/YYYY\"","danger")
             nocommit=True
+        m.plates= f['input_plates'].strip()
         m.slack= f['input_slack'].strip()
         m.memberFolder= stripNone(f['input_memberFolder'])
         m.alt_email= f['input_alt_email'].strip()
