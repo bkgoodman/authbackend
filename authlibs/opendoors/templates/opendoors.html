@@ -1,0 +1,19 @@
+{% extends "layout_bootstrap.html" %}
+<h2>Resources</h2>
+{% block body %}
+<div class="toolslist">
+	<h1>Open Doors</h2>
+	{% if tools|length == 0 %}
+	<h3>There are no doors available to remote-open</h3>
+	{% endif %}
+	<p>You <b>must</b> be on the Member Wi-Fi Network to open a door</p>
+	<table class="table table-sm">
+	{% for tool in tools %}
+	  <tr>
+		<td><a class="btn btn-primary" style="font-size:xx-large;padding:20px" href="{{ url_for('opendoors.open',tool=tool.id) }}">{{ tool.name }}</a></td>
+	  </tr>
+	{% endfor %}
+	</table>
+	</div>
+
+{% endblock %}
