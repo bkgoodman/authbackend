@@ -47,26 +47,29 @@ scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/log.db .
 #'
 
 sqlite3 makeit.db '
-ALTER TABLE members ADD COLUMN plates VARCHAR(50);
+ALTER TABLE tools ADD COLUMN remotable BOOLEAN;
 '
-
-sqlite3 makeit.db 'CREATE TABLE signs (
-	s_what VARCHAR(50),
-	s_when VARCHAR(50),
-	s_where VARCHAR(50),
-	s_desc VARCHAR(255),
-	s_qr  VARCHAR(255),
-	s_qr_desc  VARCHAR(255),
-        id INTEGER NOT NULL,
-	priority INTEGER DEFAULT 0,
-	retain INTEGER DEFAULT 0,
-	start DATETIME,
-	end DATETIME,
-        PRIMARY KEY (id)
-);
-
-INSERT INTO roles VALUES(9,"Signpost");
-'
+#sqlite3 makeit.db '
+#ALTER TABLE members ADD COLUMN plates VARCHAR(50);
+#'
+#
+#sqlite3 makeit.db 'CREATE TABLE signs (
+#	s_what VARCHAR(50),
+#	s_when VARCHAR(50),
+#	s_where VARCHAR(50),
+#	s_desc VARCHAR(255),
+#	s_qr  VARCHAR(255),
+#	s_qr_desc  VARCHAR(255),
+#        id INTEGER NOT NULL,
+#	priority INTEGER DEFAULT 0,
+#	retain INTEGER DEFAULT 0,
+#	start DATETIME,
+#	end DATETIME,
+#        PRIMARY KEY (id)
+#);
+#
+#INSERT INTO roles VALUES(9,"Signpost");
+#'
 
 ###
 ### All this is TEMPORARY stuff only for STAGING 
