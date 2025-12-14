@@ -34,6 +34,10 @@ def tools_create():
       r.node_id = (request.form['input_node_id'])
     r.resource_id = (request.form['input_resource_id'])
     r.short = (request.form['input_short'])
+    if ('input_remotable' in request.form):
+        r.remotable = 1
+    else:
+        r.remotable=0
     db.session.add(r)
     db.session.commit()
     flash("Created.")
@@ -125,6 +129,12 @@ def tools_update(tool):
         else:
             r.node_id = (request.form['input_node_id'])
         r.resource_id = (request.form['input_resource_id'])
+
+        if ('input_remotable' in request.form):
+            r.remotable = 1
+        else:
+            r.remotable=0
+
         db.session.commit()
         flash("Tool updated")
         return redirect(url_for('tools.tools'))

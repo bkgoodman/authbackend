@@ -134,6 +134,7 @@ class Tool(db.Model):
     displayname = db.Column(db.String(50))
     lockout = db.Column(db.String(100), nullable=True)
     short = db.Column(db.String(20), unique=True, nullable=True)
+    remotable = db.Column(db.Boolean())
     node_id = db.Column(db.Integer(), db.ForeignKey('nodes.id', ondelete='CASCADE'))
     resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
 

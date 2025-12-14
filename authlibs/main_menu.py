@@ -172,6 +172,11 @@ def get_raw_menu():
                     'alt':"Search for RFID Tag"
             },
             {
+                    'url':url_for('opendoors.opendoors'),
+                    'title':"Open Door",
+                    'alt':"Remote door open/unlock"
+            },
+            {
                     'privs':'Signpost',
                     'url':url_for('signs.signs'),
                     'title':"Lobby Sign",
