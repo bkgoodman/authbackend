@@ -174,7 +174,8 @@ def get_raw_menu():
             {
                     'url':url_for('opendoors.opendoors'),
                     'title':"Open Door",
-                    'alt':"Remote door open/unlock"
+                    'alt':"Remote door open/unlock",
+                    'img':url_for("static",filename="OpenDoor.png"),
             },
             {
                     'privs':'Signpost',
