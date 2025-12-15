@@ -123,6 +123,7 @@ class BookingControl {
             if (i % 2 === 0) {
                 const label = document.createElement('div');
                 label.className = 'time-label';
+                if (i === 0) label.classList.add('start-of-day');
                 label.textContent = this.formatTime(slotTime);
                 label.style.gridColumn = '1';
                 label.style.gridRow = `${i + 2}`;
@@ -229,12 +230,18 @@ class BookingControl {
         }
     }
 
-    scrollToDate(date) {
+    scrollToDate(date, ignoreOffset = false) {
         const timestamp = date.getTime();
-        const slotDurationMs = this.slotDuration * 60 * 1000;
-        const roundedTimestamp = Math.floor(timestamp / slotDurationMs) * slotDurationMs;
 
-        const slot = document.querySelector(`.time-slot[data-time="${roundedTimestamp}"]`);
+        let targetTimestamp = timestamp;
+        if (!ignoreOffset) {
+            // Target 10am
+            const tenAmOffsetMs = 10 * 60 * 60 * 1000;
+            targetTimestamp += tenAmOffsetMs;
+        }
+
+        // Find slot closest to 10am
+        const slot = document.querySelector(`.time-slot[data-time="${targetTimestamp}"]`);
 
         if (slot) {
             slot.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -257,13 +264,21 @@ class BookingControl {
             setTimeout(() => {
                 const section = document.querySelector(`.day-section[data-date="${dayStart.toISOString()}"]`);
                 if (section) {
-                    section.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                    // Scroll to 10am instead of start
+                    const offset = (10 * 60 * (40 / 30)); // 10 hours * 60 min * px/min roughly. 
+                    // Actually logic is simpler: 10 hours * 2 slots/hr * 40px/slot = 800px.
+                    const tenAmOffset = (10 * 2 * 40) + 40; // +40 header
+                    this.elements.scrollArea.scrollTop = section.offsetTop + tenAmOffset;
                 }
             }, 50);
         }
     }
 
     formatTime(date) {
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
+        if (hours === 12 && minutes === 0) return 'Noon';
+        if (hours === 0 && minutes === 0) return 'Midnight';
         return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     }
 
@@ -428,6 +443,13 @@ class BookingControl {
         };
         this.bookings.push(newBooking);
 
+        // Submit form
+        this.submitForm('/create_booking', {
+            start: newBooking.start.toISOString(),
+            end: newBooking.end.toISOString(),
+            description: newBooking.description
+        });
+
         // Refresh View
         this.elements.timeGrid.innerHTML = '';
         this.init(); // simpler than partial update
@@ -461,6 +483,11 @@ class BookingControl {
         // Remove DOM elements
         document.querySelectorAll(`.booking-event[data-id="${this.editingBooking.id}"]`).forEach(el => el.remove());
 
+        // Submit form
+        this.submitForm('/delete_booking', {
+            id: this.editingBooking.id
+        });
+
         // Reset state
         this.closeModals();
         this.cancelEdit(); // Re-use cancel logic to clear UI state
@@ -474,6 +501,14 @@ class BookingControl {
         this.editingBooking.start = this.selection.start;
         this.editingBooking.end = this.selection.end;
         this.editingBooking.description = this.elements.bookingDescription.value.trim() || 'No Description';
+
+        // Submit form
+        this.submitForm('/update_booking', {
+            id: this.editingBooking.id,
+            start: this.editingBooking.start.toISOString(),
+            end: this.editingBooking.end.toISOString(),
+            description: this.editingBooking.description
+        });
 
         // Refresh View
         this.elements.timeGrid.innerHTML = '';
@@ -554,7 +589,7 @@ class BookingControl {
         }
 
         // Scroll to it
-        this.scrollToDate(booking.start);
+        this.scrollToDate(booking.start, true);
     }
 
     handleInfiniteScroll() {
@@ -841,6 +876,23 @@ class BookingControl {
             btn.classList.remove('delete-btn');
             cancelBtn.classList.add('hidden');
         }
+    }
+
+    submitForm(action, data) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = action;
+
+        for (const key in data) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = data[key];
+            form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 
