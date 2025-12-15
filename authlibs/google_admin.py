@@ -185,6 +185,98 @@ def _buildAdminService():
     service = discovery.build('admin', 'directory_v1', http=http_auth)
     return service
    
+# Use the Calendar API scope for read/write access.
+# If you only need read access, use: 'https://www.googleapis.com/auth/calendar.readonly'
+CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar']
+CALENDAR_API_NAME = 'calendar'
+CALENDAR_API_VERSION = 'v3' # Standard version for Calendar API
+
+# Your existing constants (KEYFILE, EMAIL_USER) remain the same
+
+def _buildCalendarService(user_email_to_delegate_to):
+    """
+    Create an HTTP session specifically for the Google Calendar API
+    delegated to act on behalf of a specific user in your domain.
+    """
+    # 1. Get credentials from the service account key file
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(KEYFILE, CALENDAR_SCOPES)
+
+    # 2. Delegate authority to act as the target user (e.g., a domain user)
+    delegated_credentials = credentials.create_delegated(user_email_to_delegate_to)
+
+    # 3. Authorize the HTTP session
+    http_auth = delegated_credentials.authorize(Http())
+
+    # 4. Build the Calendar service object
+    service = discovery.build(CALENDAR_API_NAME, CALENDAR_API_VERSION, http=http_auth)
+    return service
+
+
+def calendar_read():
+    # The user you want to act on behalf of
+    TARGET_USER_EMAIL = 'user-in-your-domain@yourdomain.com'
+
+    # 1. Build the service
+    calendar_service = _buildCalendarService(TARGET_USER_EMAIL)
+
+    # 2. Define the time range for the query
+    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+
+    # 3. Call the events().list() method
+    print(f"Fetching events for {TARGET_USER_EMAIL}...")
+    events_result = calendar_service.events().list(
+        calendarId='primary',  # The primary calendar of the delegated user
+        timeMin=now,
+        maxResults=10,
+        singleEvents=True,
+        orderBy='startTime'
+    ).execute()
+
+    events = events_result.get('items', [])
+
+    if not events:
+        print('No upcoming events found.')
+    else:
+        for event in events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            print(f"Event: {start} - {event['summary']}")
+
+
+def calendar_create():
+    # The user you want to act on behalf of
+    TARGET_USER_EMAIL = 'user-in-your-domain@yourdomain.com'
+
+    # 1. Build the service
+    calendar_service = _buildCalendarService(TARGET_USER_EMAIL)
+
+    # 2. Define the event body (using RFC3339 format for datetime)
+    event = {
+      'summary': 'New Team Meeting via API',
+      'location': 'Online Conference Room',
+      'description': 'Discussion about Q4 strategy.',
+      'start': {
+        'dateTime': '2025-12-20T10:00:00-05:00', # Dec 20, 10:00 AM EST
+        'timeZone': 'America/New_York',
+      },
+      'end': {
+        'dateTime': '2025-12-20T11:00:00-05:00',
+        'timeZone': 'America/New_York',
+      },
+      'attendees': [
+        {'email': TARGET_USER_EMAIL},
+        {'email': 'another-colleague@yourdomain.com'},
+      ],
+    }
+
+    # 3. Call the events().insert() method
+    created_event = calendar_service.events().insert(
+        calendarId='primary',
+        body=event,
+        sendNotifications=True  # Send email invitations to attendees
+    ).execute()
+
+    print(f"Event created: {created_event.get('htmlLink')}")
+
 def testGoogle():
     """Test Admin SDK: Grab a list of all users"""
     service = _buildAdminService()
