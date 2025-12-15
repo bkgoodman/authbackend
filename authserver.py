@@ -73,6 +73,7 @@ from authlibs.api import api
 from authlibs.reports import reports 
 from authlibs.tools import tools 
 from authlibs.signboard import signboard 
+from authlibs.calendars import calendars 
 from authlibs.opendoors import opendoors 
 from authlibs.nodes import nodes 
 from authlibs.memberAudio import memberAudio 
@@ -580,7 +581,7 @@ with app.app_context():
     except:
         pass
 
-    app.jinja_env.globals['VERSION'] = "2.2.21"
+    app.jinja_env.globals['VERSION'] = "2.3"
     if app.config['globalConfig'].DeployType.lower() != "production":
         app.jinja_env.globals['DEPLOYTYPE'] = app.config['globalConfig'].DeployType
     if app.config['globalConfig'].backgroundColor:
@@ -610,6 +611,7 @@ with app.app_context():
     autoplot.register_pages(app)
     tools.register_pages(app)
     signboard.register_pages(app)
+    calendars.register_pages(app)
     opendoors.register_pages(app)
     kvopts.register_pages(app)
     comments.register_pages(app)

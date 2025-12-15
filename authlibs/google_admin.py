@@ -16,7 +16,9 @@ TODO:
 """
 
 import json
-
+import datetime
+import pytz
+from dateutil import parser
 from httplib2 import Http
 from oauth2client.service_account import ServiceAccountCredentials
 try:
@@ -185,6 +187,46 @@ def _buildAdminService():
     service = discovery.build('admin', 'directory_v1', http=http_auth)
     return service
    
+def get_event_time_reliable(event):
+    """
+    Extracts event times, converts them to the 'America/New_York' timezone,
+    and then strips the timezone information, returning a naive datetime object.
+    """
+    start_info = event.get('start', {})
+    end_info = event.get('end', {})
+
+    NY_TZ = pytz.timezone('America/New_York')
+
+    start_dt_naive = None
+    end_dt_naive = None
+
+    # --- 1. Handle Timed Events (DateTime) ---
+    if 'dateTime' in start_info:
+        # a. Parse and convert to NY timezone (result is timezone-aware)
+        start_dt_aware_ny = parser.isoparse(start_info['dateTime']).astimezone(NY_TZ)
+        end_dt_aware_ny = parser.isoparse(end_info['dateTime']).astimezone(NY_TZ)
+
+        # b. Strip the timezone info to make it "naked" (naive)
+        start_dt_naive = start_dt_aware_ny.replace(tzinfo=None)
+        end_dt_naive = end_dt_aware_ny.replace(tzinfo=None)
+
+    # --- 2. Handle All-Day Events (Date) ---
+    elif 'date' in start_info:
+        # All-day events start at midnight NY time.
+        start_date = datetime.strptime(start_info['date'], '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_info['date'], '%Y-%m-%d').date()
+
+        # Combine with midnight, localize to NY (making it aware),
+        # then strip the tzinfo to make it naive.
+
+        start_dt_aware_ny = NY_TZ.localize(datetime.combine(start_date, datetime.min.time()))
+        end_dt_aware_ny = NY_TZ.localize(datetime.combine(end_date, datetime.min.time()))
+
+        start_dt_naive = start_dt_aware_ny.replace(tzinfo=None)
+        end_dt_naive = end_dt_aware_ny.replace(tzinfo=None)
+
+    return start_dt_naive, end_dt_naive
+
 # Use the Calendar API scope for read/write access.
 # If you only need read access, use: 'https://www.googleapis.com/auth/calendar.readonly'
 CALENDAR_SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -212,9 +254,10 @@ def _buildCalendarService(user_email_to_delegate_to):
     return service
 
 
-def calendar_read():
+def calendar_read(email,resource):
     # The user you want to act on behalf of
-    TARGET_USER_EMAIL = 'user-in-your-domain@yourdomain.com'
+    TARGET_USER_EMAIL = email
+    RESOURCE_EMAIL = resource
 
     # 1. Build the service
     calendar_service = _buildCalendarService(TARGET_USER_EMAIL)
@@ -225,10 +268,12 @@ def calendar_read():
     # 3. Call the events().list() method
     print(f"Fetching events for {TARGET_USER_EMAIL}...")
     events_result = calendar_service.events().list(
-        calendarId='primary',  # The primary calendar of the delegated user
+        #calendarId='primary',  # The primary calendar of the delegated user
+        calendarId=RESOURCE_EMAIL,
         timeMin=now,
         maxResults=10,
         singleEvents=True,
+        #creator=TARGET_USER_EMAIL,
         orderBy='startTime'
     ).execute()
 
@@ -238,13 +283,33 @@ def calendar_read():
         print('No upcoming events found.')
     else:
         for event in events:
+            isSelf = False
             start = event['start'].get('dateTime', event['start'].get('date'))
-            print(f"Event: {start} - {event['summary']}")
+            print (event)
+            if 'self' in event['organizer']: isSelf = event['organizer']['self']
+            if event['organizer']['email'].lower() == TARGET_USER_EMAIL.lower(): isSelf=True
+            print (f"{event['summary']} {event['id']} isMyEvent={isSelf}")
+            print ("Attendees:\n")
+            resourceCount=0
+            start,end = get_event_time_reliable(event)
+            for a in event['attendees']:
+                displayName = "<None>"
+                responseStatus = "unknown"
+                isResource = False
+                if 'displayName' in a: displayName = a['displayName']
+                if 'responseStatus' in a: displayName = a['responseStatus']
+                if 'resource' in a: 
+                    isResource= a['resource']
+                    resourceCount += 1
+                print (f"{a['email']} {displayName} {responseStatus} Resource={isResource} From {start} To {end}")
+            print ("")
+            #print(f"Event: {start} - {event['summary']}")
 
 
 def calendar_create():
     # The user you want to act on behalf of
     TARGET_USER_EMAIL = 'user-in-your-domain@yourdomain.com'
+    RESOURCE_EMAIL = 'mylaser@makeitlabs.com'
 
     # 1. Build the service
     calendar_service = _buildCalendarService(TARGET_USER_EMAIL)
@@ -264,7 +329,7 @@ def calendar_create():
       },
       'attendees': [
         {'email': TARGET_USER_EMAIL},
-        {'email': 'another-colleague@yourdomain.com'},
+        {'email': RESOURCE_EMAIL},
       ],
     }
 
@@ -275,7 +340,16 @@ def calendar_create():
         sendNotifications=True  # Send email invitations to attendees
     ).execute()
 
-    print(f"Event created: {created_event.get('htmlLink')}")
+    # 4. Check the resource's response status
+    resource_status = 'unknown'
+
+    for attendee in created_event.get('attendees', []):
+        if attendee.get('email', '').lower() == RESOURCE_EMAIL.lower():
+            resource_status = attendee.get('responseStatus', 'unknown')
+            break
+    # resource_status should be 'accepted'
+
+    return resource_status
 
 def testGoogle():
     """Test Admin SDK: Grab a list of all users"""
@@ -286,4 +360,5 @@ def testGoogle():
 
 if __name__ == "__main__":
     #testGoogle()
-    sendWelcomeEmail(user,password,email)
+    #sendWelcomeEmail(user,password,email)
+    print (calendar_read("bradley.goodman@makeitlabs.com","makeitlabs.com_188aq2sk57k2ujq7grms0tavvo1nk@resource.calendar.google.com"))

@@ -1,21 +1,21 @@
 {% extends "layout_bootstrap.html" %}
 {% block body %}
 <div class="container-fluid">
-<h2>Member Portal</h2>
+<h2>Resource Reservations</h2>
 </div>
 
 <div class="d-flex flex-wrap">
 
-{% for m in menu %}
-	{% if m.img %}
+{% for r in resources %}
+	{% if r.img %}
 	<div class="menubox content hvr-grow-shadow">
 		<div class="my-10 p-0 mx-auto">
-			<a href="{{ m.url }}"><img class="menuimg" src="{{ m.img }}" alt="{{ m.alt }}"></a>
+			<a href="{{ r.url }}"><img class="menuimg" src="{{ r.img }}" alt="{{ r.alt }}"></a>
 		</div>
 		<div class="m-0 p-0 mx-auto ">
-			<div class="m-0 p-0 text-center">{{ m.title }}</div>
+			<div class="m-0 p-0 text-center">{{ r.title }}</div>
 			<div class="m-0 p-0 text-center">
-				<small>{{ m.alt }}</small>
+				<small>{{ r.alt }}</small>
 			</div>
 		</div>
 	</div>

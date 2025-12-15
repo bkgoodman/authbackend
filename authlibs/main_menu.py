@@ -178,6 +178,11 @@ def get_raw_menu():
                     'img':url_for("static",filename="OpenDoor.png"),
             },
             {
+                    'url':url_for('calendars.calendars'),
+                    'title':"Resource Calendars",
+                    'alt':"Reserve a Resource",
+            },
+            {
                     'privs':'Signpost',
                     'url':url_for('signs.signs'),
                     'title':"Lobby Sign",
