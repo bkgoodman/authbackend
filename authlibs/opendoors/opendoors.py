@@ -52,11 +52,18 @@ def sign_request(base64_secret: str, member: str, tool: str, ts: int):
 @login_required
 def opendoors():
     """(Controller) Display Tools and controls"""
+    if current_user.has_roles('Admin'):
+        if 'X-Forwarded-For' not in request.headers or 'X-Real-Ip' not in request.headers:
+            banner = '<p>Admin seems to not be using proxy</p>'
+        elif 'X-Real-Ip'.startswith("10.0.") or 'X-Forwarded-For'.startswith("10.0."):
+            banner = '<p>Admin user is on Wi-Fi</p>'
+        else:
+            banner = '<p><b>WARNING:</b> Admin user is <b>not</b> Member Wi-Fi network. Remote door opens will still work. <b>Use with Caution!</b></p>'
     tools = _get_opendoors()
 
 
 
-    return render_template('opendoors.html',tools=tools)
+    return render_template('opendoors.html',tools=tools,banner=banner)
 
 
 @blueprint.route('/<string:tool>', methods=['GET'])
@@ -82,12 +89,14 @@ def open(tool):
     X-Forwarded-For and/or X-Real-Ip
     for local IP check
     """
+
     if not current_user.has_roles('Admin'):
+        banner = '<p>You <b>must</b> be on the Member Wi-Fi Network to open a door</p>'
         if 'X-Forwarded-For' not in request.headers:
-            flash("Network ErrorL No Proxy","danger")
+            flash("Network Error No Proxy","danger")
             return redirect(url_for('opendoors.opendoors'))
         if 'X-Real-Ip' not in request.headers:
-            flash("Network ErrorL No Proxy","danger")
+            flash("Network Error No Proxy","danger")
             return redirect(url_for('opendoors.opendoors'))
         if not 'X-Real-Ip'.startswith("10.0."):
             flash("Must be on member network Wi-Fi","danger")

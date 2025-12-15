@@ -6,7 +6,7 @@
 	{% if tools|length == 0 %}
 	<h3>There are no doors available to remote-open</h3>
 	{% endif %}
-	<p>You <b>must</b> be on the Member Wi-Fi Network to open a door</p>
+  {{ banner | safe }}
 	<table class="table table-sm">
 	{% for tool in tools %}
 	  <tr>
