@@ -55,11 +55,11 @@
   <div class="form-row">
     <div class="form-group col-md-3">
         <p>Start Displaying:</p>
-	<input type="datetime-local" id="start" name="input_start" value="{{ default_start.strftime('%Y-%m-%dT%H:%M') }}" autocomplete="off" />
+	<input type="datetime-local" step="900" id="start" name="input_start" value="{{ default_start.strftime('%Y-%m-%dT%H:%M') }}" autocomplete="off" />
     </div>
     <div class="form-group col-md-3">
         <p>Stop Displaying:</p>
-	<input type="datetime-local" id="end" name="input_end" value="{{ default_end.strftime('%Y-%m-%dT%H:%M') }}" autocomplete="off" />
+	<input type="datetime-local" step="900" id="end" name="input_end" value="{{ default_end.strftime('%Y-%m-%dT%H:%M') }}" autocomplete="off" />
 	<br /><small>Max 30 days</small>
     </div>
     <div class="form-group col-md-2">
