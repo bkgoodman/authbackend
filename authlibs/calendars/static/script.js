@@ -453,8 +453,7 @@ class BookingControl {
         });
 
         // Refresh View
-        this.elements.timeGrid.innerHTML = '';
-        this.init(); // simpler than partial update
+        this.refreshView();
 
         this.closeModals();
         this.cancelEdit(); // Reset selection
@@ -513,8 +512,7 @@ class BookingControl {
         });
 
         // Refresh View
-        this.elements.timeGrid.innerHTML = '';
-        this.init();
+        this.refreshView();
 
         // Reset state
         this.closeModals();
@@ -895,6 +893,34 @@ class BookingControl {
 
         document.body.appendChild(form);
         form.submit();
+    }
+
+    refreshView() {
+        // Clear and re-render the grid without re-attaching event listeners
+        this.elements.timeGrid.innerHTML = '';
+
+        // Re-render initial 3-day view (yesterday, today, tomorrow)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        this.loadedStart = new Date(yesterday);
+        this.loadedEnd = new Date(today);
+
+        this.renderDay(yesterday, 'prepend');
+        this.renderDay(today, 'append');
+        this.renderDay(tomorrow, 'append');
+
+        this.loadedEnd = new Date(tomorrow);
+        this.loadedEnd.setDate(this.loadedEnd.getDate() + 1);
+
+        // Update header
+        this.updateHeaderDate();
     }
 }
 
