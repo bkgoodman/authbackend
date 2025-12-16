@@ -1,7 +1,7 @@
 :root {
-    --primary: #6366f1;
-    --primary-hover: #4f46e5;
-    --primary-light: #e0e7ff;
+    --primary: #22c55e;
+    --primary-hover: #16a34a;
+    --primary-light: #dcfce7;
     --text-main: #1f2937;
     --text-muted: #6b7280;
     --bg-app: #f3f4f6;
@@ -58,7 +58,7 @@ body {
     padding: 1.5rem;
     border-bottom: 1px solid var(--border);
     background: var(--bg-card);
-    z-index: 10;
+    z-index: 30;
     position: relative;
     /* Fix for absolute positioning of popup */
 }
@@ -424,7 +424,7 @@ body {
     z-index: 15;
     font-size: 0.75rem;
     color: #14532d;
-    /* Dark green text to match .mine booking */
+    /* Dark green text to match active selection */
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
@@ -434,8 +434,8 @@ body {
 /* My Bookings UI */
 .my-bookings-btn {
     background: transparent;
-    border: 1px solid var(--primary);
-    color: var(--primary);
+    border: 1px solid #0ea5e9;
+    color: #0ea5e9;
     padding: 0.5rem 1rem;
     border-radius: var(--radius-md);
     font-weight: 600;
@@ -445,7 +445,7 @@ body {
 }
 
 .my-bookings-btn:hover {
-    background: var(--primary-light);
+    background: #e0f2fe;
 }
 
 .my-bookings-list {
@@ -513,20 +513,20 @@ body {
 }
 
 .booking-event.mine {
-    background-color: #dcfce7;
-    /* Green */
-    border-left-color: #22c55e;
+    background-color: #e0f2fe;
+    /* Light Blue */
+    border-left-color: #0ea5e9;
     pointer-events: auto;
     /* Allow clicking for edit */
     cursor: pointer;
 }
 
 .booking-event.mine .booking-user {
-    color: #15803d;
+    color: #0369a1;
 }
 
 .booking-event.mine .booking-desc {
-    color: #14532d;
+    color: #0c4a6e;
 }
 
 .booking-user {

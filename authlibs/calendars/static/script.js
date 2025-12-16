@@ -310,6 +310,7 @@ class BookingControl {
                 this.loadedStart = prevDay;
             }
             this.scrollToTime(prevDay, 9);
+            this.updateHeaderDate();
         });
 
         this.elements.nextDateBtn.addEventListener('click', () => {
@@ -323,6 +324,7 @@ class BookingControl {
                 this.loadedEnd.setDate(this.loadedEnd.getDate() + 1);
             }
             this.scrollToTime(nextDay, 9);
+            this.updateHeaderDate();
         });
 
         // Date Picker
