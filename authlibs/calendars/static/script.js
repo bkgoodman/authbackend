@@ -346,9 +346,9 @@ class BookingControl {
             }
         });
 
-        // Back Button (Go to Today)
+        // Back Button (Go to Calendars)
         this.elements.backBtn.addEventListener('click', () => {
-            this.scrollToDate(new Date());
+            window.location.href = '/calendars';
         });
 
         // Drag Selection
@@ -447,7 +447,7 @@ class BookingControl {
         this.bookings.push(newBooking);
 
         // Submit form
-        this.submitForm('/create_booking', {
+        this.submitForm('create_booking', {
             start: newBooking.start.toISOString(),
             end: newBooking.end.toISOString(),
             description: newBooking.description
@@ -486,7 +486,7 @@ class BookingControl {
         document.querySelectorAll(`.booking-event[data-id="${this.editingBooking.id}"]`).forEach(el => el.remove());
 
         // Submit form
-        this.submitForm('/delete_booking', {
+        this.submitForm('delete_booking', {
             id: this.editingBooking.id,
             calendar_id: this.editingBooking.calendar_id
         });
@@ -506,7 +506,7 @@ class BookingControl {
         this.editingBooking.description = this.elements.bookingDescription.value.trim() || 'No Description';
 
         // Submit form
-        this.submitForm('/update_booking', {
+        this.submitForm('update_booking', {
             id: this.editingBooking.id,
             calendar_id: this.editingBooking.calendar_id,
             start: this.editingBooking.start.toISOString(),
@@ -528,6 +528,17 @@ class BookingControl {
         list.innerHTML = '';
 
         const myBookings = this.bookings.filter(b => b.isMine);
+
+        // Disable button if no bookings
+        if (myBookings.length === 0) {
+            this.elements.myBookingsBtn.disabled = true;
+            this.elements.myBookingsBtn.style.opacity = '0.5';
+            this.elements.myBookingsBtn.style.cursor = 'not-allowed';
+        } else {
+            this.elements.myBookingsBtn.disabled = false;
+            this.elements.myBookingsBtn.style.opacity = '1';
+            this.elements.myBookingsBtn.style.cursor = 'pointer';
+        }
 
         // Sort by start time
         myBookings.sort((a, b) => a.start - b.start);
