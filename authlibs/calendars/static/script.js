@@ -88,6 +88,7 @@ class BookingControl {
         this.currentUser = data.currentUser;
         return data.bookings.map(b => ({
             id: Math.random().toString(36).substr(2, 9), // Generate simple ID
+            calendar_id: b.calendar_id, // Store calendar_id from server
             start: new Date(b.start),
             end: new Date(b.end),
             user: b.user,
@@ -486,7 +487,8 @@ class BookingControl {
 
         // Submit form
         this.submitForm('/delete_booking', {
-            id: this.editingBooking.id
+            id: this.editingBooking.id,
+            calendar_id: this.editingBooking.calendar_id
         });
 
         // Reset state
@@ -506,6 +508,7 @@ class BookingControl {
         // Submit form
         this.submitForm('/update_booking', {
             id: this.editingBooking.id,
+            calendar_id: this.editingBooking.calendar_id,
             start: this.editingBooking.start.toISOString(),
             end: this.editingBooking.end.toISOString(),
             description: this.editingBooking.description
