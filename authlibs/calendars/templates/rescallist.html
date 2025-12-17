@@ -7,16 +7,10 @@
 <div class="d-flex flex-wrap">
 
 {% for r in resources %}
-	{% if r.img %}
+	{% if resources[r].img %}
 	<div class="menubox content hvr-grow-shadow">
 		<div class="my-10 p-0 mx-auto">
-			<a href="{{ r.url }}"><img class="menuimg" src="{{ r.img }}" alt="{{ r.alt }}"></a>
-		</div>
-		<div class="m-0 p-0 mx-auto ">
-			<div class="m-0 p-0 text-center">{{ r.title }}</div>
-			<div class="m-0 p-0 text-center">
-				<small>{{ r.alt }}</small>
-			</div>
+			<a href="{{ r }}"><img class="menuimg" src="{{ url_for('calendars.static',filename=resources[r].img) }}" alt="{{ resources[r].alt }}"></a>
 		</div>
 	</div>
 	{% endif %}

@@ -181,6 +181,7 @@ def get_raw_menu():
                     'url':url_for('calendars.calendars'),
                     'title':"Resource Calendars",
                     'alt':"Reserve a Resource",
+                    'img':url_for("static",filename="calendar.png"),
             },
             {
                     'privs':'Signpost',

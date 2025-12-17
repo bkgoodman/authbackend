@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Booking Control</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="{{ url_for('calendars.static',filename='style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,6 +23,7 @@
                         </svg>
                     </button>
                     <div>
+			<h1>{{ name }}</h1>
                         <h1>Booking Control</h1>
                         <div class="subtitle">Select a time slot to book</div>
                     </div>
@@ -103,54 +104,11 @@
     <script>
         // Simulate Server Data
         window.SERVER_DATA = {
-            currentUser: "Me",
-            bookings: [
-                {
-                    start: "2025-12-14T10:00:00",
-                    end: "2025-12-14T11:30:00",
-                    user: "Alice Smith",
-                    description: "Team Sync",
-                    isMine: false
-                },
-                {
-                    start: "2025-12-14T14:00:00",
-                    end: "2025-12-14T15:30:00",
-                    user: "Me",
-                    description: "My Focus Time",
-                    isMine: true
-                },
-                {
-                    start: "2025-12-15T09:00:00",
-                    end: "2025-12-15T10:00:00",
-                    user: "Bob Jones",
-                    description: "Client Call",
-                    isMine: false
-                },
-                {
-                    start: "2025-12-15T13:00:00",
-                    end: "2025-12-15T14:00:00",
-                    user: "Me",
-                    description: "Weekly Report",
-                    isMine: true
-                },
-                {
-                    start: "2025-12-16T10:00:00",
-                    end: "2025-12-16T11:00:00",
-                    user: "Me",
-                    description: "Design Review",
-                    isMine: true
-                },
-                {
-                    start: "2025-12-17T15:00:00",
-                    end: "2025-12-17T16:00:00",
-                    user: "Me",
-                    description: "Product Sync",
-                    isMine: true
-                }
-            ]
+		currentUser: "{{ member }}",
+		bookings: {{ entries | safe }}
         };
     </script>
-    <script src="script.js"></script>
+    <script src="{{ url_for('calendars.static',filename='script.js') }}"></script>
 </body>
 
 </html>

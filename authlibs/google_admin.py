@@ -34,7 +34,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Settings
-SCOPES = ['https://www.googleapis.com/auth/admin.directory.user.readonly','https://www.googleapis.com/auth/admin.directory.user','https://www.googleapis.com/auth/gmail.compose']
+SCOPES = ['https://www.googleapis.com/auth/admin.directory.user.readonly','https://www.googleapis.com/auth/admin.directory.user',
+        'https://www.googleapis.com/auth/gmail.compose','https://www.googleapis.com/auth/admin.directory.resource.calendar']
 KEYFILE = 'makeitlabs.json'
 EMAIL_USER = 'makeitlabs.automation@makeitlabs.com'
 ADMIN_USER = 'bill.schongar@makeitlabs.com'
@@ -254,6 +255,22 @@ def _buildCalendarService(user_email_to_delegate_to):
     return service
 
 
+
+def read_user_cal(email):
+    calendar_service = _buildCalendarService(email)
+    now = datetime.datetime.utcnow().isoformat() + 'Z' # 'Z' indicates UTC time
+    events_result = calendar_service.events().list(
+        #calendarId='primary',  # The primary calendar of the delegated user
+        calendarId=email,
+        timeMin=now,
+        maxResults=2,
+        singleEvents=True,
+        orderBy='startTime'
+    ).execute()
+    events = events_result.get('items', [])
+    for event in events:
+        print(event)
+
 def calendar_read(email,resource):
     # The user you want to act on behalf of
     TARGET_USER_EMAIL = email
@@ -271,7 +288,7 @@ def calendar_read(email,resource):
         #calendarId='primary',  # The primary calendar of the delegated user
         calendarId=RESOURCE_EMAIL,
         timeMin=now,
-        maxResults=10,
+        maxResults=20,
         singleEvents=True,
         #creator=TARGET_USER_EMAIL,
         orderBy='startTime'
@@ -279,17 +296,19 @@ def calendar_read(email,resource):
 
     events = events_result.get('items', [])
 
+    bookings = []
     if not events:
         print('No upcoming events found.')
     else:
         for event in events:
             isSelf = False
+            isAccepted = False
             start = event['start'].get('dateTime', event['start'].get('date'))
-            print (event)
+            #print (event)
             if 'self' in event['organizer']: isSelf = event['organizer']['self']
             if event['organizer']['email'].lower() == TARGET_USER_EMAIL.lower(): isSelf=True
-            print (f"{event['summary']} {event['id']} isMyEvent={isSelf}")
-            print ("Attendees:\n")
+            #print (f"{event['summary']} {event['id']} isMyEvent={isSelf}")
+            #print ("Attendees:\n")
             resourceCount=0
             start,end = get_event_time_reliable(event)
             for a in event['attendees']:
@@ -297,39 +316,117 @@ def calendar_read(email,resource):
                 responseStatus = "unknown"
                 isResource = False
                 if 'displayName' in a: displayName = a['displayName']
-                if 'responseStatus' in a: displayName = a['responseStatus']
+                if 'responseStatus' in a: responseStatus = a['responseStatus']
                 if 'resource' in a: 
                     isResource= a['resource']
                     resourceCount += 1
-                print (f"{a['email']} {displayName} {responseStatus} Resource={isResource} From {start} To {end}")
-            print ("")
+                    if a['email'].lower() == RESOURCE_EMAIL.lower() and responseStatus == 'accepted':
+                        isAccepted= True
+                #print (f"{a['email']} {displayName} {responseStatus} ACCEPTED={isAccepted}  Resource={isResource} From {start} To {end}")
+            # Response needs to be 'accepted'
+            #print (f"{event['summary']} {event['id']} {event['organizer']} SELF={isSelf} ACCAPTED={isAccepted}")
+            if (isAccepted):
+                booking = {
+                        'calendar_id':event['id'],
+                        'organizer_email':event['organizer']['email'],
+                        'user':event['organizer']['email'], # REWRITE LATER
+                        'isMine' : 1 if isSelf else 0,
+                        'description' : event['summary'],
+                        'start':start.isoformat(),
+                        'end':end.isoformat(),
+                        }
+                bookings.append(booking)
             #print(f"Event: {start} - {event['summary']}")
+    return (bookings)
 
 
-def calendar_create():
+def delete_booking(user,event_id):
+    calendar_service = _buildCalendarService(user)
+    # Fetch the latest version of the event
+    try:
+        r = calendar_service.events().delete(
+            calendarId='primary',
+            eventId=event_id
+        ).execute()
+    except BaseException as e:
+        print (f"DELETE CALENDAR FAILED - {user} {event_id}: {e}\n")
+        return True
+
+    print (f"Delete Calendar {event_id} OK\n")
+    return False
+
+def edit_booking(user,event_id,description,start,end):
+    calendar_service = _buildCalendarService(user)
+    # Fetch the latest version of the event
+    updated_event = calendar_service.events().get(
+        calendarId='primary',
+        eventId=event_id
+    ).execute()
+
+    patch = {
+      'description': description,
+      'start': {
+        'dateTime': start.isoformat()
+      },
+      'end': {
+        'dateTime': end.isoformat()
+      },
+     }
+
+    try:
+        updated_event = calendar_service.events().patch(
+            calendarId='primary',
+            eventId=event_id,
+            body=patch,
+            sendNotifications=True
+        ).execute()
+    except BaseException as e:
+        print (f"Delete Calendar failed - {user} {event_id}: {e}\n")
+        return (str(e))
+    return None
+
+def get_booking(user,event_id,resource):
+    calendar_service = _buildCalendarService(user)
+    # Fetch the latest version of the event
+    updated_event = calendar_service.events().get(
+        calendarId='primary',
+        eventId=event_id
+    ).execute()
+    resource_status = 'unknown'
+
+    event_id = updated_event['id']
+    for attendee in updated_event.get('attendees', []):
+        if attendee.get('email', '').lower() == resource.lower():
+            resource_status = attendee.get('responseStatus', 'unknown')
+            break
+    return resource_status
+
+
+def calendar_create(user,resource,description,start,end):
     # The user you want to act on behalf of
-    TARGET_USER_EMAIL = 'user-in-your-domain@yourdomain.com'
-    RESOURCE_EMAIL = 'mylaser@makeitlabs.com'
+    TARGET_USER_EMAIL = user
+    RESOURCE_EMAIL = resource
 
     # 1. Build the service
     calendar_service = _buildCalendarService(TARGET_USER_EMAIL)
 
     # 2. Define the event body (using RFC3339 format for datetime)
     event = {
-      'summary': 'New Team Meeting via API',
-      'location': 'Online Conference Room',
-      'description': 'Discussion about Q4 strategy.',
+      'summary': description,
+      'location': 'Reservation Portal',
+      'organizer': {
+          'user':user,
+          'self':True
+          },
+      'description': description,
       'start': {
-        'dateTime': '2025-12-20T10:00:00-05:00', # Dec 20, 10:00 AM EST
-        'timeZone': 'America/New_York',
+        'dateTime': start.isoformat()
       },
       'end': {
-        'dateTime': '2025-12-20T11:00:00-05:00',
-        'timeZone': 'America/New_York',
+        'dateTime': end.isoformat()
       },
       'attendees': [
-        {'email': TARGET_USER_EMAIL},
-        {'email': RESOURCE_EMAIL},
+        {'email': RESOURCE_EMAIL, 'resource': True},
       ],
     }
 
@@ -343,13 +440,20 @@ def calendar_create():
     # 4. Check the resource's response status
     resource_status = 'unknown'
 
+    event_id = created_event['id']
     for attendee in created_event.get('attendees', []):
         if attendee.get('email', '').lower() == RESOURCE_EMAIL.lower():
             resource_status = attendee.get('responseStatus', 'unknown')
             break
     # resource_status should be 'accepted'
 
-    return resource_status
+    return event_id,resource_status
+
+def getUsers():
+    service = _buildAdminService()
+    results = service.users().list(domain=DOMAIN, projection="custom",customFieldMask="Membership",query="email:bradley.goodman@makeitlabs.com", maxResults=1,orderBy='email').execute()
+    users = results.get('users', [])
+    print (users)
 
 def testGoogle():
     """Test Admin SDK: Grab a list of all users"""
@@ -361,4 +465,8 @@ def testGoogle():
 if __name__ == "__main__":
     #testGoogle()
     #sendWelcomeEmail(user,password,email)
-    print (calendar_read("bradley.goodman@makeitlabs.com","makeitlabs.com_188aq2sk57k2ujq7grms0tavvo1nk@resource.calendar.google.com"))
+    #print (list_all_resource_emails(_buildAdminService()))
+    #print (calendar_read("bradley.goodman@makeitlabs.com","makeitlabs.com_3133373236393938363631@resource.calendar.google.com"))
+    print (delete_booking("bradley.goodman@makeitlabs.com","123"))
+    #print (read_user_cal("bradley.goodman@makeitlabs.com"))
+    #print (getUsers())
