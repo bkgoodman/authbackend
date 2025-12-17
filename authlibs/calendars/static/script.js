@@ -330,10 +330,15 @@ class BookingControl {
 
         // Date Picker
         this.elements.dateDisplay.addEventListener('click', () => {
+            // Focus the input first (important for mobile)
+            this.elements.datePicker.focus();
+
+            // Try showPicker for desktop browsers
             try {
                 this.elements.datePicker.showPicker();
             } catch (err) {
-                console.warn('showPicker not supported, falling back to click', err);
+                // Fallback for mobile and older browsers
+                // Trigger click event which opens the native picker on mobile
                 this.elements.datePicker.click();
             }
         });
