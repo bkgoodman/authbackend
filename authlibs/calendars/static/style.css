@@ -55,7 +55,6 @@ body {
         height: 90vh;
         margin-top: 5vh;
         border-radius: var(--radius-lg);
-        overflow: hidden;
     }
 }
 
@@ -187,6 +186,46 @@ body {
     position: relative;
 }
 
+.scroll-hint {
+    position: absolute;
+    left: 40px;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 25;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--primary);
+    opacity: 0.8;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 50%;
+    box-shadow: var(--shadow-md);
+}
+
+.scroll-hint.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.scroll-hint svg {
+    animation: scroll-hint-bounce 1.5s infinite;
+}
+
+@keyframes scroll-hint-bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(10px);
+    }
+}
+
 .time-grid-scroll-area {
     flex: 1;
     overflow-y: auto;
@@ -247,6 +286,11 @@ body {
     font-weight: 500;
     transform: translateY(-50%);
     /* Center label on the line */
+    cursor: grab;
+}
+
+.time-label:active {
+    cursor: grabbing;
 }
 
 .time-label.start-of-day {
@@ -287,6 +331,12 @@ body {
 .time-slot.selected {
     background-color: var(--primary-light);
     border-left: 3px solid var(--primary);
+}
+
+.time-slot.past-slot {
+    background-color: #f8f9fa;
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .time-slot.dragging {

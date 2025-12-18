@@ -22,6 +22,12 @@ class BookingControl {
         this.currentUser = null;
         this.editingBooking = null; // The booking currently being edited
 
+        // Drag-to-scroll state
+        this.isScrollDragging = false;
+        this.scrollDragStartY = 0;
+        this.scrollDragStartScroll = 0;
+        this.scrollHintStartTime = Date.now();
+
         // Normalize dates to midnight
         this.loadedStart.setHours(0, 0, 0, 0);
         this.loadedEnd.setHours(0, 0, 0, 0);
@@ -38,6 +44,7 @@ class BookingControl {
             backBtn: document.getElementById('backBtn'),
             timeGrid: document.getElementById('timeGrid'),
             scrollArea: document.getElementById('scrollArea'),
+            scrollHint: document.getElementById('scrollHint'),
             selectionDisplay: document.getElementById('selectionDisplay'),
             bookBtn: document.getElementById('bookBtn'),
             cancelBtn: document.getElementById('cancelBtn'),
@@ -73,8 +80,10 @@ class BookingControl {
 
         this.attachEventListeners();
 
-        // Scroll to 9:00 AM Today
-        this.scrollToTime(new Date(), 9);
+        // Scroll to Current Time Today
+        const now = new Date();
+        const currentHour = now.getHours();
+        this.scrollToTime(now, currentHour);
 
         // Initial Header Update
         this.updateHeaderDate();
@@ -134,6 +143,13 @@ class BookingControl {
             // Slot
             const slot = document.createElement('div');
             slot.className = 'time-slot';
+
+            // Check if slot is in the past
+            const now = new Date();
+            if (slotTime < now) {
+                slot.classList.add('past-slot');
+            }
+
             slot.dataset.time = slotTime.getTime(); // Use timestamp for easier logic
             slot.style.gridColumn = '2';
             slot.style.gridRow = `${i + 2}`;
@@ -297,6 +313,7 @@ class BookingControl {
         this.elements.scrollArea.addEventListener('scroll', () => {
             this.handleInfiniteScroll();
             this.updateHeaderDate();
+            this.hideScrollHint();
         });
 
         // Nav Buttons (Jump to Prev/Next Day)
@@ -330,15 +347,10 @@ class BookingControl {
 
         // Date Picker
         this.elements.dateDisplay.addEventListener('click', () => {
-            // Focus the input first (important for mobile)
-            this.elements.datePicker.focus();
-
-            // Try showPicker for desktop browsers
             try {
                 this.elements.datePicker.showPicker();
             } catch (err) {
-                // Fallback for mobile and older browsers
-                // Trigger click event which opens the native picker on mobile
+                console.warn('showPicker not supported, falling back to click', err);
                 this.elements.datePicker.click();
             }
         });
@@ -452,7 +464,7 @@ class BookingControl {
         this.bookings.push(newBooking);
 
         // Submit form
-        this.submitForm('create', {
+        this.submitForm('create_booking', {
             start: newBooking.start.toISOString(),
             end: newBooking.end.toISOString(),
             description: newBooking.description
@@ -491,7 +503,10 @@ class BookingControl {
         document.querySelectorAll(`.booking-event[data-id="${this.editingBooking.id}"]`).forEach(el => el.remove());
 
         // Submit form
-        this.submitForm('delete'+"/"+this.editingBooking.calendar_id);
+        this.submitForm('delete_booking', {
+            id: this.editingBooking.id,
+            calendar_id: this.editingBooking.calendar_id
+        });
 
         // Reset state
         this.closeModals();
@@ -508,7 +523,7 @@ class BookingControl {
         this.editingBooking.description = this.elements.bookingDescription.value.trim() || 'No Description';
 
         // Submit form
-        this.submitForm('update', {
+        this.submitForm('update_booking', {
             id: this.editingBooking.id,
             calendar_id: this.editingBooking.calendar_id,
             start: this.editingBooking.start.toISOString(),
@@ -687,6 +702,25 @@ class BookingControl {
 
         const slot = e.target.closest('.time-slot');
         const isSelectionClick = e.target.closest('.time-slot.selected');
+        const isTimeLabel = e.target.closest('.time-label');
+        const daySection = e.target.closest('.day-section');
+
+        // Drag-to-scroll on time scale (Desktop only)
+        // Check if click is on label OR in the first column of daySection
+        let isLeftColumn = isTimeLabel;
+        if (!isLeftColumn && daySection) {
+            const rect = daySection.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            if (x < 100) isLeftColumn = true;
+        }
+
+        if (isLeftColumn && e.type.includes('mouse')) {
+            this.isScrollDragging = true;
+            this.scrollDragStartY = e.clientY;
+            this.scrollDragStartScroll = this.elements.scrollArea.scrollTop;
+            this.hideScrollHint();
+            return;
+        }
 
         // If clicking empty space (or slot), clear edit mode if active
         // BUT only if we are NOT clicking the current selection or a handle
@@ -700,7 +734,9 @@ class BookingControl {
         if (this.editingBooking && isSelectionClick) return;
 
         const time = parseInt(slot.dataset.time);
-        if (this.isSlotBooked(new Date(time))) return;
+
+        // Prevent interaction with past slots
+        if (slot.classList.contains('past-slot') || this.isSlotBooked(new Date(time))) return;
 
         if (e.type === 'touchstart') {
             // e.preventDefault(); 
@@ -712,6 +748,13 @@ class BookingControl {
     }
 
     handleMove(e) {
+        if (this.isScrollDragging) {
+            const y = e.clientY;
+            const walk = (y - this.scrollDragStartY) * 1.5; // Drag speed
+            this.elements.scrollArea.scrollTop = this.scrollDragStartScroll - walk;
+            return;
+        }
+
         if (!this.isDragging && !this.isResizing) return;
 
         let clientX, clientY;
@@ -742,6 +785,7 @@ class BookingControl {
     handleEnd() {
         this.isDragging = false;
         this.isResizing = false;
+        this.isScrollDragging = false;
         this.dragStartTime = null;
         this.resizeAnchor = null;
         this.stopAutoScroll();
@@ -753,6 +797,10 @@ class BookingControl {
 
         // Check collision
         const selectionEnd = end + (this.slotDuration * 60 * 1000);
+
+        // Check if selection overlaps with past time
+        const now = Date.now();
+        if (start < now) return;
 
         const hasCollision = this.bookings.some(b => {
             // Ignore self if editing
@@ -937,6 +985,20 @@ class BookingControl {
 
         // Update header
         this.updateHeaderDate();
+    }
+
+    hideScrollHint() {
+        if (this.elements.scrollHint) {
+            const elapsed = Date.now() - this.scrollHintStartTime;
+            if (elapsed > 3000) { // Stay for at least 3 seconds
+                this.elements.scrollHint.classList.add('hidden');
+            } else {
+                // If they interact before 3s, schedule the hide
+                setTimeout(() => {
+                    this.elements.scrollHint.classList.add('hidden');
+                }, 3000 - elapsed);
+            }
+        }
     }
 }
 
