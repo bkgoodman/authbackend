@@ -10,7 +10,8 @@
 	<h1>Reservation Declient</h2>
 	<p>Either there was a booking conflict, or an error occured. Please try again, and if failure persists, try directly through Google Calendar</p>
 {% elif status == 'needsAction' %}
-	<p>Accepting pending - <b>Please Wait</p>...</p>
+	<p>Accepting pending - <b>Please Wait</b>...</p>
+	<p>(You may navigate away from this page - but if so, your booking may not be confirmed if there is a conflict. You can check calendar later to confirm.)</p>
 <script>
         setTimeout(function() {
             location.reload();

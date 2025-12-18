@@ -68,6 +68,55 @@ def addMember(sub,plantype,firstname,lastname,email):
     db.session.add(Logs(member_id=mm.id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id))
     return (s,mm)
 
+@blueprint.route('/howdiduhear', methods=['GET','POST'])
+def howdiduhear():
+    where = [
+                {'name':'holidaystroll', 'text':"Nashua Holiday Stroll" },
+                {'name':'lksr', 'text':"Lowell Kinetic Sculpture Race" },
+                {'name':'makeitfest', 'text':"MakeIt Fest" },
+                {'name':'member', 'text':"From another Member" },
+                {'name':'social', 'text':"Social Media" },
+            ]
+    what = [
+                {'name':'art', 'text':"Art (Painting, Drawing, Airbrushing, etc." },
+                {'name':'blacksmithing', 'text':"Blacksmithing" },
+                {'name':'jewelry', 'text':"Jewelry Making and Soft Metals" },
+                {'name':'glasswork', 'text':"Glasswork" },
+                {'name':'photography', 'text':"Photography & Darkroom" },
+                {'name':'pottery', 'text':"Pottery" },
+                {'name':'woodworking', 'text':"Woodworking (General, turning & routing)"},
+                {'name':'auto', 'text':"Automotive" },
+                {'name':'welding', 'text':"Welding" },
+                {'name':'machining', 'text':"Machining and Metalwork" },
+                {'name':'laser', 'text':"Laser Cutting (wood, metal, acrylic, etc.)" },
+                {'name':'ham', 'text':"Radio Operator (Ham)"},
+                {'name':'production', 'text':"Procducer (Video, Audio, Podcast, etc)."},
+                {'name':'3dprinting', 'text':"3d Printing" },
+                {'name':'design', 'text':"CAD & other software tools for physical design" },
+                {'name':'software', 'text':"Software (Writing software, web design, etc.)"},
+                {'name':'electronics', 'text':"Electronics (Hardware, PCB design, Arduino, etc.)"}
+            ]
+    stuff = [
+                {'name':'learning', 'text':"Taking Classes and Workshops" },
+                {'name':'community', 'text':"Community and social events" },
+                {'name':'collaberation', 'text':"Partipating in group projects" },
+                {'name':'volenteer', 'text':"Volenteering & helping in operation of our lab" },
+                {'name':'teaching', 'text':"Teaching Classes and Workshops" },
+            ]
+    iam = [
+                {'name':'engineer', 'text':"Engineer" },
+                {'name':'artist', 'text':"Artist" },
+                {'name':'hacker', 'text':"Hacker" },
+                {'name':'teacher', 'text':"Teacher" },
+                {'name':'student', 'text':"Student (lifelong)" },
+                {'name':'builder', 'text':"Builder" },
+                {'name':'fixer', 'text':"Fixer" },
+                {'name':'handson', 'text':"Hands-On" },
+                {'name':'madscientist', 'text':"Scientist (Mad)" },
+                {'name':'othercientist', 'text':"Scientist (Other)" },
+            ]
+    return render_template('wherediduhear.html',where=where,what=what,stuff=stuff,iam=iam)
+
 @blueprint.route('/postpay', methods=['GET','POST'])
 def postpay():
 

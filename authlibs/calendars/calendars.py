@@ -121,15 +121,19 @@ def status_booking(resource,eventid):
     status = get_booking(current_user.email,eventid,resources[resource]['cal'])
     return render_template('status.html',name=resources[resource]['name'],status=status)
 
-@blueprint.route('/<string:resource>/delete/<string:eventid>',methods=['GET','POST'])
+@blueprint.route('/<string:resource>/delete',methods=['POST'])
 @login_required
-def delete_event(resource,eventid):
+def delete_event(resource):
     if resource not in resources:
         flash(f"Invalid Resource {resource} {eventid} ","danger")
         return redirect(url_for('calendars.calendars'))
 
     debug = f"{request.form}"
 
+    eventid = request.form.get('calendar_id','')
+    if eventid == "":
+        flash(f"No event id specified","danger")
+        return redirect(url_for('calendars.calendars'))
     result = delete_booking(current_user.email,eventid)
     if result:
         flash("ERROR: Please try via Google Calendar","danger")
@@ -173,6 +177,8 @@ def create_booking(resource):
         debug += f"\nBaseException {e}\n"
         return render_template('debug.html',debug=debug)
 
+    if description == "" or description == "No Description":
+        description = current_user.member.replace("."," ")
     debug = f"EventID: {event_id} Result: {result}"
     #return render_template('debug.html',name=resources[resource]['name'],debug=debug)
     return redirect(url_for('calendars.status_booking',resource=resource,eventid=event_id))
