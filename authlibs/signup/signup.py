@@ -212,7 +212,9 @@ def survey():
     results = datetime.now().isoformat()+": "
     for x in request.form:
         if x.startswith("other_"):
-            results += f"{x}: {request.form.get(x)} "
+            s = request.form.get(x).replace("\"","'")
+            s = s.replace(" ","_")
+            results += f"{x}: \"{s}\" "
         else:
             results += f"{x} "
 
