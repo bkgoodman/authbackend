@@ -70,6 +70,10 @@ def addMember(sub,plantype,firstname,lastname,email):
 
 @blueprint.route('/howdiduhear', methods=['GET','POST'])
 def howdiduhear():
+    return render_template('wherediduhear.html',where=where,what=what,stuff=stuff,iam=iam)
+
+@blueprint.route('/postpay', methods=['GET','POST'])
+def postpay():
     where = [
                 {'name':'holidaystroll', 'text':"Nashua Holiday Stroll" },
                 {'name':'lksr', 'text':"Lowell Kinetic Sculpture Race" },
@@ -117,10 +121,6 @@ def howdiduhear():
                 {'name':'madscientist', 'text':"Scientist (Mad)" },
                 {'name':'othercientist', 'text':"Scientist (Other)" },
             ]
-    return render_template('wherediduhear.html',where=where,what=what,stuff=stuff,iam=iam)
-
-@blueprint.route('/postpay', methods=['GET','POST'])
-def postpay():
 
     debug = "POSTPAY\n"
     for (k,v) in request.form.items():
@@ -187,19 +187,38 @@ def postpay():
         plantype = 'hobbyist'
 
     isTest = socket.gethostname()  == "staging"
-    (s,mm) = addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
-            sessiondata['email'])
-    createMissingMemberAccounts([mm],isTest=isTest)
-
-    if (plan == "produo"):
-        (s,mm) = addMember(sub,plantype,sessiondata['firstname2'],sessiondata['lastname2'],
-            sessiondata['email2'])
+    isError=False
+    try:
+        (s,mm) = addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
+                sessiondata['email'])
         createMissingMemberAccounts([mm],isTest=isTest)
 
+        if (plan == "produo"):
+            (s,mm) = addMember(sub,plantype,sessiondata['firstname2'],sessiondata['lastname2'],
+                sessiondata['email2'])
+            createMissingMemberAccounts([mm],isTest=isTest)
+        db.session.commit()
+    except BaseException as e:
+        print (f"Signup error: {sessiondata['email']}: {e}\n")
+        isError=True
 
-    db.session.commit()
 
-    return render_template('complete.html',debug=debug,email=sessiondata['email'],mtype=sessiondata['mtype'])
+    return render_template('complete.html',debug=debug,email=sessiondata['email'],
+            mtype=sessiondata['mtype'],isError=isError,where=where,what=what,stuff=stuff,iam=iam)
+
+@blueprint.route('/survey',methods=['POST'])
+def survey():
+
+    results = datetime.now().isoformat()+": "
+    for x in request.form:
+        if x.startswith("other_"):
+            results += f"{x}: {request.form.get(x)} "
+        else:
+            results += f"{x} "
+
+    with open("survey.txt","a") as fd:
+        fd.write(results+"\n")
+    return render_template('survey_complete.html',results=results)
 
 @blueprint.route('/payment', methods=['GET','POST'])
 def payment():
@@ -245,6 +264,7 @@ def payment():
         success_url=baseurl+url_for('signup.postpay')+"?session_id={CHECKOUT_SESSION_ID}",
         cancel_url=baseurl+url_for('signup.failure')
     )
+    print("Stripe API KEY: "+str(stripe.api_key))
     logger.warning("FORM DATA: "+str(request.form.items()))
     logger.warning("SESSION INFO: "+str(session))
     logger.warning("Session ID: "+str(session['id']))

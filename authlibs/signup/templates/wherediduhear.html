@@ -22,21 +22,22 @@
                     Please help us improve our community by letting us know abour your interests in MakeIt Labs by answering a few quick questions.
                 </p>
 
+<!-- START -->
 <div class="container my-3">
-  <fieldset>
-
-    <legend class="h2">I am interested in:</legend>
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2">
-      {% for w in what %}
-      <div class="col">
-        <label class="list-group-item d-flex align-items-center gap-2">
-		<input class="form-check-input me-1" type="checkbox" value="first" name="iam_{{ w.what }}">
-	  <span class="mx-1">{{ w.text }}</span>
-        </label>
-      </div>
-      {% endfor %}
+<fieldset>
+  <legend class="h2">I am interested in:</legend>
+  <div class="row g-2">
+    {% for w in what %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="what_{{ w.what }}" value="{{ w.what }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
     </div>
-  </fieldset>
+    {% endfor %}
+  </div>
+</fieldset>
+
 	<div class="input-group my-3">
 	  <label class="input-group-text" for="otherText">Other</label>
 	  <input
@@ -49,25 +50,26 @@
 	  >
 	</div>
 </div>
+<!-- END -->
 
 
 <!-- START -->
 <hr />
 <div class="container my-3">
-  <fieldset>
-    <legend class="h2">Where/how did you most recently hear about MakeIt Labs?</legend>
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2">
-      {% for w in where %}
-      <div class="col">
-        <label class="list-group-item d-flex align-items-center gap-2">
-		<input class="form-check-input me-1" type="checkbox" value="first" name="iam_{{ w.where }}">
-	  <span>{{ w.text }}</span>
-        </label>
-      </div>
-      {% endfor %}
+<fieldset>
+  <legend class="h2">Where did you hear about MakeIt Labs?</legend>
+  <div class="row g-2">
+    {% for w in where %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="where_{{ w.what }}" value="{{ w.what }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
     </div>
+    {% endfor %}
+  </div>
+</fieldset>
 
-  </fieldset>
 	<div class="input-group my-3">
 	  <label class="input-group-text" for="otherText">Other</label>
 	  <input
@@ -85,20 +87,20 @@
 <hr />
 <!-- START -->
 <div class="container my-3">
-  <fieldset>
-    <legend class="h2">I am interested in participating in:</legend>
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2">
-      {% for w in stuff %}
-      <div class="col">
-        <label class="list-group-item d-flex align-items-center gap-2">
-		<input class="form-check-input me-1" type="checkbox" value="first" name="stuff_{{ w.name }}">
-	  <span>{{ w.text }}</span>
-        </label>
-      </div>
-      {% endfor %}
+<fieldset>
+  <legend class="h2">I am interested in participating in:</legend>
+  <div class="row g-2">
+    {% for w in stuff %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="stuff_{{ w.what }}" value="{{ w.what }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
     </div>
+    {% endfor %}
+  </div>
+</fieldset>
 
-  </fieldset>
 	<div class="input-group my-3">
 	  <label class="input-group-text" for="otherText">Other</label>
 	  <input
@@ -115,20 +117,20 @@
 <!-- START -->
 <hr />
 <div class="container my-3">
-  <fieldset>
-    <legend class="h2">I would describe myself as a:</legend>
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2">
-      {% for w in iam %}
-      <div class="col">
-        <label class="list-group-item d-flex align-items-center gap-2">
-		<input class="form-check-input me-1" type="checkbox" value="first" name="iam_{{ w.name }}">
-	  <span>{{ w.text }}</span>
-        </label>
-      </div>
-      {% endfor %}
+<fieldset>
+  <legend class="h2">I am a self-described:</legend>
+  <div class="row g-2">
+    {% for w in iam %}
+    <div class="col-12 col-sm-6 col-md-4">  <!-- 1 col on xs, 2 on sm, 3 on md+ -->
+      <label class="list-group-item d-flex align-items-start gap-2" style="border:0">
+        <input class="form-check-input mt-1" type="checkbox" name="iam_{{ w.what }}" value="{{ w.what }}">
+        <span class="mx-1">{{ w.text }}</span>
+      </label>
     </div>
+    {% endfor %}
+  </div>
+</fieldset>
 
-  </fieldset>
 	<div class="input-group my-3">
 	  <label class="input-group-text" for="otherText">Other</label>
 	  <input
@@ -142,6 +144,8 @@
 	</div>
 </div>
 <!-- END -->
+
+
    <button type="submit" name="HowDidIHear" value="HowDidIHear" class="btn btn-primary">Submit</button>
    </div> <!-- BigContainer -->
  </form>
