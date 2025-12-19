@@ -52,18 +52,29 @@ def sign_request(base64_secret: str, member: str, tool: str, ts: int):
 @login_required
 def opendoors():
     """(Controller) Display Tools and controls"""
+    disable=True
     if current_user.has_roles('Admin'):
+        disable=False
         if 'X-Forwarded-For' not in request.headers or 'X-Real-Ip' not in request.headers:
             banner = '<p>Admin seems to not be using proxy</p>'
         elif 'X-Real-Ip'.startswith("10.0.") or 'X-Forwarded-For'.startswith("10.0."):
             banner = '<p>Admin user is on Wi-Fi</p>'
         else:
             banner = '<p><b>WARNING:</b> Admin user is <b>not</b> Member Wi-Fi network. Remote door opens will still work. <b>Use with Caution!</b></p>'
+    else:
+        if 'X-Forwarded-For' not in request.headers or 'X-Real-Ip' not in request.headers:
+            banner = '<p>Network Error: Internal proxy not detectd</p>'
+        elif 'X-Real-Ip'.startswith("10.0.") or 'X-Forwarded-For'.startswith("10.0."):
+            banner = '<p></p>'
+            disable=False
+        else:
+            banner = '<p>You must be in the lab and on the local Member Wi-Fi Network to opern remote doors. Please wait or make sure you are connected</p>'
+
     tools = _get_opendoors()
 
 
 
-    return render_template('opendoors.html',tools=tools,banner=banner)
+    return render_template('opendoors.html',tools=tools,banner=banner,disable=disable)
 
 
 @blueprint.route('/<string:tool>', methods=['GET'])

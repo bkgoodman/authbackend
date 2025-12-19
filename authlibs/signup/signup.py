@@ -60,7 +60,7 @@ def addMember(sub,plantype,firstname,lastname,email):
     mm.time_updated = updated
     mm.email_confirmed_at = datetime.now()
     db.session.add(mm)
-    db.session.flush()
+    db.session.flush() # BKG UNIQUE CONTRAINTS FAILED if duplicate member name!
 
     logger.debug("Adding new member %s for subscription %s MemberID %s" % (name, sub.id,mm.id))
     s.member_id=mm.id
@@ -135,18 +135,22 @@ def postpay():
     elif "group" in plan:
         plantype = 'hobbyist'
 
-    isTest = socket.gethostname()  == "staging"
-    (s,mm) = addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
-            sessiondata['email'])
-    createMissingMemberAccounts([mm],isTest=isTest)
-
-    if (plan == "produo"):
-        (s,mm) = addMember(sub,plantype,sessiondata['firstname2'],sessiondata['lastname2'],
-            sessiondata['email2'])
+    try:
+        isTest = socket.gethostname()  == "staging"
+        (s,mm) = addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
+                sessiondata['email'])
         createMissingMemberAccounts([mm],isTest=isTest)
 
+        if (plan == "produo"):
+            (s,mm) = addMember(sub,plantype,sessiondata['firstname2'],sessiondata['lastname2'],
+                sessiondata['email2'])
+            createMissingMemberAccounts([mm],isTest=isTest)
 
-    db.session.commit()
+
+        db.session.commit()
+    except BaseException as e:
+        return render_template('debug.html',debug=debug)
+
 
     return render_template('complete.html',debug=debug,email=sessiondata['email'],mtype=sessiondata['mtype'])
 

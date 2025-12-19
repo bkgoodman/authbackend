@@ -14,12 +14,66 @@
 		    </p>
             </div>
 
+               <!-- Membership Columns -->
+                    <div class="row mb-4">
+                        <div class="col-lg-3 col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title text-center"><strong>Hobbyist</strong><br>$49.95/mo</h5>
+                                    <ul>
+                                        <li>24/7 building access</li>
+                                        <li>No project storage space - 'pack in, pack out'</li>
+                                        <li>Not eligible for rentals</li>
+                                        <li>Small discounts on certain classes</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title text-center"><strong>Pro</strong><br>$64.95/mo</h5>
+                                    <ul>
+                                        <li>24/7 building access</li>
+                                        <li>Project storage bin</li>
+                                        <li>Small locker space</li>
+                                        <li>Eligible for space rentals</li>
+                                        <li>Large discounts on certain classes (Free in many cases)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title text-center"><strong>Pro Duo</strong><br>$109.95/mo</h5>
+                                    <ul>
+                                        <li>$20 off the price of 2 Pro memberships</li>
+                                        <li>All the benefits of a normal Pro membership, just for 2 people!</li>
+                                        <li>Make stuff with your significant other, partner, or friend!</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-4">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title text-center"><strong>Military Pro</strong><br>$49.95/mo</h5>
+                                    <ul>
+                                        <li>Pro membership for the cost of Hobbyist</li>
+                                        <li>All past and present military personnel are eligible - thank you to everyone
+                                            that has served.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 	                <!-- Membership Type -->
             <div class="mb-3">
                 <label class="form-label">Select Membership Type: </label>
                  <div class="btn-group btn-group-toggle" data-toggle="buttons">
 			 <label class="btn btn-outline-primary {% if mtype == "hobbyist" %} active {% endif %}" data-target=".collapseOne.show" data-toggle="collapse">
-                    <input type="radio" name="membershipType" id="option1" value="hobbyist" autocomplete="off" required> Hobbiest Membership - $49.95/mo
+                    <input type="radio" name="membershipType" id="option1" value="hobbyist" autocomplete="off" required> Hobbyist Membership - $49.95/mo
                   </label>
                   <label class="btn btn-outline-primary {% if mtype == "pro" %} active {% endif %}" data-target=".collapseOne.show" data-toggle="collapse">
                     <input type="radio" name="membershipType" id="option2" value="pro" autocomplete="off"> Pro Membership - $64.95/mo

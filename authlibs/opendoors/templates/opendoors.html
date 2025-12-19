@@ -10,7 +10,11 @@
 	<table class="table table-sm">
 	{% for tool in tools %}
 	  <tr>
+    {% if disable %}
+		<td><button disabled class="btn btn-secondary" style="font-size:xx-large;padding:20px"/ >{{ tool.name }}</td>
+    {% else %}
 		<td><a class="btn btn-primary" style="font-size:xx-large;padding:20px" href="{{ url_for('opendoors.open',tool=tool.id) }}">{{ tool.name }}</a></td>
+    {% endif %}
 	  </tr>
 	{% endfor %}
 	</table>
