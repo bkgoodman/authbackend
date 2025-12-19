@@ -151,6 +151,9 @@ def postpay():
 
     
     names = sessiondata['firstname']+" "+sessiondata['lastname']
+    print ("Names is: "+names)
+    print ("firstname2 is: ",sessiondata['firstname2'])
+    print ("lastname2 is: ",sessiondata['lastname2'])
     emails = sessiondata['email']
     if sessiondata['mtype'] == 'produo':
         names += ", "+sessiondata['firstname2']+" "+sessiondata['lastname2']
@@ -266,11 +269,6 @@ def payment():
         success_url=baseurl+url_for('signup.postpay')+"?session_id={CHECKOUT_SESSION_ID}",
         cancel_url=baseurl+url_for('signup.failure')
     )
-    print("Stripe API KEY: "+str(stripe.api_key))
-    logger.warning("FORM DATA: "+str(request.form.items()))
-    logger.warning("SESSION INFO: "+str(session))
-    logger.warning("Session ID: "+str(session['id']))
-
 
     sessiondata = {
             "firstname":request.form.get("firstname"),
@@ -280,10 +278,10 @@ def payment():
             "mtype":mtype
             }
     if (mtype == "produo"):
-        sessiondata["firstname2"] = request.form.get("firstname2"),
-        sessiondata["lastname2"] = request.form.get("lastname2"),
-        sessiondata["phone2"] = request.form.get("phone2"),
-        sessiondata["email2"] = request.form.get("email2"),
+        sessiondata["firstname2"] = request.form.get("firstname2")
+        sessiondata["lastname2"] = request.form.get("lastname2")
+        sessiondata["phone2"] = request.form.get("phone2")
+        sessiondata["email2"] = request.form.get("email2")
             
     r.set("checkoutsession/"+session['id'],json.dumps(sessiondata))
     r.expire("checkoutsession/"+session['id'],600)
