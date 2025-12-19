@@ -100,7 +100,9 @@ def howdiduhear():
                 {'name':'learning', 'text':"Taking Classes and Workshops" },
                 {'name':'community', 'text':"Community and social events" },
                 {'name':'collaberation', 'text':"Partipating in group projects" },
-                {'name':'volenteer', 'text':"Volenteering & helping in operation of our lab" },
+                {'name':'volunteer', 'text':"Volunteering & helping in operation of our lab" },
+                {'name':'making', 'text':"Making stuff" },
+                {'name':'fixing', 'text':"Fixing/Repairing stuff" },
                 {'name':'teaching', 'text':"Teaching Classes and Workshops" },
             ]
     iam = [
