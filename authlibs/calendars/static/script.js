@@ -380,7 +380,7 @@ class BookingControl {
 
         // Back Button (Go to Calendars)
         this.elements.backBtn.addEventListener('click', () => {
-            window.location.href = '../calendars';
+            window.location.href = '../../calendars';
         });
 
         // Drag Selection
