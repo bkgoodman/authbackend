@@ -60,7 +60,7 @@ def addMember(sub,plantype,firstname,lastname,email):
     mm.time_updated = updated
     mm.email_confirmed_at = datetime.now()
     db.session.add(mm)
-    db.session.flush()
+    db.session.flush() # BKG UNIQUE CONTRAINTS FAILED if duplicate member name!
 
     logger.debug("Adding new member %s for subscription %s MemberID %s" % (name, sub.id,mm.id))
     s.member_id=mm.id
@@ -206,6 +206,8 @@ def postpay():
         isError=True
 
 
+
+
     return render_template('complete.html',debug=debug,email=sessiondata['email'],
             mtype=sessiondata['mtype'],isError=isError,where=where,what=what,stuff=stuff,iam=iam)
 
@@ -256,7 +258,7 @@ def payment():
         line_item['price'] = "pro"
         discounts = [
                 {
-                    "coupon": "militarypro"
+                    "coupon": "MILITARYPRO"
                     }
                 ]
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
