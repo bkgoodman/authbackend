@@ -48,23 +48,39 @@ def sign_request(base64_secret: str, member: str, tool: str, ts: int):
     sig_b64 = base64.b64encode(mac).decode("ascii")
     return sig_b64
 
+def getRequestNetwork(request):
+    fwf = ''
+    rip = ''
+    if 'X-Forwarded-For' in request.headers: fwf = request.headers['X-Forwarded-For']
+    if 'X-Real-Ip' in request.headers: rip = request.headers['X-Real-Ip']
+    onLocalWifi  = (fwf.startswith("10.25.") and fwf.startswith("10.25."))
+    noProxy = (fwf == '' or rip == '')
+    return (onLocalWifi,noProxy)
+
 @blueprint.route('/', methods=['GET'])
 @login_required
 def opendoors():
     """(Controller) Display Tools and controls"""
     disable=True
+    onLocalWifi, noProxy  = getRequestNetwork(request)
     if current_user.has_roles('Admin'):
         disable=False
-        if 'X-Forwarded-For' not in request.headers or 'X-Real-Ip' not in request.headers:
+        if noProxy:
             banner = '<p>Admin seems to not be using proxy</p>'
-        elif 'X-Real-Ip'.startswith("10.0.") or 'X-Forwarded-For'.startswith("10.0."):
+        elif onLocalWifi:
             banner = '<p>Admin user is on Wi-Fi</p>'
         else:
-            banner = '<p><b>WARNING:</b> Admin user is <b>not</b> Member Wi-Fi network. Remote door opens will still work. <b>Use with Caution!</b></p>'
+            banner = f'<p><b>WARNING:</b> Admin user is <b>not</b> Member Wi-Fi network. Remote door opens will still work. <b>Use with Caution!</b></p>'
+            try:
+                banner += f'<pre>{request.headers["X-Real-Ip"] if "X-Real-Ip" in request.headers else "None"}'
+                banner += f'{request.headers["X-Forwarded-For"] if "X-Forwarded-For" in request.headers else "None"}</pre>'
+            except:
+                pass
+
     else:
-        if 'X-Forwarded-For' not in request.headers or 'X-Real-Ip' not in request.headers:
+        if noProxy:
             banner = '<p>Network Error: Internal proxy not detectd</p>'
-        elif 'X-Real-Ip'.startswith("10.0.") or 'X-Forwarded-For'.startswith("10.0."):
+        elif onLocalWifi:
             banner = '<p></p>'
             disable=False
         else:
@@ -95,24 +111,13 @@ def open(tool):
         flash("Tool not found")
         return redirect(url_for('opendoors.opendoors'))
 
-    """
-    TODO check request.headers
-    X-Forwarded-For and/or X-Real-Ip
-    for local IP check
-    """
-
+    onLocalWifi, noProxy  = getRequestNetwork(request)
     if not current_user.has_roles('Admin'):
         banner = '<p>You <b>must</b> be on the Member Wi-Fi Network to open a door</p>'
-        if 'X-Forwarded-For' not in request.headers:
+        if noProxy:
             flash("Network Error No Proxy","danger")
             return redirect(url_for('opendoors.opendoors'))
-        if 'X-Real-Ip' not in request.headers:
-            flash("Network Error No Proxy","danger")
-            return redirect(url_for('opendoors.opendoors'))
-        if not 'X-Real-Ip'.startswith("10.0."):
-            flash("Must be on member network Wi-Fi","danger")
-            return redirect(url_for('opendoors.opendoors'))
-        if not 'X-Forwarded-For'.startswith("10.0."):
+        if not onLocalWifi:
             flash("Must be on member network Wi-Fi","danger")
             return redirect(url_for('opendoors.opendoors'))
 
