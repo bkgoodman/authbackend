@@ -155,7 +155,6 @@ def signboard_debug():
 # Worker for live of debug signboards
 def do_signboard(debug=False):
     signs = _get_signs()
-    print (f"{signs}")
     # Make two lists. A PRIMARY that contains all valid posts
     # and a SECONDARY that contains valid posts that are only "always"
     # If the secondary list is empty - display the PRIMARY
@@ -163,18 +162,14 @@ def do_signboard(debug=False):
     secondary=[]
 
     now = datetime.datetime.now()
-    print (f"--------------")
     for s in signs:
         if s.start < now < s.end:
             match s.priority:
                 case 0: # Always
                     primary.append(s)
-                    print (f"Case 0 ALWAYS: {s.s_what}")
                 case 1: # If nothing else
-                    print (f"Case 1 IFNOTOTHER: {s.s_what}")
                     secondary.append(s)
                 case 2: # Debug/Test only
-                    print (f"Case 2 TEST: {s.s_what}")
                     if debug:
                         primary.append(s)
 
