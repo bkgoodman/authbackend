@@ -44,6 +44,24 @@ def add_users(bookings):
 
 
 resources = {
+        "shopbot":{
+                "url":"shopbot",
+                "name":"Shopbot",
+                "img" : "icon_shopbot.png",
+                "cal" : "c_188ajec7o5sd8hnglghkkj80c1jh0@resource.calendar.google.com"
+                },
+        "darkroom":{
+                "url":"darkroom",
+                "name":"Darkroom",
+                "img" : "icon_darkroom.png",
+                "cal" : "c_188fr2u7d5i7kgpflmt7ue7rfgo0q@resource.calendar.google.com"
+                },
+        "conference":{
+                "url":"conference",
+                "name":"Conference Room",
+                "img" : "icon_conference.png",
+                "cal" : "makeitlabs.com_188634rlsva2kha1iikp7lifrnipo6gb74ojge9g64q3ad1k60@resource.calendar.google.com"
+                },
         "bridgeport":{
                 "url":"bridgeport",
                 "name":"Bridgeport Mill",
