@@ -35,12 +35,12 @@ def add_users(bookings):
     cache = {}
     for b in bookings:
         if b['organizer_email'] in cache:
-            b['description'] = cache[b['organizer_email']]
+            b['user'] = cache[b['organizer_email']]
         else:
             x = Member.query.filter(Member.email == b['organizer_email']).one_or_none()
             if x is not None:
-                b['description'] = b['organizer_email']
-                cache[b['organizer_email']] = x.member
+                b['user'] = x.member.replace("."," ")
+                cache[b['organizer_email']] = b['user']
 
 
 resources = {
@@ -126,6 +126,7 @@ def resource(resource):
 
     entries = calendar_read(current_user.email,resources[resource]['cal'])
     add_users(entries)
+    print (entries)
     return render_template('calendar.html',name=resources[resource]['name'],entries=entries,member=current_user.member)
 
 
