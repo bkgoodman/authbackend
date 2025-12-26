@@ -128,6 +128,7 @@ body {
     font-weight: 600;
     font-size: 1.125rem;
     cursor: pointer;
+    display: inline-block;
     position: relative;
     z-index: 2;
 }
@@ -154,6 +155,8 @@ body {
     opacity: 0;
     cursor: pointer;
     z-index: 1;
+    pointer-events: none;
+    /* Let clicks pass through to the label */
 }
 
 /* Back Button */

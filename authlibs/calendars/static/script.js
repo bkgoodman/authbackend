@@ -261,7 +261,7 @@ class BookingControl {
         const slot = document.querySelector(`.time-slot[data-time="${targetTimestamp}"]`);
 
         if (slot) {
-            slot.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            slot.scrollIntoView({ block: 'center', behavior: 'auto' });
         } else {
             const dayStart = new Date(date);
             dayStart.setHours(0, 0, 0, 0);
@@ -346,26 +346,41 @@ class BookingControl {
         });
 
         // Date Picker
-        this.elements.dateDisplay.addEventListener('click', () => {
+        const triggerPicker = () => {
+            this.hideScrollHint();
             try {
+                this.elements.datePicker.focus();
                 this.elements.datePicker.showPicker();
             } catch (err) {
                 console.warn('showPicker not supported, falling back to click', err);
                 this.elements.datePicker.click();
             }
+        };
+
+        this.elements.dateDisplay.addEventListener('click', () => {
+            triggerPicker();
         });
+
+        // Some mobile browsers respond better to touchstart for triggering native pickers
+        this.elements.dateDisplay.addEventListener('touchstart', (e) => {
+            // Don't preventDefault here as it might block the native label/input behavior
+            triggerPicker();
+        }, { passive: true });
 
         this.elements.datePicker.addEventListener('change', (e) => {
             if (e.target.value) {
                 // Parse date as local time (append T00:00:00 to avoid UTC shift)
                 const selectedDate = new Date(e.target.value + 'T00:00:00');
                 this.scrollToDate(selectedDate);
+
+                // Explicitly update header date immediately
+                this.updateHeaderDate();
             }
         });
 
         // Back Button (Go to Calendars)
         this.elements.backBtn.addEventListener('click', () => {
-            window.location.href = '../calendars/';
+            window.location.href = '../../calendars';
         });
 
         // Drag Selection
@@ -464,7 +479,7 @@ class BookingControl {
         this.bookings.push(newBooking);
 
         // Submit form
-        this.submitForm('create', {
+        this.submitForm('create_booking', {
             start: newBooking.start.toISOString(),
             end: newBooking.end.toISOString(),
             description: newBooking.description
@@ -503,7 +518,7 @@ class BookingControl {
         document.querySelectorAll(`.booking-event[data-id="${this.editingBooking.id}"]`).forEach(el => el.remove());
 
         // Submit form
-        this.submitForm('delete', {
+        this.submitForm('delete_booking', {
             id: this.editingBooking.id,
             calendar_id: this.editingBooking.calendar_id
         });
@@ -523,7 +538,7 @@ class BookingControl {
         this.editingBooking.description = this.elements.bookingDescription.value.trim() || 'No Description';
 
         // Submit form
-        this.submitForm('update', {
+        this.submitForm('update_booking', {
             id: this.editingBooking.id,
             calendar_id: this.editingBooking.calendar_id,
             start: this.editingBooking.start.toISOString(),

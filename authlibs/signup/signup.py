@@ -70,6 +70,10 @@ def addMember(sub,plantype,firstname,lastname,email):
 
 @blueprint.route('/howdiduhear', methods=['GET','POST'])
 def howdiduhear():
+    return render_template('wherediduhear.html',where=where,what=what,stuff=stuff,iam=iam)
+
+@blueprint.route('/postpay', methods=['GET','POST'])
+def postpay():
     where = [
                 {'name':'holidaystroll', 'text':"Nashua Holiday Stroll" },
                 {'name':'lksr', 'text':"Lowell Kinetic Sculpture Race" },
@@ -117,10 +121,6 @@ def howdiduhear():
                 {'name':'madscientist', 'text':"Scientist (Mad)" },
                 {'name':'othercientist', 'text':"Scientist (Other)" },
             ]
-    return render_template('wherediduhear.html',where=where,what=what,stuff=stuff,iam=iam)
-
-@blueprint.route('/postpay', methods=['GET','POST'])
-def postpay():
 
     debug = "POSTPAY\n"
     for (k,v) in request.form.items():
@@ -151,6 +151,9 @@ def postpay():
 
     
     names = sessiondata['firstname']+" "+sessiondata['lastname']
+    print ("Names is: "+names)
+    print ("firstname2 is: ",sessiondata['firstname2'])
+    print ("lastname2 is: ",sessiondata['lastname2'])
     emails = sessiondata['email']
     if sessiondata['mtype'] == 'produo':
         names += ", "+sessiondata['firstname2']+" "+sessiondata['lastname2']
@@ -186,8 +189,9 @@ def postpay():
     elif "group" in plan:
         plantype = 'hobbyist'
 
+    isTest = socket.gethostname()  == "staging"
+    isError=False
     try:
-        isTest = socket.gethostname()  == "staging"
         (s,mm) = addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
                 sessiondata['email'])
         createMissingMemberAccounts([mm],isTest=isTest)
@@ -196,14 +200,32 @@ def postpay():
             (s,mm) = addMember(sub,plantype,sessiondata['firstname2'],sessiondata['lastname2'],
                 sessiondata['email2'])
             createMissingMemberAccounts([mm],isTest=isTest)
-
-
         db.session.commit()
     except BaseException as e:
-        return render_template('debug.html',debug=debug)
+        print (f"Signup error: {sessiondata['email']}: {e}\n")
+        isError=True
 
 
-    return render_template('complete.html',debug=debug,email=sessiondata['email'],mtype=sessiondata['mtype'])
+
+
+    return render_template('complete.html',debug=debug,email=sessiondata['email'],
+            mtype=sessiondata['mtype'],isError=isError,where=where,what=what,stuff=stuff,iam=iam)
+
+@blueprint.route('/survey',methods=['POST'])
+def survey():
+
+    results = datetime.now().isoformat()+": "
+    for x in request.form:
+        if x.startswith("other_"):
+            s = request.form.get(x).replace("\"","'")
+            s = s.replace(" ","_")
+            results += f"{x}: \"{s}\" "
+        else:
+            results += f"{x} "
+
+    with open("survey.txt","a") as fd:
+        fd.write(results+"\n")
+    return render_template('survey_complete.html',results=results)
 
 @blueprint.route('/payment', methods=['GET','POST'])
 def payment():
@@ -249,10 +271,6 @@ def payment():
         success_url=baseurl+url_for('signup.postpay')+"?session_id={CHECKOUT_SESSION_ID}",
         cancel_url=baseurl+url_for('signup.failure')
     )
-    logger.warning("FORM DATA: "+str(request.form.items()))
-    logger.warning("SESSION INFO: "+str(session))
-    logger.warning("Session ID: "+str(session['id']))
-
 
     sessiondata = {
             "firstname":request.form.get("firstname"),
@@ -262,10 +280,10 @@ def payment():
             "mtype":mtype
             }
     if (mtype == "produo"):
-        sessiondata["firstname2"] = request.form.get("firstname2"),
-        sessiondata["lastname2"] = request.form.get("lastname2"),
-        sessiondata["phone2"] = request.form.get("phone2"),
-        sessiondata["email2"] = request.form.get("email2"),
+        sessiondata["firstname2"] = request.form.get("firstname2")
+        sessiondata["lastname2"] = request.form.get("lastname2")
+        sessiondata["phone2"] = request.form.get("phone2")
+        sessiondata["email2"] = request.form.get("email2")
             
     r.set("checkoutsession/"+session['id'],json.dumps(sessiondata))
     r.expire("checkoutsession/"+session['id'],600)
