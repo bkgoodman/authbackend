@@ -132,24 +132,27 @@ def gift_postpay():
     # Just display the message. If we needed anything custom,
     # We could have used the session id w/ Redis
 
-    stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
-    checkout_session_id = request.args.get('session_id')
-    checkout_session = stripe.checkout.Session.retrieve(checkout_session_id)
+    opts={'isError': False}
     debug=""
-    r = redis.Redis()
-    ses = r.get("checkoutsession/"+checkout_session['id'])
-    if ses is None:
-        debug += "No session data"
-        return render_template('debug.html',"Session has expired")
-    sessiondata = json.loads(ses)
-    debug += "Session data: "+ses.decode('utf8')+"\n"
-    opts={}
-    opts['code'] = checkout_session['payment_intent']
-    # Do we need this?!
-    #opts['gift_to'] = sessiondata['gift_to']
-    opts['email'] = sessiondata['email']
+    try:
+        stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+        checkout_session_id = request.args.get('session_id')
+        checkout_session = stripe.checkout.Session.retrieve(checkout_session_id)
+        r = redis.Redis()
+        ses = r.get("checkoutsession/"+checkout_session['id'])
+        if ses is None:
+            debug += "No session data"
+            return render_template('debug.html',"Session has expired")
+        sessiondata = json.loads(ses)
+        debug += "Session data: "+ses.decode('utf8')+"\n"
+        opts['code'] = checkout_session['payment_intent']
+        # Do we need this?!
+        #opts['gift_to'] = sessiondata['gift_to']
+        opts['email'] = sessiondata['email']
+    except:
+        opts['isError'] = True
     #debug+="Checkout Session:\n"+str(checkout_session)+"\n"
-    return render_template('complete.html',debug=debug, **opts)
+    return render_template('gift_post.html',debug=debug, **opts)
 
 # Process user form to redeem a membership
 @blueprint.route('/redeem_activate/<string:code>', methods=['GET','POST'])
@@ -271,7 +274,7 @@ def redeem_activate(code=None):
         customer = customer.id,
         payment_method_types=["card"],
         mode="setup",
-        success_url=baseurl+url_for('gift.gift_postpay')+"?session_id={CHECKOUT_SESSION_ID}",
+        success_url=baseurl+url_for('gift.redeem_success')+"?session_id={CHECKOUT_SESSION_ID}",
         cancel_url=baseurl+url_for("gift.redeem")
     )
 
@@ -283,6 +286,27 @@ def redeem_activate(code=None):
 
     #return render_template('complete.html',debug=debug,email=email,mtype="hobbyist")
     #return render_template('debug.html',debug=debug)
+
+@blueprint.route('/redeem_success', methods=['GET','POST'])
+def redeem_success():
+    # Just display the message. If we needed anything custom,
+    # We could have used the session id w/ Redis
+
+    opts={'isError': False}
+    debug=""
+    try:
+        stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+        checkout_session_id = request.args.get('session_id')
+        checkout_session = stripe.checkout.Session.retrieve(checkout_session_id)
+        r = redis.Redis()
+        ses = r.get("checkoutsession/"+checkout_session['id'])
+        if ses is None:
+            debug += "No session data"
+            return render_template('debug.html',"Session has expired")
+        sessiondata = json.loads(ses)
+    except BaseException as e:
+        print (f"REDEEM SUCCESS ERROR {e}")
+    return render_template('redeem_success.html',debug=debug)
 
 @blueprint.route("/redeem",methods=['POST','GET'])
 @blueprint.route("/redeem/<string:code>",methods=['GET','POST'])
