@@ -6,6 +6,7 @@ from authlibs import accesslib
 import stripe
 import qrcode,io
 from datetime import datetime,timedelta
+from dateutil.relativedelta import relativedelta
 from ..membership import createMissingMemberAccounts
 import calendar
 import json
@@ -226,8 +227,11 @@ def redeem_activate(code=None):
     # We make gift recipients enter credit card - We probably SHOULD just use
     # checkout API instead, then do low-level creation on success of that
     try:
+        three_months_from_now = datetime.now() + relativedelta(months=3, days=-1)
+        cancel_timestamp = int(three_months_from_now.timestamp())
         sub = stripe.Subscription.create(
             customer=customer,
+            cancel_at=cancel_timestamp,
             metadata= {
                       "emails": email,
                       "names": fullname

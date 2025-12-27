@@ -84,7 +84,7 @@ def fix2(digest,now,email):
     """
 
     # Member needs a new subscription
-    debug += f"We will need to recreate plan {plan} rateplan {rateplan}\n"
+    debug += f"We will need to recreate plan {plan} rateplan {rateplan} Active: {active}\n"
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     stripe.api_version = '2020-08-27'
 
