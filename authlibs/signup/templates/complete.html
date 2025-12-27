@@ -7,7 +7,7 @@
     <div class="body">
         <h2 class="mb-4">Membership Registration</h2>
 	<p><b>Thank you for joining MakeIt Labs!</b></p>
-	{% if isError == True %}
+	{% if isError == False %}
 	<p>You should be receiving an email at {{ email }} very soon. Please check your inbox and spam folder. It will contain important information on setting up your MakeIt accounts, attending orientation so you can get access to the lab. If you do not hear back within a day, please email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a> for help, or come to one of our orientation sessions <b>Thursdays at 7:00pm</b>. We look forward to seeing you soon!
 	</p>
 	{% else %}
