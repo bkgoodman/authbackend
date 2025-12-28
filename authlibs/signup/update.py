@@ -6,6 +6,7 @@ from authlibs import accesslib
 import stripe
 import qrcode,io
 from datetime import datetime,timedelta
+from ..google_admin import genericEmailSender
 from ..membership import createMissingMemberAccounts
 import calendar
 import json
@@ -102,10 +103,10 @@ def fix2(digest,now,email):
             cancel_url=baseurl+url_for("membershipupdate.payupdate")
         )
         debug += f"Customer: {c}\n"
-        #return redirect(session.url, code=303)
-        debug += f"Update cc URL: {session.url}\n"
+        return redirect(session.url, code=303)
+        #debug += f"Update cc URL: {session.url}\n"
         # TODO Go to this link
-        return render_template('debug.html', debug=debug)
+        # return render_template('debug.html', debug=debug)
 
     balance = c['balance']
 
@@ -131,6 +132,7 @@ def payupdate():
 @blueprint.route('/fix', methods=['GET','POST'])
 def fix():
 
+    isDebug =  current_app.config['globalConfig'].Config.get('General','Debug').lower() == "true"
     debug = "FIX\n"
     emailtext = ""
     for (k,v) in request.form.items():
@@ -157,24 +159,36 @@ def fix():
     else:
         altemail = members[0].alt_email
         email = members[0].email
-        emailtext=f"Membership found: {email} {altemail}"
+        emailtext=f"Membership found: {email} {altemail}\n"
 
-    now = int(datetime.utcnow().timestamp())
-    secret_key =  current_app.config['globalConfig'].Config.get('General','SecretKey')
-    sha = hashlib.sha256()
-    sha.update(secret_key.encode('utf-8'))
-    sha.update(email.encode('utf-8'))
-    sha.update(now.to_bytes(8,byteorder="big"))
+        now = int(datetime.utcnow().timestamp())
+        secret_key =  current_app.config['globalConfig'].Config.get('General','SecretKey')
+        sha = hashlib.sha256()
+        sha.update(secret_key.encode('utf-8'))
+        sha.update(email.encode('utf-8'))
+        sha.update(now.to_bytes(8,byteorder="big"))
 
-    baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
-    digest = base64.urlsafe_b64encode(sha.digest()).decode()
-    url = baseurl+url_for("membershipupdate.fix2",now=now,digest=digest,email=email)
-    debug += f"UTCNOW: {now}\n"
-    debug += f"SecretKe: {secret_key}\n"
-    debug += f"Digest: {digest}\n"
-    debug += f"URL: {url}\n"
-    debug += "\n\nEmail Text:\n\n"+emailtext
-    return render_template('message.html',message="A message will be sent to the email address on-file for this membership, if one has been found.",debug=debug)
+        baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
+        digest = base64.urlsafe_b64encode(sha.digest()).decode()
+        url = baseurl+url_for("membershipupdate.fix2",now=now,digest=digest,email=email)
+        debug += f"UTCNOW: {now}\n"
+        debug += f"Digest: {digest}\n"
+        debug += f"URL: {url}\n"
+        debug += f"Debug {isDebug} type: {type(isDebug)}\n"
+        emailtext=f"Go to this URL to update your membership: {url}\n\n(Link will expire shortly)\n"
+
+    message = ""
+    if isDebug:
+        debug += "\n\nDebug mode enabled - Email NOT sent - Email Text:\n\n"+emailtext
+    else:
+        debug = ""
+        try:
+            genericEmailSender("info@makeitlabs.com",email,"Fix Membership Link",emailtext)
+            message="A message has been sent from info@makeitlabs.com to the email address on-file for this membership, if one has been found. (Make sure it does not go to spam folder)."
+        except BaseException as e:
+            print (f"Email error: {e}")
+            message=f"An error has occured trying to send email - use this link directly, instead: {url}"
+    return render_template('message.html',message=message,debug=debug)
 
 
 # Takes Stripe Subscription Object and subcription id
