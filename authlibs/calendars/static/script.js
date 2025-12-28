@@ -479,7 +479,7 @@ class BookingControl {
         this.bookings.push(newBooking);
 
         // Submit form
-        this.submitForm('create_booking', {
+        this.submitForm('create', {
             start: newBooking.start.toISOString(),
             end: newBooking.end.toISOString(),
             description: newBooking.description
@@ -518,7 +518,7 @@ class BookingControl {
         document.querySelectorAll(`.booking-event[data-id="${this.editingBooking.id}"]`).forEach(el => el.remove());
 
         // Submit form
-        this.submitForm('delete_booking', {
+        this.submitForm('delete', {
             id: this.editingBooking.id,
             calendar_id: this.editingBooking.calendar_id
         });
@@ -538,7 +538,7 @@ class BookingControl {
         this.editingBooking.description = this.elements.bookingDescription.value.trim() || 'No Description';
 
         // Submit form
-        this.submitForm('update_booking', {
+        this.submitForm('update', {
             id: this.editingBooking.id,
             calendar_id: this.editingBooking.calendar_id,
             start: this.editingBooking.start.toISOString(),
