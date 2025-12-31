@@ -6,6 +6,7 @@ from authlibs import accesslib
 import stripe
 import qrcode,io
 from datetime import datetime,timedelta
+from ..google_admin import genericEmailSender
 from ..membership import createMissingMemberAccounts
 import calendar
 import json
@@ -55,7 +56,7 @@ def fix2(digest,now,email):
     textmsg=""
     custids=[]
     subids=[]
-    active=0
+    active="false"
     plan = None
     rateplan = None
     if len(members)==0:
@@ -65,17 +66,19 @@ def fix2(digest,now,email):
     for m in members:
         fullname = m.member.replace("."," ")
         for s in Subscription.query.filter(Subscription.member_id == m.id).all():
-            active = s.active
-            plan = s.plan
-            rateplan = s.rate_plan
-            if s.subid not in subids: subids.append(s.subid)
-            if s.customerid not in custids: custids.append(s.customerid)
+            if s.active == "true":
+                active = s.active
+                plan = s.plan
+                rateplan = s.rate_plan
+                if s.subid not in subids: subids.append(s.subid)
+                if s.customerid not in custids: custids.append(s.customerid)
 
     if len(subids)!=1:
         return render_template('message.html',message="Multiple subscriptions exist. Please email for assistance.")
     if len(custids)!=1:
         return render_template('message.html',message="Multiple customer records exist. Please email for assistance.")
 
+    # TODO!!!
     """
     if active == "true":
         # TODO - allow simple credit card update
@@ -84,7 +87,7 @@ def fix2(digest,now,email):
     """
 
     # Member needs a new subscription
-    debug += f"We will need to recreate plan {plan} rateplan {rateplan}\n"
+    debug += f"We will need to recreate plan {plan} rateplan {rateplan} Active: {active} is a {type(active)}\n"
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     stripe.api_version = '2020-08-27'
 
@@ -99,8 +102,11 @@ def fix2(digest,now,email):
             success_url=baseurl+url_for('membershipupdate.fix_postpay')+"?session_id={CHECKOUT_SESSION_ID}",
             cancel_url=baseurl+url_for("membershipupdate.payupdate")
         )
-        # Redirect user to Stripe to update their card
+        debug += f"Customer: {c}\n"
         return redirect(session.url, code=303)
+        #debug += f"Update cc URL: {session.url}\n"
+        # TODO Go to this link
+        # return render_template('debug.html', debug=debug)
 
     balance = c['balance']
 
@@ -109,22 +115,12 @@ def fix2(digest,now,email):
         return render_template('message.html',message="You already have an active subscription. No further action should be required.", 
         rawhtml="Click <a href='"+url_for("membershipupdate.fix2",digest=digest,now=now,email=email,updatecc=1)+"'>HERE</a> to update your credit card on-file.")
 
-    # No active subscription in Stripe - need to create a new one
-    # But first, we need the user to confirm their payment method via Stripe checkout
-    # After that, fix_postpay will create the new subscription
     s = stripe.Subscription.retrieve(subids[0])
     price = s['items']['data'][0]['price']['id']
-    
-    # Store info needed for subscription creation and redirect to Stripe
-    baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
-    session = stripe.checkout.Session.create(
-        customer = c,
-        payment_method_types=["card"],
-        mode="setup",
-        success_url=baseurl+url_for('membershipupdate.fix_postpay')+"?session_id={CHECKOUT_SESSION_ID}",
-        cancel_url=baseurl+url_for("membershipupdate.payupdate")
-    )
-    return redirect(session.url, code=303)
+    debug += f"Price is {price}\n"
+    debug += str(s)
+
+    return render_template('message.html',message=message,debug=debug)
 
 
 @blueprint.route('/', methods=['GET'])
@@ -132,13 +128,21 @@ def payupdate():
     return render_template('payupdate.html')
 
 
-# Validates email and sends a secure link to proceed with membership update
+# This doesn't do anything execpt send you a link
 @blueprint.route('/fix', methods=['GET','POST'])
 def fix():
+
+    isDebug =  current_app.config['globalConfig'].Config.get('General','Debug').lower() == "true"
+    debug = "FIX\n"
+    emailtext = ""
+    for (k,v) in request.form.items():
+        debug += f"Form Key: {k} Value {v}\n"
+    for (k,v) in request.args.items():
+        debug += f"Args Key: {k} Value: {v}\n"
+
     if 'email' not in request.form:
-        return render_template('message.html', title="Update or Reactivate Membership",
-            message="No email address specified")
-    
+        debug += "No email address specified\n"
+        return render_template('message.html',message="No email address specified")
     email = request.form['email'].strip()
     members = Member.query.filter(
         or_(
@@ -146,40 +150,45 @@ def fix():
             func.lower(Member.email) == func.lower(email)
         )
     ).all()
+    debug += str(members)
 
-    if len(members) == 0:
-        # Don't reveal whether email exists - always show same message
-        return render_template('message.html', title="Update or Reactivate Membership",
-            message="If a membership exists for that email address, a verification link will be sent shortly.")
-    
-    if len(members) > 1:
-        return render_template('message.html', title="Update or Reactivate Membership",
-            message="Multiple memberships were found with that email address. Please contact support for assistance.")
-    
-    # Use the email on file (not the one they typed, in case of alt_email match)
-    member = members[0]
-    email = member.email
+    if len(members)==0:
+        emailtext="No membership with that email was found.\n"
+    elif len(members)>1:
+        emailtext="Multiple memberships were found with that email address. Please specify which you are trying to reactivate.\n"
+    else:
+        altemail = members[0].alt_email
+        email = members[0].email
+        emailtext=f"Membership found: {email} {altemail}\n"
 
-    # Generate secure time-limited link
-    now = int(datetime.utcnow().timestamp())
-    secret_key = current_app.config['globalConfig'].Config.get('General','SecretKey')
-    sha = hashlib.sha256()
-    sha.update(secret_key.encode('utf-8'))
-    sha.update(email.encode('utf-8'))
-    sha.update(now.to_bytes(8, byteorder="big"))
+        now = int(datetime.utcnow().timestamp())
+        secret_key =  current_app.config['globalConfig'].Config.get('General','SecretKey')
+        sha = hashlib.sha256()
+        sha.update(secret_key.encode('utf-8'))
+        sha.update(email.encode('utf-8'))
+        sha.update(now.to_bytes(8,byteorder="big"))
 
-    baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
-    digest = base64.urlsafe_b64encode(sha.digest()).decode()
-    url = baseurl + url_for("membershipupdate.fix2", now=now, digest=digest, email=email)
+        baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
+        digest = base64.urlsafe_b64encode(sha.digest()).decode()
+        url = baseurl+url_for("membershipupdate.fix2",now=now,digest=digest,email=email)
+        debug += f"UTCNOW: {now}\n"
+        debug += f"Digest: {digest}\n"
+        debug += f"URL: {url}\n"
+        debug += f"Debug {isDebug} type: {type(isDebug)}\n"
+        emailtext=f"Go to this URL to update your membership: {url}\n\n(Link will expire shortly)\n"
 
-    # TODO: Send email with the verification link
-    # For now, the URL is generated but email sending needs to be implemented
-    # The link expires in 1 hour (checked in fix2)
-    
-    debug = ""
-    #debug += url
-    return render_template('message.html', debug=debug,title="Update or Reactivate Membership",
-        message="If a membership exists for that email address, a verification link will be sent shortly.")
+    message = ""
+    if isDebug:
+        debug += "\n\nDebug mode enabled - Email NOT sent - Email Text:\n\n"+emailtext
+    else:
+        debug = ""
+        try:
+            genericEmailSender("info@makeitlabs.com",email,"Fix Membership Link",emailtext)
+            message="A message has been sent from info@makeitlabs.com to the email address on-file for this membership, if one has been found. (Make sure it does not go to spam folder)."
+        except BaseException as e:
+            print (f"Email error: {e}")
+            message=f"An error has occured trying to send email - use this link directly, instead: {url}"
+    return render_template('message.html',message=message,debug=debug)
 
 
 # Takes Stripe Subscription Object and subcription id
@@ -216,115 +225,109 @@ def sanistring(str):
 # an updated credit card
 @blueprint.route('/fix_postpay', methods=['GET','POST'])
 def fix_postpay():
+    # TODO ADD BETTER TEMPLATE
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     checkout_session_id = request.args.get('session_id')
-    
-    if not checkout_session_id:
-        return render_template('message.html', title="Update or Reactivate Membership",
-            message="Invalid session. Please start the process again.")
-    
-    try:
-        checkout_session = stripe.checkout.Session.retrieve(checkout_session_id)
-    except stripe.error.StripeError as e:
-        return render_template('message.html', title="Update or Reactivate Membership",
-            message=f"Error retrieving session: {e}")
+    checkout_session = stripe.checkout.Session.retrieve(checkout_session_id)
 
-    # Get the SetupIntent and Customer
+    debug = "Postpay\n"
+    debug += f"\n\nid: {checkout_session['id']}\n"
+    debug += f"object: {checkout_session['object']}\n"
+    debug += f"payment code: {checkout_session['payment_intent']}\n"
+    debug += f"object: {checkout_session}\n"
+
+    # Get the SetupIntent and Cust
+    # Make it the DEFAULT payment
     si = checkout_session['setup_intent']
     c = checkout_session['customer']
 
-    # Set the new card as the default payment method
     try:
         si = stripe.SetupIntent.retrieve(si)
-        stripe.Customer.modify(
+        debug += f"si: {si}\n"
+        xx = stripe.Customer.modify(
             c,
             invoice_settings={
                 'default_payment_method': si['payment_method']
             },
         )
-    except stripe.error.StripeError as e:
-        return render_template('message.html', title="Update or Reactivate Membership",
-            message=f"Error setting default payment method: {e}")
+        debug += f"modify: {xx}\n"
 
-    # Check if customer already has an active subscription
+    except BaseException as e:
+        debug += f"Error in setting default: {e}\n"
+
+    # Now let's look at subscriptions:
     ss = stripe.Subscription.list(customer=c)
-    if len(ss['data']) >= 1:
+    if (len(ss['data']) == 1):
         s = ss['data'][0]
-        status = s['status']
-        
-        if status == "active":
-            # Card updated, subscription is active - we're done
-            return render_template('message.html', title="Update or Reactivate Membership",
-                message="Your payment method has been updated and your membership is active. No further action required.")
-        
-        elif status == "past_due":
-            # Try to pay the outstanding invoice
-            try:
-                invoices = stripe.Invoice.list(customer=c, status='open', limit=1)
-                if len(invoices['data']) > 0:
-                    stripe.Invoice.pay(invoices['data'][0]['id'])
-                return render_template('message.html', title="Update or Reactivate Membership",
-                    message="Your payment method has been updated and we've attempted to process your outstanding payment. Your membership should be reactivated shortly.")
-            except stripe.error.StripeError as e:
-                return render_template('message.html', title="Update or Reactivate Membership",
-                    message=f"Your payment method was updated, but there was an error processing payment: {e}. Please contact support.")
-        
-        elif status == "unpaid":
-            return render_template('message.html', title="Update or Reactivate Membership",
-                message="Your payment method has been updated. Your subscription has unpaid invoices. Please contact support for assistance.")
-        
-        elif status == "paused" or s.get('pause_collection') is not None:
-            return render_template('message.html', title="Update or Reactivate Membership",
-                message="Your payment method has been updated. Your subscription is currently paused. Please contact support to resume.")
-        
-        elif status == "trialing":
-            return render_template('message.html', title="Update or Reactivate Membership",
-                message="Your payment method has been updated. Your membership is in a trial period and active.")
-        
-        else:
-            return render_template('message.html', title="Update or Reactivate Membership",
-                message=f"Your payment method has been updated. Subscription status: {status}. Please contact support if you need assistance.")
-    
-    # No active subscription - find the most recent ended one and create a new subscription
-    ss = stripe.Subscription.list(customer=c, status="canceled")
-    recent = None
-    mostrecent = None
-    for s in ss['data']:
-        ended = s.ended_at or s.canceled_at
-        if ended is not None and (recent is None or ended > recent):
-            recent = ended
-            mostrecent = s
-    
-    if mostrecent is None:
-        return render_template('message.html', title="Update or Reactivate Membership",
-            message="Your payment method has been updated, but no previous subscription was found. Please contact support to set up a new membership.")
-    
-    s = mostrecent
-    
-    # Create new subscription based on the old one
-    # Note: Coupons applied to CUSTOMERS are automatically applied to new subscriptions
-    try:
-        sub = stripe.Subscription.create(
-            customer=c,
-            metadata=s['metadata'],
-            description="Membership renewal",
-            collection_method="charge_automatically",
-            items=[
-                {
-                    "price": s.plan.id,
-                }
-            ],
-        )
-        
-        # Update local database to reflect reactivated membership
-        fixMemberSubscription(sub)
-        
-        return render_template('message.html', title="Membership Reactivated",
-            message="Success! Your payment method has been updated and a new subscription has been created. Your membership is now active.")
+        debug += f"\n\n\nSUBSCRIPTION\n\n\n{s}\n"
+        subid = s['items']['data'][0]['subscription']
+        if (s['status'] == "paused" or s['pause_collection'] is not None):
+            debug += f"You have an active PAUSED\n"
+        elif (s['status'] == "trialing"):
+            debug += f"You have an active TRIALING\n"
+        elif (s['status'] == "unpaid"):
+            debug += f"You have an active UNPAID\n"
+        elif (s['status'] == "active"):
+            debug += f"You have an active subscription SubID: {subid}\n"
+            ## Try to pay this
+        # We're done
+    else:
+        debug += f"No active subscription - let's find most recent one\n"
+        ss = stripe.Subscription.list(customer=c,status="ended")
+        recent = None
+        mostrecent = None
+        for s in ss['data']:
+            debug += f"Inactive sub: {s.id} {s.cancel_at} {s.ended_at} {s.metadata} Plan: {s.plan} Discounts: {s.discounts}\n"
+            if s.ended_at is not None and (recent is None or s.ended_at > recent):
+                recent = s.ended_at 
+                mostrecent = s
+            if s.canceled_at is not None and (recent is None or s.canceled_at > recent):
+                recent = s.canceled_at 
+                mostrecent = s
+        s = mostrecent
+        if s is not None:
+            debug += f"RECENT sub: {s.id} {s.cancel_at} {s.ended_at} {s.metadata} Plan: {s.plan.id}\n\n"
+            debug += f"{s}\n"
 
-    except stripe.error.StripeError as e:
-        return render_template('message.html', title="Update or Reactivate Membership",
-            message=f"Your payment method was updated, but there was an error creating a new subscription: {e}. Please contact support.")
+
+            # Plan.id should be same is s.items.data[0].price.id,
+            d = []
+            """
+
+            Military pro coupons are applied to CUSTOMERS.
+            They are automatically applied to subuscriptions
+            without us doing so to the subscruptions themselves
+
+            if len(s.discounts) > 0:
+                if s.discounts == 'militarypro';
+                    d = [{"coupon":"militarypro}]
+            """
+
+            try:
+                sub = stripe.Subscription.create(
+                    customer=c,
+                    metadata= s['metadata'],
+                    description="Membership renewal",
+                    collection_method="charge_automatically",
+                    items = [
+                        {
+                            "price" : s.plan.id,
+                            "discounts": d,
+                            }
+                        ],
+                )
+                debug += f"NewSub: {sub}\n"
+
+                # If we got here succesfully - make sure membership is reactivated for user.
+                fixMemberSubscription(sub)
+
+
+            except BaseException as e:
+                debug += f"Error Creating new subscription: {e}\n"
+
+
+
+    return render_template('debug.html',debug=debug)
 
 def register_pages(app):
 	app.register_blueprint(blueprint)

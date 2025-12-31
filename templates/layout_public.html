@@ -157,27 +157,7 @@ $( "#layout_search_text" ).on('focusout', function() {
 
     <!-- FOOTER -->
 			<hr />
-					{% if current_user and current_user.email and current_user.is_authenticated%}
-					<footer class="page-footer">
-						<div class="container">
-							<div class="row">
-								<div class="col">
-									<address>{{ current_user.email }}</address>
-								</div>
-								<div class="col">
-									<div style="float:right" >
-									{% for r in  current_user.effective_roles() %}
-									<span class="badge badge-primary">{{ r }}</span> 
-									{% endfor %}
-									{% for r in  current_user.resource_roles() %}
-									<span class="badge badge-info">{{ r }}</span> 
-									{% endfor %}
-									</div>
-								</div>
-							</div>
-						</div>
-					</footer>
-					{% endif %}
+    <!-- END FOOTER -->
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
