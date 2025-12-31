@@ -150,23 +150,6 @@ def postpay():
     # Put it all together.
 
     
-    names = sessiondata['firstname']+" "+sessiondata['lastname']
-    print ("Names is: "+names)
-    print ("firstname2 is: ",sessiondata['firstname2'])
-    print ("lastname2 is: ",sessiondata['lastname2'])
-    emails = sessiondata['email']
-    if sessiondata['mtype'] == 'produo':
-        names += ", "+sessiondata['firstname2']+" "+sessiondata['lastname2']
-        emails += ", "+sessiondata['email2']
-
-    stripe.Subscription.modify(
-      checkout_session['subscription'],
-      metadata={
-          "emails": emails,
-          "names": names
-          }
-    )
-
     sub =  stripe.Subscription.retrieve(checkout_session['subscription'])
     debug += "\n\nSubscription:\n\n"
     debug += str(sub)
@@ -240,12 +223,24 @@ def payment():
 
     mtype = request.form.get("membershipType")
 
+    if not mtype:
+        flash("Please select a membership type")
+        return redirect(url_for("signup.signup"))
+
+    if (
+            (request.form.get("firstname", "").strip() == "") or
+            (request.form.get("lastname", "").strip() == "") or
+            (request.form.get("email", "").strip() == "") or
+            (request.form.get("phone", "").strip() == "")):
+        flash("Please make sure ALL fields are complete")
+        return redirect(url_for("signup.signup"))
+
     if (mtype == "produo"):
         if (
-                (request.form.get("firstname2").strip() == "") or
-                (request.form.get("lastname2").strip() == "") or
-                (request.form.get("email2").strip() == "") or
-                (request.form.get("phone2").strip() == "")):
+                (request.form.get("firstname2", "").strip() == "") or
+                (request.form.get("lastname2", "").strip() == "") or
+                (request.form.get("email2", "").strip() == "") or
+                (request.form.get("phone2", "").strip() == "")):
             flash("Please make sure ALL fields are complete")
             return redirect(url_for("signup.signup"))
 
@@ -261,6 +256,14 @@ def payment():
                     "coupon": "MILITARYPRO"
                     }
                 ]
+    
+    # Build metadata for subscription
+    names = request.form.get("firstname")+" "+request.form.get("lastname")
+    emails = request.form.get("email")
+    if mtype == "produo":
+        names += ", "+request.form.get("firstname2")+" "+request.form.get("lastname2")
+        emails += ", "+request.form.get("email2")
+    
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
     session = stripe.checkout.Session.create(
@@ -268,6 +271,12 @@ def payment():
         line_items=[ line_item ],
         mode="subscription",
         discounts = discounts,
+        subscription_data={
+            "metadata": {
+                "emails": emails,
+                "names": names
+            }
+        },
         success_url=baseurl+url_for('signup.postpay')+"?session_id={CHECKOUT_SESSION_ID}",
         cancel_url=baseurl+url_for('signup.failure')
     )
