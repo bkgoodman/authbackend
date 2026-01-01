@@ -5,14 +5,25 @@
 
 {% block body %}
     <div class="body">
-        <h2 class="mb-4">Update, Cancel or Rejoin</h2>
-	<form method="POST" action="{{ form_action }}">
-		<p>Member Name: {{ fullname }}</p>
-		<p>Member Email: {{ email }}</p>
-		<p>
-		{{ actions }}
-		</p>
-	    <button class="btn btn-primary" type="submit">Proceed</button>
-	</form>
+        <h2 class="mb-4">Membership Options</h2>
+        <p><strong>Member Name:</strong> {{ fullname }}</p>
+        <p><strong>Member Email:</strong> {{ email }}</p>
+        <hr>
+        {% if options %}
+        <p>Please select an option:</p>
+        <ul style="list-style-type: none; padding-left: 0;">
+            {% for option in options %}
+            <li style="margin-bottom: 10px;">
+                <a href="{{ option.url }}" class="btn btn-primary">{{ option.label }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% if message %}
+        <p>{{ message }}</p>
+        {% endif %}
+        {% if debug %}
+        <pre style="background-color:beige;padding:5px">{{ debug }}</pre>
+        {% endif %}
     </div> <!-- End BODY -->
 {% endblock %}
