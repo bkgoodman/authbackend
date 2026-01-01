@@ -369,7 +369,9 @@ def fix_postpay():
                 recent = s.canceled_at 
                 mostrecent = s
         s = mostrecent
-        if s is not None:
+        if s is None:
+            debug += "No subscriptions have been found for you. Please email for help\n"
+        else:
             debug += f"RECENT sub: {s.id} {s.cancel_at} {s.ended_at} {s.metadata} Plan: {s.plan.id}\n\n"
             debug += f"{s}\n"
 
