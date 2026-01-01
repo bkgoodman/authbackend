@@ -123,7 +123,16 @@ def fix2(digest,now,email):
     stripe.api_version = '2020-08-27'
 
     c = stripe.Customer.retrieve(custids[0])
-    has_card = c['invoice_settings']['default_payment_method'] is not None
+    default_pm = c['invoice_settings']['default_payment_method']
+    has_card = default_pm is not None
+    card_last4 = None
+    if has_card:
+        try:
+            pm = stripe.PaymentMethod.retrieve(default_pm)
+            if pm.card:
+                card_last4 = pm.card.last4
+        except:
+            pass
     baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
 
     # Check for action parameter
@@ -179,29 +188,35 @@ def fix2(digest,now,email):
         # Active subscription exists
         options.append({
             'label': 'Update Credit Card on File',
-            'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='updatecc')
+            'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='updatecc'),
+            'confirm': False
         })
         options.append({
             'label': 'Cancel Membership',
-            'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='cancel')
+            'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='cancel'),
+            'confirm': True
         })
         message = "Your membership is currently active."
     else:
         # No active subscription - membership has been canceled
         message = "Your membership is currently inactive."
         if has_card:
+            card_label = f'Reactivate with Existing Card (ending in {card_last4})' if card_last4 else 'Reactivate with Existing Card on File'
             options.append({
-                'label': 'Reactivate with Existing Card on File',
-                'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='reactivate')
+                'label': card_label,
+                'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='reactivate'),
+                'confirm': True
             })
             options.append({
                 'label': 'Update Card and Reactivate',
-                'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='reactivate_newcard')
+                'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='reactivate_newcard'),
+                'confirm': False
             })
         else:
             options.append({
                 'label': 'Add Credit Card and Reactivate',
-                'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='reactivate_newcard')
+                'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='reactivate_newcard'),
+                'confirm': False
             })
 
     return render_template('fix2_confirm.html', fullname=fullname, email=email, options=options, message=message, debug=debug if current_app.config['globalConfig'].Config.get('General','Debug').lower() == 'true' else None)
