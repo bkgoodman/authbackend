@@ -178,9 +178,15 @@ def _get_opendoors():
         if acc:
             u = accesslib.accessQueryToDict(acc)
             (warning, allowed) = accesslib.determineAccess(u, None)
+            print (f"Tool: {tool} is {tool[0]} {tool[1]}")
             if allowed != 'false':
                 # Return tuple without resource_id (name, id, resource_name, node)
-                results.append((tool[0], tool[1], tool[3], tool[4]))
+                #results.append((tool[0], tool[1], tool[3], tool[4]))
+                results.append({
+                    'name':tool[0],
+                    'id':tool[1],
+                    })
+
     return results
 
 def register_pages(app):
