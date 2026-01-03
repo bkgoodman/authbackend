@@ -152,8 +152,6 @@ def postpay():
     
     names = sessiondata['firstname']+" "+sessiondata['lastname']
     print ("Names is: "+names)
-    print ("firstname2 is: ",sessiondata['firstname2'])
-    print ("lastname2 is: ",sessiondata['lastname2'])
     emails = sessiondata['email']
     if sessiondata['mtype'] == 'produo':
         names += ", "+sessiondata['firstname2']+" "+sessiondata['lastname2']
