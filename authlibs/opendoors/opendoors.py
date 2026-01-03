@@ -162,12 +162,26 @@ def open(tool):
 
 
 def _get_opendoors():
-    # TODO see only resources that are enabled for user
-    q = db.session.query(Tool.name,Tool.id).filter(Tool.remotable == 1)
-    q = q.add_column(Resource.name.label("resource_name")).join(Resource,Resource.id==Tool.resource_id)
-    q = q.add_column(Node.name.label("node")).outerjoin(Node,Node.id == Tool.node_id)
-    #print "QUERY",q
-    return q.all()
+    q = db.session.query(Tool.name, Tool.id, Tool.resource_id).filter(Tool.remotable == 1)
+    q = q.add_column(Resource.name.label("resource_name")).join(Resource, Resource.id == Tool.resource_id)
+    q = q.add_column(Node.name.label("node")).outerjoin(Node, Node.id == Tool.node_id)
+    # Filter to only doors the current user has access to
+    q = q.join(AccessByMember, and_(
+        AccessByMember.resource_id == Tool.resource_id,
+        AccessByMember.member_id == current_user.id
+    ))
+    # Check subscription/membership status using access_query
+    results = []
+    for tool in q.all():
+        # tool[2] is resource_id
+        acc = accesslib.access_query(tool[2], current_user.id, tags=False).first()
+        if acc:
+            u = accesslib.accessQueryToDict(acc)
+            (warning, allowed) = accesslib.determineAccess(u, None)
+            if allowed != 'false':
+                # Return tuple without resource_id (name, id, resource_name, node)
+                results.append((tool[0], tool[1], tool[3], tool[4]))
+    return results
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
