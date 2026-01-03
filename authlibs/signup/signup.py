@@ -149,7 +149,6 @@ def postpay():
     # Now we have a real Stripe subscription, and the data the user registered with.
     # Put it all together.
 
-    
     sub =  stripe.Subscription.retrieve(checkout_session['subscription'])
     debug += "\n\nSubscription:\n\n"
     debug += str(sub)
