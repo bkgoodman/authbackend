@@ -62,20 +62,19 @@ def getRequestNetwork(request):
 def opendoors():
     """(Controller) Display Tools and controls"""
     disable=True
+    show_swipe_unlock=False
     onLocalWifi, noProxy  = getRequestNetwork(request)
     if current_user.has_roles('Admin'):
-        disable=False
         if noProxy:
             banner = '<p>Admin seems to not be using proxy</p>'
+            disable=False
         elif onLocalWifi:
             banner = '<p>Admin user is on Wi-Fi</p>'
+            disable=False
         else:
-            banner = f'<p><b>WARNING:</b> Admin user is <b>not</b> Member Wi-Fi network. Remote door opens will still work. <b>Use with Caution!</b></p>'
-            try:
-                banner += f'<pre>{request.headers["X-Real-Ip"] if "X-Real-Ip" in request.headers else "None"}'
-                banner += f'{request.headers["X-Forwarded-For"] if "X-Forwarded-For" in request.headers else "None"}</pre>'
-            except:
-                pass
+            banner = f'<p><b>WARNING:</b> Admin user is <b>not</b> on Member Wi-Fi network. Swipe to unlock remote door controls.</p>'
+            disable=True
+            show_swipe_unlock=True
 
     else:
         if noProxy:
@@ -90,7 +89,7 @@ def opendoors():
 
 
 
-    return render_template('opendoors.html',tools=tools,banner=banner,disable=disable)
+    return render_template('opendoors.html',tools=tools,banner=banner,disable=disable,show_swipe_unlock=show_swipe_unlock)
 
 
 @blueprint.route('/<string:tool>', methods=['GET'])
