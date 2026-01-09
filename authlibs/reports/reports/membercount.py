@@ -52,7 +52,7 @@ if __name__ == "__main__":
                 coupon = s['discount']['coupon']['id']
             couponcodes[s['discount']['coupon']['id']] = coupon
         #print (f"MEMBER: {s['canceled_at']} {s['ended_at']} {s['plan']['active']} {s['plan']['id']}")
-        if ((s['plan']['active'] == True)
+        if ((s['plan'] is not None) and ('active' in s['plan']) and (s['plan']['active'] == True)
             and (s['canceled_at'] is None)
             and (s['ended_at'] is None)):
                 p =  s['plan']['id']
