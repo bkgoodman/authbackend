@@ -246,5 +246,20 @@ def relate_assign():
         
   return redirect(url_for('waivers.relate'))
 
+@blueprint.route('/webhook', methods = ['POST','GET'])
+def webhook():
+  # Add ?waiverid=[waiverid]
+  # Add ?auto_tag=1234 
+
+  # Data like: SMARWAIVER WEBHOOK: ImmutableMultiDict([('unique_id', 'G2SZQGvBRwcMUZB9E4g6f'), ('credential', '6d393d4fed9139945e534623f730c811'), ('event', 'new-waiver')])
+  customer_id = request.args.get('customer_id','')
+  waiver_id = request.args.get('waiverid','')
+  print (f"SMARWAIVER WEBHOOK: Customer: {customer_id} Waiver: {waiver_id}\n")
+  if request.form is not None:
+      print (f"SMARWAIVER WEBHOOK: {request.form}\n")
+
+  return render_template('webhook.html')
+
+
 def cli_waivers_connect(*cmd,**kvargs):
 	connect_waivers()
