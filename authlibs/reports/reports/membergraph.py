@@ -104,6 +104,8 @@ if __name__ == "__main__":
     for s in stripe.Subscription.search(query=f"canceled_at>{since} or status:\"active\"").auto_paging_iter():
         if s['id'] in processed:
             continue
+        if s['plan'] is None:
+            continue
         processed[s['id']]= True
         subcount = subcount+1
         #print (s)

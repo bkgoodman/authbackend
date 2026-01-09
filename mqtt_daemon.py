@@ -193,6 +193,7 @@ def on_message(client,userdata,msg):
             toolname=None
             member=None
             memberId=None
+            memberNickname=None
             toolId=None
             toolDisplay=None
             nodename=None
@@ -293,6 +294,7 @@ def on_message(client,userdata,msg):
             if member and member in member_cache:
                 memberId = member_cache[member]['id']
                 memberSlackId = member_cache[member]['slack']
+                memberNickname = member_cache[member]['nickname']
                 #print "CACHE",memberId,"FROM",member
             elif member:
                 q = Member.query.filter(Member.member==member)
@@ -301,8 +303,9 @@ def on_message(client,userdata,msg):
                 #print "RETURNED",m.id
                 if m:
                     #print "CACHE",member,"=",m.id
-                    member_cache[member]={'id':m.id,'slack':m.slack}
+                    member_cache[member]={'id':m.id,'slack':m.slack,'nickname':m.nickname}
                     memberId=m.id
+                    memberNickname = m.nickname
                     memberSlackId=m.slack
 
 
@@ -577,6 +580,8 @@ def on_message(client,userdata,msg):
 
                         if member:
                           mqttevt['member'] = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
+                          if memberNickname is not None and memberNickname.strip() != "":
+                            mqttevt['member'] = re.sub("(^|\s)(\S)", convert_into_uppercase, memberNickname.replace(".", " "))
                         mqttevt['tool'] = str(toolDisplay)
                         client.publish("displayboard/read/event",json.dumps(mqttevt,indent=2))
                     except BaseException as e:
