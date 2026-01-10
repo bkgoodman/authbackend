@@ -250,6 +250,7 @@ def relate_assign():
 def webhook():
   # Add ?waiverid=[waiverid]
   # Add ?auto_tag=1234 
+  # To query the API for that specific waiver participant use rest_waiverid
 
   # Data like: SMARWAIVER WEBHOOK: ImmutableMultiDict([('unique_id', 'G2SZQGvBRwcMUZB9E4g6f'), ('credential', '6d393d4fed9139945e534623f730c811'), ('event', 'new-waiver')])
   customer_id = request.args.get('customer_id','')

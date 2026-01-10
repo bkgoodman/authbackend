@@ -173,8 +173,16 @@ def bin_edit(id):
   if b.ProBin is None:
     flash("Bin does not exist","danger")  
     return redirect(url_for("prostore.locations"))
-  sub = Subscription.query.filter(Subscription.member_id == b.ProBin.member_id).one_or_none()
-  print ("BiNSub",sub,sub.rate_plan)
+  try:
+      if (b.ProBin.member_id is None):
+        sub = None
+      else:
+        sub = Subscription.query.filter(Subscription.member_id == b.ProBin.member_id).one_or_none()
+  except BaseException as e:
+    flash("Error getting member subscription","danger")  
+    print (f"Member Sugscription error - id {b.ProBin.member_id} - error: {e}\n")
+    return redirect(url_for("prostore.locations"))
+
   iamPro = True if sub is not None and sub.rate_plan in ('pro', 'produo') else False
   locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
   locs=locs.all()
