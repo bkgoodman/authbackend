@@ -257,7 +257,12 @@ def webhook():
   waiver_id = request.args.get('waiverid','')
   print (f"SMARWAIVER WEBHOOK: Customer: {customer_id} Waiver: {waiver_id}\n")
   if request.form is not None:
-      print (f"SMARWAIVER WEBHOOK: {request.form}\n")
+    print (f"SMARWAIVER WEBHOOK: {request.form}\n")
+  try:
+    updated = addNewWaivers()
+    connect_waivers()
+  except BaseException as e:
+    print (f"ERROR: Smartwaiver webook update: {e}\n",e)
 
   return render_template('webhook.html')
 
