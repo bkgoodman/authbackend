@@ -105,23 +105,40 @@ def get_database_schema():
     inspector = sql_inspect(db.engine)
     
     schema_parts.append("First database called makeit.db:")
-    for table_name in inspector.get_table_names():
+    table_names = inspector.get_table_names()
+    schema_parts.append(f"\nAvailable tables: {', '.join(table_names)}")
+    
+    for table_name in table_names:
         columns = inspector.get_columns(table_name)
         schema_parts.append(f"\nTable: {table_name}")
         for col in columns:
             schema_parts.append(f"  {col['name']} {col['type']}")
     
-    # Get tools and resources mapping
-    tools = db.session.execute(text("SELECT id, name FROM tools")).fetchall()
-    resources = db.session.execute(text("SELECT id, name FROM resources")).fetchall()
+    # Get tools and resources mapping if tables exist
+    tools = []
+    resources = []
     
-    schema_parts.append("\n\ntools defined as:")
-    for tool_id, tool_name in tools:
-        schema_parts.append(f"  {tool_id}: {tool_name}")
+    if 'tools' in table_names:
+        try:
+            tools = db.session.execute(text("SELECT id, name FROM tools")).fetchall()
+        except Exception as e:
+            logger.warning(f"Could not query tools table: {e}")
     
-    schema_parts.append("\n\nresources defined as:")
-    for res_id, res_name in resources:
-        schema_parts.append(f"  {res_id}: {res_name}")
+    if 'resources' in table_names:
+        try:
+            resources = db.session.execute(text("SELECT id, name FROM resources")).fetchall()
+        except Exception as e:
+            logger.warning(f"Could not query resources table: {e}")
+    
+    if tools:
+        schema_parts.append("\n\ntools defined as:")
+        for tool_id, tool_name in tools:
+            schema_parts.append(f"  {tool_id}: {tool_name}")
+    
+    if resources:
+        schema_parts.append("\n\nresources defined as:")
+        for res_id, res_name in resources:
+            schema_parts.append(f"  {res_id}: {res_name}")
     
     schema_parts.append("""
     
@@ -169,7 +186,7 @@ def execute_sql_query(sql):
                 output = []
                 output.append("\t".join(str(col) for col in columns))
                 for row in rows:
-                    output.append("\t".join(str(val) for val in row))
+                    output.append("\t".join(str(val) if val is not None else 'NULL' for val in row))
                 return "\n".join(output)
             else:
                 return "No results returned"
@@ -177,6 +194,7 @@ def execute_sql_query(sql):
             return f"Query executed successfully. Rows affected: {result.rowcount}"
             
     except Exception as e:
+        logger.error(f"SQL execution error: {e}\nSQL: {sql}")
         return f"SQL Error: {str(e)}"
 
 def generate_final_report(client, result, question):
