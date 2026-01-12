@@ -147,10 +147,11 @@ Be sure to include:
     ATTACH DATABASE "log.db" as log;
 
 Make sure each table reference uses the correct attached database!
-return ONLY raw SQL - no block around it
+return ONLY raw SQL - no block around it like triple-backtick clauses, etc.
 
 You are ONLY to determine what SQL query you would need to execute to give yourself the data required to answer the user's question.
 """
+
     
     response = client.models.generate_content(
         model="gemini-3-pro-preview",
@@ -159,6 +160,7 @@ You are ONLY to determine what SQL query you would need to execute to give yours
         contents=f"{schema}\n\nThe user's question is as follows: {question}",
     )
     
+    print (f"BigBrain SQL shoult be:\n{response.text.strip()}\n")
     return response.text.strip()
 
 def execute_sql_query(sql):
@@ -169,6 +171,7 @@ def execute_sql_query(sql):
         # Use subprocess like the original g.py to support ATTACH DATABASE
         result = subprocess.check_output(["sqlite3","-readonly","-table"], 
                                        input=sql.encode("utf-8")).decode("utf-8")
+        print (f"BigBrain SQL query returns:\n{result}\n")
         return result
             
     except Exception as e:
