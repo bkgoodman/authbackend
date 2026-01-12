@@ -10,13 +10,15 @@ from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMemb
 from functools import wraps
 import json
 import subprocess
+import os
+import inspect
+from google import genai
 #from .. import requireauth as requireauth
 from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
 from authlibs import payments as pay
-from sqlalchemy import case, DateTime
-import json
+from sqlalchemy import case, DateTime, text, inspect as sql_inspect
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -45,6 +47,148 @@ def oldreports():
 def reports():
     """(Controller) Display some pre-defined report options"""
     return render_template('reports.html')
+
+@blueprint.route('/bigbrain', methods=['GET'])
+@roles_required(['Admin','Finance'])
+@login_required
+def bigbrain_page():
+    """(Controller) Display BigBrain AI query interface"""
+    return render_template('ai_query.html')
+
+@blueprint.route('/bigbrain', methods=['POST'])
+@roles_required(['Admin','Finance'])
+@login_required
+def bigbrain():
+    """(Controller) Process BigBrain AI database query"""
+    try:
+        data = request.get_json()
+        question = data.get('question', '').strip()
+        
+        if not question:
+            return json.dumps({'status': 'error', 'message': 'Question is required'})
+        
+        # Initialize Google AI client
+        api_key = current_app.config['globalConfig'].Config.get('GoogleAI', 'token', fallback='')
+        
+        if not api_key:
+            return json.dumps({'status': 'error', 'message': 'Google AI API key not configured in config'})
+        
+        client = genai.Client(api_key=api_key)
+        
+        # Get database schema using SQLAlchemy
+        schema = get_database_schema()
+        
+        # Generate SQL query
+        sql = generate_sql_query(client, schema, question)
+        
+        # Execute SQL query
+        result = execute_sql_query(sql)
+        
+        # Generate final report
+        answer = generate_final_report(client, result, question)
+        
+        return json.dumps({
+            'status': 'ok',
+            'sql': sql,
+            'answer': answer
+        })
+        
+    except Exception as e:
+        logger.error(f"AI query error: {e}")
+        return json.dumps({'status': 'error', 'message': str(e)})
+
+def get_database_schema():
+    """Get database schema using subprocess like original g.py"""
+    import subprocess
+    
+    try:
+        # Use subprocess to get schema - paths are relative to project root now
+        db1 = subprocess.check_output(["sqlite3","makeit.db",".schema"]).decode("utf-8")
+        db2 = subprocess.check_output(["sqlite3","log.db",".schema"]).decode("utf-8")
+        db3 = subprocess.check_output(["sqlite3","makeit.db","select id,name from tools"]).decode("utf-8")
+        db4 = subprocess.check_output(["sqlite3","makeit.db","select id,name from resources"]).decode("utf-8")
+        
+        schema = f"""
+TWO related databases - so remember that queries that use inter-related tables must specify which database!
+
+First database called makeit.db:
+{db1}
+
+Second database called log.db:
+
+{db2}
+
+Try to resolve tool or resource names to these IDs as best you can - write queries to lookup against these rather than using names directly in queries:
+
+tools defined as:
+{db3}
+
+resources defined as:
+{db4}
+
+Take SPECIAL care when writing SQL queries, that any tables you reference above must be specified with a "makeit." or a "log." prefix, or the wrong database will be used.
+
+"""
+        return schema
+        
+    except Exception as e:
+        logger.error(f"Error getting database schema: {e}")
+        # Fallback to basic schema info
+        return "Error retrieving database schema. Please check database connectivity."
+
+def generate_sql_query(client, schema, question):
+    """Generate SQL query using Google AI"""
+    system = """
+You are an automated database agent - return sqlite3 SQL only. 
+Do not do anything to drop, modify add database at all. Never return more than 250 entries. Return error if trying to modify databases
+Be sure to include:
+
+    ATTACH DATABASE "makeit.db" as makeit;
+    ATTACH DATABASE "log.db" as log;
+
+Make sure each table reference uses the correct attached database!
+return ONLY raw SQL - no block around it
+
+You are ONLY to determine what SQL query you would need to execute to give yourself the data required to answer the user's question.
+"""
+    
+    response = client.models.generate_content(
+        model="gemini-3-pro-preview",
+        config=genai.types.GenerateContentConfig(
+            system_instruction=system),
+        contents=f"{schema}\n\nThe user's question is as follows: {question}",
+    )
+    
+    return response.text.strip()
+
+def execute_sql_query(sql):
+    """Execute SQL query using subprocess for ATTACH DATABASE support"""
+    import subprocess
+    
+    try:
+        # Use subprocess like the original g.py to support ATTACH DATABASE
+        result = subprocess.check_output(["sqlite3","-readonly","-table"], 
+                                       input=sql.encode("utf-8")).decode("utf-8")
+        return result
+            
+    except Exception as e:
+        logger.error(f"SQL execution error: {e}\nSQL: {sql}")
+        return f"SQL Error: {str(e)}"
+
+def generate_final_report(client, result, question):
+    """Generate final HTML report using Google AI"""
+    system = """
+user has asked a question, and then you queried a bunch of data to help answer the question or generate the report that the user asked. Use the attached data to help best answer question or generate report for the user. Provide full answer in HTML format. Do not put a leading "HTML" header/footer, as raw response must be embedded in existing HTML.
+"""
+    
+    response = client.models.generate_content(
+        model="gemini-3-pro-preview",
+        config=genai.types.GenerateContentConfig(
+            system_instruction=system),
+        contents=f"{result}\n\nThe user's question is as follows: {question}",
+    )
+    
+    return response.text.strip()
 
 
 # Not used right now - I think it is exclusivley old "pinpayments" stuff??
