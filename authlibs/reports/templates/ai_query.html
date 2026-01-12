@@ -33,7 +33,7 @@
   </style>
 {% endblock %}
 {% block body %}
-  <h2>AI Database Query</h2>
+  <h2>BigBrain AI Query</h2>
   <div class="resourcelist">
     
     <div class="sectionhead">
@@ -49,7 +49,7 @@
                     required></textarea>
         </div>
         <button type="submit" class="btn btn-primary" id="submitBtn">
-          <span class="btn-text">Generate Report</span>
+          <span class="btn-text">Generate BigBrain Report</span>
           <span class="spinner-border spinner-border-sm d-none" role="status">
             <span class="visually-hidden">Loading...</span>
           </span>
@@ -72,7 +72,7 @@
     </div>
 
     <div id="answerSection" class="answer-section d-none">
-      <h5>AI-Generated Report:</h5>
+      <h5>BigBrain AI-Generated Report:</h5>
       <div class="answer-content" id="answerContent"></div>
     </div>
   </div>
@@ -105,7 +105,7 @@ document.getElementById('queryForm').addEventListener('submit', function(e) {
   submitBtn.disabled = true;
   
   // Send request
-  fetch('{{ url_for("reports.ai_query") }}', {
+  fetch('{{ url_for("reports.bigbrain") }}', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ document.getElementById('queryForm').addEventListener('submit', function(e) {
   })
   .then(response => response.json())
   .then(data => {
-    btnText.textContent = 'Generate Report';
+    btnText.textContent = 'Generate BigBrain Report';
     spinner.classList.add('d-none');
     spinnerDiv.style.display = 'none';
     submitBtn.disabled = false;
@@ -133,7 +133,7 @@ document.getElementById('queryForm').addEventListener('submit', function(e) {
     }
   })
   .catch(error => {
-    btnText.textContent = 'Generate Report';
+    btnText.textContent = 'Generate BigBrain Report';
     spinner.classList.add('d-none');
     spinnerDiv.style.display = 'none';
     submitBtn.disabled = false;

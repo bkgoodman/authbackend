@@ -48,18 +48,18 @@ def reports():
     """(Controller) Display some pre-defined report options"""
     return render_template('reports.html')
 
-@blueprint.route('/ai_query', methods=['GET'])
+@blueprint.route('/bigbrain', methods=['GET'])
 @roles_required(['Admin','Finance'])
 @login_required
-def ai_query_page():
-    """(Controller) Display AI query interface"""
+def bigbrain_page():
+    """(Controller) Display BigBrain AI query interface"""
     return render_template('ai_query.html')
 
-@blueprint.route('/ai_query', methods=['POST'])
+@blueprint.route('/bigbrain', methods=['POST'])
 @roles_required(['Admin','Finance'])
 @login_required
-def ai_query():
-    """(Controller) Process AI database query"""
+def bigbrain():
+    """(Controller) Process BigBrain AI database query"""
     try:
         data = request.get_json()
         question = data.get('question', '').strip()
@@ -172,26 +172,64 @@ You are ONLY to determine what SQL query you would need to execute to give yours
 def execute_sql_query(sql):
     """Execute SQL query using SQLAlchemy"""
     try:
-        # Execute the query
-        result = db.session.execute(text(sql))
+        # Split SQL into individual statements
+        statements = []
+        current_statement = ""
         
-        # Format the result as text
-        if result.returns_rows:
-            rows = result.fetchall()
-            if rows:
-                # Get column names
-                columns = result.keys()
+        for line in sql.split('\n'):
+            line = line.strip()
+            if not line or line.startswith('--'):
+                continue
+            current_statement += line + '\n'
+            if line.endswith(';'):
+                statements.append(current_statement.strip())
+                current_statement = ""
+        
+        if current_statement.strip():
+            statements.append(current_statement.strip())
+        
+        # Execute each statement and collect results
+        all_results = []
+        
+        for i, statement in enumerate(statements):
+            if not statement.strip():
+                continue
                 
-                # Format as table
-                output = []
-                output.append("\t".join(str(col) for col in columns))
-                for row in rows:
-                    output.append("\t".join(str(val) if val is not None else 'NULL' for val in row))
-                return "\n".join(output)
-            else:
-                return "No results returned"
-        else:
-            return f"Query executed successfully. Rows affected: {result.rowcount}"
+            try:
+                result = db.session.execute(text(statement))
+                
+                # Format the result as text
+                if result.returns_rows:
+                    rows = result.fetchall()
+                    if rows:
+                        # Get column names
+                        columns = result.keys()
+                        
+                        # Format as table
+                        output = []
+                        if i > 0:  # Add separator for multiple queries
+                            output.append(f"\n--- Query {i+1} Results ---")
+                        output.append("\t".join(str(col) for col in columns))
+                        for row in rows:
+                            output.append("\t".join(str(val) if val is not None else 'NULL' for val in row))
+                        all_results.extend(output)
+                    else:
+                        if i == 0:  # Only show "No results" for first query
+                            all_results.append("No results returned")
+                else:
+                    if i == 0:  # Only show success message for first query
+                        all_results.append(f"Query executed successfully. Rows affected: {result.rowcount}")
+                    else:
+                        all_results.append(f"Query {i+1} executed successfully. Rows affected: {result.rowcount}")
+                        
+            except Exception as e:
+                logger.error(f"SQL execution error for statement {i+1}: {e}\nStatement: {statement}")
+                if i == 0:  # Return error for first statement
+                    return f"SQL Error: {str(e)}"
+                else:
+                    all_results.append(f"Error in query {i+1}: {str(e)}")
+        
+        return "\n".join(all_results) if all_results else "No valid SQL statements found"
             
     except Exception as e:
         logger.error(f"SQL execution error: {e}\nSQL: {sql}")
