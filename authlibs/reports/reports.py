@@ -10,13 +10,15 @@ from ..db_models import Member, db, Resource, Subscription, Waiver, AccessByMemb
 from functools import wraps
 import json
 import subprocess
+import os
+import inspect
+from google import genai
 #from .. import requireauth as requireauth
 from .. import utilities as authutil
 from ..utilities import _safestr as safestr
 from authlibs import eventtypes
 from authlibs import payments as pay
-from sqlalchemy import case, DateTime
-import json
+from sqlalchemy import case, DateTime, text, inspect as sql_inspect
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -45,6 +47,152 @@ def oldreports():
 def reports():
     """(Controller) Display some pre-defined report options"""
     return render_template('reports.html')
+
+@blueprint.route('/ai_query', methods=['GET'])
+@roles_required(['Admin','Finance'])
+@login_required
+def ai_query_page():
+    """(Controller) Display AI query interface"""
+    return render_template('ai_query.html')
+
+@blueprint.route('/ai_query', methods=['POST'])
+@roles_required(['Admin','Finance'])
+@login_required
+def ai_query():
+    """(Controller) Process AI database query"""
+    try:
+        data = request.get_json()
+        question = data.get('question', '').strip()
+        
+        if not question:
+            return json.dumps({'status': 'error', 'message': 'Question is required'})
+        
+        # Initialize Google AI client
+        api_key = current_app.config['globalConfig'].Config.get('GoogleAI', 'token', fallback='')
+        
+        if not api_key:
+            return json.dumps({'status': 'error', 'message': 'Google AI API key not configured in config'})
+        
+        client = genai.Client(api_key=api_key)
+        
+        # Get database schema using SQLAlchemy
+        schema = get_database_schema()
+        
+        # Generate SQL query
+        sql = generate_sql_query(client, schema, question)
+        
+        # Execute SQL query
+        result = execute_sql_query(sql)
+        
+        # Generate final report
+        answer = generate_final_report(client, result, question)
+        
+        return json.dumps({
+            'status': 'ok',
+            'sql': sql,
+            'answer': answer
+        })
+        
+    except Exception as e:
+        logger.error(f"AI query error: {e}")
+        return json.dumps({'status': 'error', 'message': str(e)})
+
+def get_database_schema():
+    """Get database schema using SQLAlchemy inspection"""
+    schema_parts = []
+    
+    # Get main database schema
+    inspector = sql_inspect(db.engine)
+    
+    schema_parts.append("First database called makeit.db:")
+    for table_name in inspector.get_table_names():
+        columns = inspector.get_columns(table_name)
+        schema_parts.append(f"\nTable: {table_name}")
+        for col in columns:
+            schema_parts.append(f"  {col['name']} {col['type']}")
+    
+    # Get tools and resources mapping
+    tools = db.session.execute(text("SELECT id, name FROM tools")).fetchall()
+    resources = db.session.execute(text("SELECT id, name FROM resources")).fetchall()
+    
+    schema_parts.append("\n\ntools defined as:")
+    for tool_id, tool_name in tools:
+        schema_parts.append(f"  {tool_id}: {tool_name}")
+    
+    schema_parts.append("\n\nresources defined as:")
+    for res_id, res_name in resources:
+        schema_parts.append(f"  {res_id}: {res_name}")
+    
+    schema_parts.append("""
+    
+Take SPECIAL care when writing SQL queries, that any tables you reference above must be specified with a "makeit." prefix.
+""")
+    
+    return "\n".join(schema_parts)
+
+def generate_sql_query(client, schema, question):
+    """Generate SQL query using Google AI"""
+    system = """
+You are an automated database agent - return sqlite3 SQL only. 
+Do not do anything to drop, modify add database at all. Never return more than 250 entries. Return error if trying to modify databases
+Be sure to include:
+
+Make sure each table reference uses the correct attached database!
+return ONLY raw SQL - no block around it
+
+You are ONLY to determine what SQL query you would need to execute to give yourself the data required to answer the user's question.
+"""
+    
+    response = client.models.generate_content(
+        model="gemini-3-pro-preview",
+        config=genai.types.GenerateContentConfig(
+            system_instruction=system),
+        contents=f"{schema}\n\nThe user's question is as follows: {question}",
+    )
+    
+    return response.text.strip()
+
+def execute_sql_query(sql):
+    """Execute SQL query using SQLAlchemy"""
+    try:
+        # Execute the query
+        result = db.session.execute(text(sql))
+        
+        # Format the result as text
+        if result.returns_rows:
+            rows = result.fetchall()
+            if rows:
+                # Get column names
+                columns = result.keys()
+                
+                # Format as table
+                output = []
+                output.append("\t".join(str(col) for col in columns))
+                for row in rows:
+                    output.append("\t".join(str(val) for val in row))
+                return "\n".join(output)
+            else:
+                return "No results returned"
+        else:
+            return f"Query executed successfully. Rows affected: {result.rowcount}"
+            
+    except Exception as e:
+        return f"SQL Error: {str(e)}"
+
+def generate_final_report(client, result, question):
+    """Generate final HTML report using Google AI"""
+    system = """
+user has asked a question, and then you queried a bunch of data to help answer the question or generate the report that the user asked. Use the attached data to help best answer question or generate report for the user. Provide full answer in HTML format
+"""
+    
+    response = client.models.generate_content(
+        model="gemini-3-pro-preview",
+        config=genai.types.GenerateContentConfig(
+            system_instruction=system),
+        contents=f"{result}\n\nThe user's question is as follows: {question}",
+    )
+    
+    return response.text.strip()
 
 
 # Not used right now - I think it is exclusivley old "pinpayments" stuff??
