@@ -178,7 +178,7 @@ def execute_sql_query(sql):
 def generate_final_report(client, result, question):
     """Generate final HTML report using Google AI"""
     system = """
-user has asked a question, and then you queried a bunch of data to help answer the question or generate the report that the user asked. Use the attached data to help best answer question or generate report for the user. Provide full answer in HTML format
+user has asked a question, and then you queried a bunch of data to help answer the question or generate the report that the user asked. Use the attached data to help best answer question or generate report for the user. Provide full answer in HTML format. Do not put a leading "HTML" header/footer, as raw response must be embedded in existing HTML.
 """
     
     response = client.models.generate_content(
