@@ -98,54 +98,43 @@ def bigbrain():
         return json.dumps({'status': 'error', 'message': str(e)})
 
 def get_database_schema():
-    """Get database schema using SQLAlchemy inspection"""
-    schema_parts = []
+    """Get database schema using subprocess like original g.py"""
+    import subprocess
     
-    # Get main database schema
-    inspector = sql_inspect(db.engine)
-    
-    schema_parts.append("First database called makeit.db:")
-    table_names = inspector.get_table_names()
-    schema_parts.append(f"\nAvailable tables: {', '.join(table_names)}")
-    
-    for table_name in table_names:
-        columns = inspector.get_columns(table_name)
-        schema_parts.append(f"\nTable: {table_name}")
-        for col in columns:
-            schema_parts.append(f"  {col['name']} {col['type']}")
-    
-    # Get tools and resources mapping if tables exist
-    tools = []
-    resources = []
-    
-    if 'tools' in table_names:
-        try:
-            tools = db.session.execute(text("SELECT id, name FROM tools")).fetchall()
-        except Exception as e:
-            logger.warning(f"Could not query tools table: {e}")
-    
-    if 'resources' in table_names:
-        try:
-            resources = db.session.execute(text("SELECT id, name FROM resources")).fetchall()
-        except Exception as e:
-            logger.warning(f"Could not query resources table: {e}")
-    
-    if tools:
-        schema_parts.append("\n\ntools defined as:")
-        for tool_id, tool_name in tools:
-            schema_parts.append(f"  {tool_id}: {tool_name}")
-    
-    if resources:
-        schema_parts.append("\n\nresources defined as:")
-        for res_id, res_name in resources:
-            schema_parts.append(f"  {res_id}: {res_name}")
-    
-    schema_parts.append("""
-    
-Take SPECIAL care when writing SQL queries, that any tables you reference above must be specified with a "makeit." prefix.
-""")
-    
-    return "\n".join(schema_parts)
+    try:
+        # Use subprocess to get schema - paths are relative to project root now
+        db1 = subprocess.check_output(["sqlite3","makeit.db",".schema"]).decode("utf-8")
+        db2 = subprocess.check_output(["sqlite3","log.db",".schema"]).decode("utf-8")
+        db3 = subprocess.check_output(["sqlite3","makeit.db","select id,name from tools"]).decode("utf-8")
+        db4 = subprocess.check_output(["sqlite3","makeit.db","select id,name from resources"]).decode("utf-8")
+        
+        schema = f"""
+TWO related databases - so remember that queries that use inter-related tables must specify which database!
+
+First database called makeit.db:
+{db1}
+
+Second database called log.db:
+
+{db2}
+
+Try to resolve tool or resource names to these IDs as best you can - write queries to lookup against these rather than using names directly in queries:
+
+tools defined as:
+{db3}
+
+resources defined as:
+{db4}
+
+Take SPECIAL care when writing SQL queries, that any tables you reference above must be specified with a "makeit." or a "log." prefix, or the wrong database will be used.
+
+"""
+        return schema
+        
+    except Exception as e:
+        logger.error(f"Error getting database schema: {e}")
+        # Fallback to basic schema info
+        return "Error retrieving database schema. Please check database connectivity."
 
 def generate_sql_query(client, schema, question):
     """Generate SQL query using Google AI"""
@@ -153,6 +142,9 @@ def generate_sql_query(client, schema, question):
 You are an automated database agent - return sqlite3 SQL only. 
 Do not do anything to drop, modify add database at all. Never return more than 250 entries. Return error if trying to modify databases
 Be sure to include:
+
+    ATTACH DATABASE "makeit.db" as makeit;
+    ATTACH DATABASE "log.db" as log;
 
 Make sure each table reference uses the correct attached database!
 return ONLY raw SQL - no block around it
@@ -170,66 +162,14 @@ You are ONLY to determine what SQL query you would need to execute to give yours
     return response.text.strip()
 
 def execute_sql_query(sql):
-    """Execute SQL query using SQLAlchemy"""
+    """Execute SQL query using subprocess for ATTACH DATABASE support"""
+    import subprocess
+    
     try:
-        # Split SQL into individual statements
-        statements = []
-        current_statement = ""
-        
-        for line in sql.split('\n'):
-            line = line.strip()
-            if not line or line.startswith('--'):
-                continue
-            current_statement += line + '\n'
-            if line.endswith(';'):
-                statements.append(current_statement.strip())
-                current_statement = ""
-        
-        if current_statement.strip():
-            statements.append(current_statement.strip())
-        
-        # Execute each statement and collect results
-        all_results = []
-        
-        for i, statement in enumerate(statements):
-            if not statement.strip():
-                continue
-                
-            try:
-                result = db.session.execute(text(statement))
-                
-                # Format the result as text
-                if result.returns_rows:
-                    rows = result.fetchall()
-                    if rows:
-                        # Get column names
-                        columns = result.keys()
-                        
-                        # Format as table
-                        output = []
-                        if i > 0:  # Add separator for multiple queries
-                            output.append(f"\n--- Query {i+1} Results ---")
-                        output.append("\t".join(str(col) for col in columns))
-                        for row in rows:
-                            output.append("\t".join(str(val) if val is not None else 'NULL' for val in row))
-                        all_results.extend(output)
-                    else:
-                        if i == 0:  # Only show "No results" for first query
-                            all_results.append("No results returned")
-                else:
-                    if i == 0:  # Only show success message for first query
-                        all_results.append(f"Query executed successfully. Rows affected: {result.rowcount}")
-                    else:
-                        all_results.append(f"Query {i+1} executed successfully. Rows affected: {result.rowcount}")
-                        
-            except Exception as e:
-                logger.error(f"SQL execution error for statement {i+1}: {e}\nStatement: {statement}")
-                if i == 0:  # Return error for first statement
-                    return f"SQL Error: {str(e)}"
-                else:
-                    all_results.append(f"Error in query {i+1}: {str(e)}")
-        
-        return "\n".join(all_results) if all_results else "No valid SQL statements found"
+        # Use subprocess like the original g.py to support ATTACH DATABASE
+        result = subprocess.check_output(["sqlite3","-readonly","-table"], 
+                                       input=sql.encode("utf-8")).decode("utf-8")
+        return result
             
     except Exception as e:
         logger.error(f"SQL execution error: {e}\nSQL: {sql}")
