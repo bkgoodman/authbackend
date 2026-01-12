@@ -122,12 +122,11 @@ document.getElementById('queryForm').addEventListener('submit', function(e) {
     if (data.status === 'error') {
       errorMessage.textContent = data.message;
       errorSection.classList.remove('d-none');
-    } else {
-      // Show SQL
-      sqlContent.textContent = data.sql;
+      // Show SQL on error for debugging
+      sqlContent.textContent = data.sql || 'No SQL generated';
       sqlSection.classList.remove('d-none');
-      
-      // Show answer
+    } else {
+      // Show answer only
       answerContent.innerHTML = data.answer;
       answerSection.classList.remove('d-none');
     }
