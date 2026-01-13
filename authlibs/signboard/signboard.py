@@ -222,7 +222,7 @@ def get_calendar_events():
                     description = description[:200] + "..."
             
             # Determine location/device based on summary like original pubcal.py
-            device = "TBD"
+            device = ""
             summary_lower = summary.lower()
             if 'mopa' in summary_lower and 'epilog' in summary_lower:
                 device = "Laser Room"
