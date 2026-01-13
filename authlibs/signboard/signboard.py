@@ -221,17 +221,32 @@ def get_calendar_events():
                 if len(description) > 200:
                     description = description[:200] + "..."
             
-            # Get organizer info
-            organizer = ""
-            if 'ORGANIZER' in component:
-                for p in component['ORGANIZER'].params:
-                    if p == "CN":
-                        organizer = component['ORGANIZER'].params[p]
+            # Determine location/device based on summary like original pubcal.py
+            device = "TBD"
+            summary_lower = summary.lower()
+            if 'mopa' in summary_lower and 'epilog' in summary_lower:
+                device = "Laser Room"
+            elif 'mopa' in summary_lower:
+                device = "Laser Room"
+            elif 'epilog' in summary_lower:
+                device = "Laser Room"
+            elif 'shopbot' in summary_lower:
+                device = "Machine Shop"
+            elif 'jetlathe' in summary_lower:
+                device = "Machine Shop"
+            elif 'prototrak' in summary_lower:
+                device = "Machine Shop"
+            elif 'bridgeport' in summary_lower:
+                device = "Machine Shop"
+            elif 'auto' in summary_lower:
+                device = "Auto Area"
+            elif 'tormach' in summary_lower:
+                device = "Machine Shop"
 
             events.append({
                 'what': summary,
                 'when': when,
-                'where': 'TBD',  # Would need more logic to determine room
+                'where': device,
                 'detail': description if description else "",
                 'source': 'calendar',
                 'priority': 2  # 2 = Neutral priority, compete normally
