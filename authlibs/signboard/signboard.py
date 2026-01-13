@@ -209,6 +209,19 @@ def get_calendar_events():
             when = f"{daystr} {shortstart} - {shortend}"
 
             summary = str(component.get('SUMMARY', 'Event'))
+            
+            # Get description if available
+            description = ""
+            if 'DESCRIPTION' in component:
+                description = str(component['DESCRIPTION'])
+                # Clean up description - remove HTML tags and limit length
+                import re
+                description = re.sub(r'<[^>]+>', '', description)  # Remove HTML
+                description = description.replace('\n', ' ').strip()  # Replace newlines
+                if len(description) > 200:
+                    description = description[:200] + "..."
+            
+            # Get organizer info
             organizer = ""
             if 'ORGANIZER' in component:
                 for p in component['ORGANIZER'].params:
@@ -219,7 +232,7 @@ def get_calendar_events():
                 'what': summary,
                 'when': when,
                 'where': 'TBD',  # Would need more logic to determine room
-                'detail': f"Organizer: {organizer}" if organizer else "",
+                'detail': description if description else "",
                 'source': 'calendar',
                 'priority': 2  # 2 = Neutral priority, compete normally
             })
