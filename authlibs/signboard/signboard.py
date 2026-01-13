@@ -447,6 +447,7 @@ ADDITIONAL RULES:
    - Board Meetings -> "Conference Room"
    - Textiles/Sewing/Fabric -> "Textiles Studio"
 - Important to SUMMARIZE an event "detail" as best for  a short lobby signboard (No Google meet links or URLS, etc)!!
+- Omitt events that already happened
 - Make "what" short by minimizing or removing redundant and obvious info.  We are at "MakeIt Labs" - we don't need language that says that
 
 RESPONSE FORMAT:
