@@ -460,7 +460,7 @@ Example:
 [{"s_what": "Intro to Woodworking", "s_when": "Today 6:00 PM", "s_where": "Wood Shop", "s_desc": "Learn basic woodworking techniques"}]
 """
     
-    prompt = f"Here are the available events:\n{events_text}\n\nSelect and format the best 3 events for display."
+    prompt = f"Current datetime is {str(datetime.datetime.now())}. Here are the available events:\n{events_text}\n\nSelect and format the best 3 events for display."
     
     response = client.models.generate_content(
         model="gemini-3-pro-preview",
