@@ -452,8 +452,8 @@ RESPONSE FORMAT:
 Return ONLY a JSON array with exactly 3 objects. Each object must have these fields:
 - s_what: Short title (required)
 - s_when: Time/date (required)
-- s_where: Location (OMMIT IF EMPTY!)
-- s_desc: Description (omit if not needed)
+- s_where: Location (OMMIT IF EMPTY! Do not put "TBD" or any placeholders!)
+- s_desc: Description (omit if not needed)- SUMMARIZE for a lobby-sign! No URLS or links or phone numbers, just short text!!
 - s_qr: URL (omit if no URL)
 
 Example:
@@ -470,12 +470,14 @@ Example:
     )
     
     try:
+        print (f"LOBBY SIGN GOT events:\n {response.text.strip()}\n")
         # Parse AI response as JSON
         curated_events = json.loads(response.text.strip())
         # Ensure we have exactly 3 events
         return curated_events[:3] if len(curated_events) >= 3 else curated_events
     except json.JSONDecodeError:
         # Fallback: return first 3 events (already sorted above)
+        print ("ERROR: Lobby sign bad JSON!\n")
         return [dict_to_sign(event) for event in sorted_events[:3]]
 
 def dict_to_sign(event_dict):
