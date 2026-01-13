@@ -452,8 +452,8 @@ RESPONSE FORMAT:
 Return ONLY a JSON array with exactly 3 objects. Each object must have these fields:
 - s_what: Short title (required)
 - s_when: Time/date (required)
-- s_where: Location (OMMIT IF EMPTY!)
-- s_desc: Description (omit if not needed)
+- s_where: Location (OMMIT IF EMPTY! Do not put "TBD" or any placeholders!)
+- s_desc: Description (omit if not needed)- SUMMARIZE for a lobby-sign! No URLS or links or phone numbers, just short text!!
 - s_qr: URL (omit if no URL)
 
 Example:
@@ -495,6 +495,7 @@ Example:
         print(f"JSON decode error: {e}")
         print(f"Raw AI response: {response.text}")
         # Fallback: return first 3 events (already sorted above)
+        print ("ERROR: Lobby sign bad JSON!\n")
         return [dict_to_sign(event) for event in sorted_events[:3]]
 
 def dict_to_sign(event_dict):
