@@ -19,6 +19,7 @@ from ..utilities import _safestr as safestr
 from authlibs import eventtypes
 from authlibs import payments as pay
 from sqlalchemy import case, DateTime, text, inspect as sql_inspect
+from datetime import datetime
 
 import logging
 from authlibs.init import GLOBAL_LOGGER_LEVEL
@@ -85,7 +86,7 @@ def bigbrain():
         result = execute_sql_query(sql)
         
         # Generate final report
-        answer = generate_final_report(client, result, question)
+        answer = generate_final_report(client, schema, sql, result, question)
         
         return json.dumps({
             'status': 'ok',
@@ -126,7 +127,6 @@ tools defined as:
 resources defined as:
 {db4}
 
-Take SPECIAL care when writing SQL queries, that any tables you reference above must be specified with a "makeit." or a "log." prefix, or the wrong database will be used.
 
 """
         return schema
@@ -150,6 +150,7 @@ Make sure each table reference uses the correct attached database!
 return ONLY raw SQL - no block around it like triple-backtick clauses, etc.
 
 You are ONLY to determine what SQL query you would need to execute to give yourself the data required to answer the user's question.
+Take SPECIAL care when writing SQL queries, that any tables you reference above must be specified with a "makeit." or a "log." prefix, or the wrong database will be used.
 """
 
     
@@ -160,7 +161,7 @@ You are ONLY to determine what SQL query you would need to execute to give yours
         contents=f"{schema}\n\nThe user's question is as follows: {question}",
     )
     
-    print (f"BigBrain SQL shoult be:\n{response.text.strip()}\n")
+    #print (f"BigBrain SQL shoult be:\n{response.text.strip()}\n")
     return response.text.strip()
 
 def execute_sql_query(sql):
@@ -169,28 +170,49 @@ def execute_sql_query(sql):
     
     try:
         # Use subprocess like the original g.py to support ATTACH DATABASE
-        result = subprocess.check_output(["sqlite3","-readonly","-table"], 
+        result = subprocess.check_output(["sqlite3","-readonly","-json"], 
                                        input=sql.encode("utf-8")).decode("utf-8")
-        print (f"BigBrain SQL query returns:\n{result}\n")
+        #print (f"BigBrain SQL query returns:\n{result}\n")
         return result
             
     except Exception as e:
         logger.error(f"SQL execution error: {e}\nSQL: {sql}")
         return f"SQL Error: {str(e)}"
 
-def generate_final_report(client, result, question):
+def generate_final_report(client, schema, sql, result, question):
     """Generate final HTML report using Google AI"""
     system = """
-user has asked a question, and then you queried a bunch of data to help answer the question or generate the report that the user asked. Use the attached data to help best answer question or generate report for the user. Provide full answer in HTML format. Do not put a leading "HTML" header/footer, as raw response must be embedded in existing HTML.
+User has asked a question. We queried a bunch of data from our database in an attempt to provide an answer. Use the included data to help best answer question or generate report for the user. Provide full answer in HTML format. Do not put a leading "HTML" header/footer, as raw response must be embedded in existing HTML.
 """
     
+    prompt=f"""
+        We have two a databases with a schemas like:
+
+        {schema}
+
+        ...from which we issued the following query(s) to database:
+
+        {sql}
+
+        ...which obtained the following data/results from database:
+
+        {result}
+
+        Given this data, how would we answer the user's question, which is: 
+
+        {question}
+
+        Remember that right now it is {datetime.now()}, therefore data for the current time period will be incomplete and truncated.
+
+        """,
     response = client.models.generate_content(
         model="gemini-3-pro-preview",
         config=genai.types.GenerateContentConfig(
             system_instruction=system),
-        contents=f"{result}\n\nThe user's question is as follows: {question}",
+        contents=prompt,
     )
     
+    #print (f"BigBrain Final prompt:\n{prompt}\n<<END>>\n")
     return response.text.strip()
 
 
