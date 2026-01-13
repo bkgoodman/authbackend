@@ -449,7 +449,7 @@ ADDITIONAL RULES:
 - Important to SUMMARIZE an event "detail" as best for  a short lobby signboard (No Google meet links or URLS, etc)!!
 
 RESPONSE FORMAT:
-Return ONLY a JSON array with exactly 3 objects. Each object must have these fields:
+Return ONLY a JSON array with exactly 3 objects. Do not user or enclose in markdown. Each object must have these fields:
 - s_what: Short title (required)
 - s_when: Time/date (required)
 - s_where: Location (OMMIT IF EMPTY! Do not put "TBD" or any placeholders!)
