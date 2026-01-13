@@ -4,10 +4,17 @@ from ..templateCommon import  *
 
 from authlibs.comments import comments
 from authlibs import accesslib
-from flask import make_response
+from flask import make_response, current_app
 import datetime
 import hashlib
 import binascii
+import json
+import requests
+import icalendar
+import pytz
+from dateutil import tz
+import recurring_ical_events
+from google import genai
 
 blueprint = Blueprint("signs", __name__, template_folder='templates', static_folder="static",url_prefix="/signs")
 
@@ -152,46 +159,315 @@ def signboard():
 def signboard_debug():
     return do_signboard(debug=True)
 
+def utctolocal(dt, endofdate=False):
+    """Convert UTC datetime to local timezone"""
+    to_zone = tz.gettz('America/New_York')
+    
+    # If it's already a datetime (likely UTC from iCal)
+    if isinstance(dt, datetime.datetime):
+        if dt.tzinfo is None: # Handle naive
+            dt = dt.replace(tzinfo=tz.gettz('UTC'))
+        return dt.astimezone(to_zone)
+    
+    # If it's just a date (All-day event)
+    if isinstance(dt, datetime.date):
+        if endofdate:
+            return datetime.datetime.combine(dt, datetime.time(23, 59, 59, tzinfo=to_zone))
+        else:
+            return datetime.datetime.combine(dt, datetime.time(0, 0, 0, tzinfo=to_zone))
+    return dt
+
+def get_calendar_events():
+    """Get events from Google Calendar"""
+    # Calendar URLs from pubcal.py
+    PUBLIC_URL="https://calendar.google.com/calendar/ical/makeitlabs.com_mpfejifn6j4f5klmu1oubknb34%40group.calendar.google.com/private-01f894c0d4256616b9da5022bfeede0c/basic.ics"
+    
+    events = []
+    try:
+        g = requests.get(PUBLIC_URL)
+        cal = icalendar.Calendar.from_ical(g.text)
+        g.close()
+
+        now = datetime.datetime.now().replace(tzinfo=tz.gettz('America/New York'))
+        cutoff = now + datetime.timedelta(days=14)
+
+        # Use recurring_ical_events to expand recurring events
+        recurring_events = recurring_ical_events.of(cal).between(now, cutoff)
+
+        for component in recurring_events:
+            calstart = utctolocal(component['DTSTART'].dt)
+            calend = utctolocal(component.get('DTEND', component['DTSTART']).dt, endofdate=True)
+
+            # Format date string
+            diff_days = (calstart.date() - now.date()).days
+            if diff_days == 0:
+                daystr = "Today"
+            elif diff_days == 1:
+                daystr = "Tomorrow"
+            elif 1 < diff_days < 7:
+                daystr = calstart.strftime("%a")
+            else:
+                daystr = calstart.strftime("%b %d")
+
+            shortstart = calstart.strftime("%-I:%M %p")
+            shortend = calend.strftime("%-I:%M %p")
+            when = f"{daystr} {shortstart} - {shortend}"
+
+            summary = str(component.get('SUMMARY', 'Event'))
+            organizer = ""
+            if 'ORGANIZER' in component:
+                for p in component['ORGANIZER'].params:
+                    if p == "CN":
+                        organizer = component['ORGANIZER'].params[p]
+
+            events.append({
+                'what': summary,
+                'when': when,
+                'where': 'TBD',  # Would need more logic to determine room
+                'detail': f"Organizer: {organizer}" if organizer else "",
+                'source': 'calendar',
+                'priority': 2  # 2 = Neutral priority, compete normally
+            })
+    except Exception as e:
+        print(f"Error getting calendar events: {e}")
+    
+    return events
+
+def get_eventbrite_events():
+    """Get events from Eventbrite API"""
+    events = []
+    try:
+        # Get API credentials from config
+        org_id = current_app.config['globalConfig'].Config.get('Eventbrite', 'org_id', fallback='')
+        token = current_app.config['globalConfig'].Config.get('Eventbrite', 'token', fallback='')
+        
+        if not org_id or not token:
+            return events
+            
+        window = datetime.datetime.now() + datetime.timedelta(days=14)
+        r = requests.get(f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&expand=ticket_availability&token={token}")
+        
+        if r.status_code >= 200 and r.status_code <= 299:
+            j = r.json()
+            for x in j['events']:
+                n = x['name']['text']
+                desc = x['description']['text'].replace("\"","'")[:200]  # Truncate
+                url = x['url']
+                t = x['start']['local']
+                d = datetime.datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")
+                if d < window:
+                    ds = d.strftime("%A, %B %d, %I:%M %p")
+                    events.append({
+                        'what': n,
+                        'when': ds,
+                        'where': 'TBD',
+                        'detail': desc,
+                        'url': url,
+                        'source': 'eventbrite',
+                        'priority': 2  # 2 = Neutral priority, compete normally
+                    })
+    except Exception as e:
+        print(f"Error getting Eventbrite events: {e}")
+    
+    return events
+
 # Worker for live of debug signboards
 def do_signboard(debug=False):
-    signs = _get_signs()
-    # Make two lists. A PRIMARY that contains all valid posts
-    # and a SECONDARY that contains valid posts that are only "always"
-    # If the secondary list is empty - display the PRIMARY
-    primary=[]
-    secondary=[]
-
+    # Get local database signs
+    local_signs = _get_signs()
+    primary = []
+    secondary = []
+    
     now = datetime.datetime.now()
-    for s in signs:
+    for s in local_signs:
         if s.start < now < s.end:
             match s.priority:
-                case 0: # Always
+                case 0:  # Always
                     primary.append(s)
-                case 1: # If nothing else
+                case 1:  # If nothing else
                     secondary.append(s)
-                case 2: # Debug/Test only
+                case 2:  # Debug/Test only
                     if debug:
                         primary.append(s)
-
         elif now > s.end and s.retain == 0:
-            # If after time and no retain, delete
             db.session.delete(s)
-            
-
-    # Choose list to display
-    if primary:
-        go = primary
-    elif secondary:
-        go = secondary
-    else:
-        go = [{'s_what': "Welcome to MakeIt Labs!"}]
-
-
+    
     db.session.commit()
-    html =  render_template('welcome.html',signs=go)
+    
+    # Convert local signs to dict format
+    local_events = []
+    for sign in primary:
+        local_events.append({
+            'what': sign.s_what or '',
+            'when': sign.s_when or '',
+            'where': sign.s_where or '',
+            'detail': sign.s_desc or '',
+            'url': sign.s_qr or '',
+            'source': 'local',
+            'priority': sign.priority  # 0 = Always display
+        })
+    
+    # Also include secondary local events with priority info
+    for sign in secondary:
+        local_events.append({
+            'what': sign.s_what or '',
+            'when': sign.s_when or '',
+            'where': sign.s_where or '',
+            'detail': sign.s_desc or '',
+            'url': sign.s_qr or '',
+            'source': 'local',
+            'priority': sign.priority  # 1 = Only if nothing else
+        })
+    
+    # Get external events
+    calendar_events = get_calendar_events()
+    eventbrite_events = get_eventbrite_events()
+    
+    # Combine all events
+    all_events = local_events + calendar_events + eventbrite_events
+    
+    # Use AI to merge and prioritize all events
+    try:
+        go = ai_curate_events(all_events, debug)
+    except Exception as e:
+        print(f"AI curation failed: {e}")
+        # Fallback: if we have priority 0 events, use them
+        if primary:
+            go = primary
+        # Otherwise use secondary local events or default
+        elif secondary:
+            go = secondary
+        else:
+            go = [{'s_what': "Welcome to MakeIt Labs!"}]
+    
+    html = render_template('welcome.html', signs=go)
     response = make_response(html)
     response.headers['X-Page-Hash'] = fingerprint_seq(html)
     return response
+
+def ai_curate_events(all_events, debug=False):
+    """Use Google AI to curate and prioritize events"""
+    if not all_events:
+        return [{'s_what': "Welcome to MakeIt Labs!"}]
+    
+    # Get Google AI API key
+    api_key = current_app.config['globalConfig'].Config.get('GoogleAI', 'token', fallback='')
+    if not api_key:
+        # Sort events before fallback selection
+        def event_sort_key(event):
+            priority = event.get('priority', 2)
+            when_str = event.get('when', '').lower()
+            today_boost = 0 if 'today' in when_str else 1
+            return (priority, today_boost)
+        
+        sorted_events = sorted(all_events, key=event_sort_key)
+        # Fallback to first 3 events (now properly sorted)
+        return [dict_to_sign(event) for event in sorted_events[:3]]
+    
+    client = genai.Client(api_key=api_key)
+    
+    # Sort events by priority and importance before limiting
+    # Priority 0 first, then by today's events, then by time proximity
+    def event_sort_key(event):
+        priority = event.get('priority', 2)
+        # Lower priority number = higher importance
+        priority_score = priority
+        
+        # Boost for today's events
+        when_str = event.get('when', '').lower()
+        today_boost = 0 if 'today' in when_str else 1
+        
+        return (priority_score, today_boost)
+    
+    sorted_events = sorted(all_events, key=event_sort_key)
+    
+    # Prepare event data for AI
+    events_text = ""
+    for i, event in enumerate(sorted_events[:15], 1):  # Increased limit to 15 after sorting
+        events_text += f"\nEvent {i}:\n"
+        events_text += f"  What: {event.get('what', 'N/A')}\n"
+        events_text += f"  When: {event.get('when', 'N/A')}\n"
+        events_text += f"  Where: {event.get('where', 'N/A')}\n"
+        events_text += f"  Detail: {event.get('detail', 'N/A')}\n"
+        events_text += f"  Source: {event.get('source', 'N/A')}\n"
+        events_text += f"  Priority: {event.get('priority', 2)} (0=Always display, 1=Only if nothing else, 2=Normal)\n"
+    
+    system = """
+You are creating content for a front-lobby signboard at MakeIt Labs. Your task is to select and format the most important events to display.
+
+IMPORTANT: This data is compiled from MULTIPLE SOURCES (local database, Google Calendar, Eventbrite). The same event may appear multiple times from different sources. You MUST identify and merge duplicate events before selecting.
+
+DUPLICATE DETECTION:
+- Events with similar titles/times are likely the same event
+- When merging, prefer the source with more complete information
+- Combine details from all sources when beneficial
+- Count duplicates as ONE event, not multiple
+
+SELECTION PROCESS (follow this order):
+1. First, identify and merge any duplicate events across sources
+2. Check if there are any Priority 0 events. If there are 3 or fewer, you MUST include all of them.
+3. If there are more than 3 Priority 0 events, select the 3 most important Priority 0 events.
+4. If you have fewer than 3 events after step 2, fill remaining slots with Priority 2 events (external calendar/Eventbrite) based on:
+   - Events happening TODAY get highest preference
+   - Public events, classes, and important announcements
+   - Relevance and timing
+5. ONLY use Priority 1 events if you have no Priority 0 or Priority 2 events available.
+
+ADDITIONAL RULES:
+- Select MAXIMUM 3 events total
+- Filter out individual reservations - focus on public events
+- If a title is long, create a short title and put details in the description
+- Room mapping rules:
+   - Pottery -> "Pottery Studio (Basement)"
+   - Woodworking -> "Wood Shop"
+   - Laser -> "Laser Room"
+   - Member's Nite/Open House -> "Cleanspace Meeting Area"
+   - Automotive -> "Auto Area"
+   - Welding -> "Welding Area"
+   - Board Meetings -> "Conference Room"
+   - Textiles/Sewing/Fabric -> "Textiles Studio"
+
+RESPONSE FORMAT:
+Return ONLY a JSON array with exactly 3 objects. Each object must have these fields:
+- s_what: Short title (required)
+- s_when: Time/date (required)
+- s_where: Location (omit if unknown)
+- s_desc: Description (omit if not needed)
+- s_qr: URL (omit if no URL)
+
+Example:
+[{"s_what": "Intro to Woodworking", "s_when": "Today 6:00 PM", "s_where": "Wood Shop", "s_desc": "Learn basic woodworking techniques"}]
+"""
+    
+    prompt = f"Here are the available events:\n{events_text}\n\nSelect and format the best 3 events for display."
+    
+    response = client.models.generate_content(
+        model="gemini-3-pro-preview",
+        config=genai.types.GenerateContentConfig(
+            system_instruction=system),
+        contents=prompt
+    )
+    
+    try:
+        # Parse AI response as JSON
+        curated_events = json.loads(response.text.strip())
+        # Ensure we have exactly 3 events
+        return curated_events[:3] if len(curated_events) >= 3 else curated_events
+    except json.JSONDecodeError:
+        # Fallback: return first 3 events (already sorted above)
+        return [dict_to_sign(event) for event in sorted_events[:3]]
+
+def dict_to_sign(event_dict):
+    """Convert event dict to Sign-like object"""
+    class SignDict:
+        def __init__(self, d):
+            self.s_what = d.get('what', '')
+            self.s_when = d.get('when', '')
+            self.s_where = d.get('where', '')
+            self.s_desc = d.get('detail', '')
+            self.s_qr = d.get('url', '')
+    
+    return SignDict(event_dict)
 
 def _get_signs():
     return  Sign.query.all()
