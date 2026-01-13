@@ -115,46 +115,13 @@
     }
 </style>
 <script>
-	    
-// Function to check Last-Modified and refresh if changed
-async function checkLastModifiedAndRefresh() {
-    const currentUrl = window.location.href;
-
-    try {
-        // Fetch headers using HEAD request
-        const response = await fetch(currentUrl, { method: 'HEAD' });
-
-        if (!response.ok) {
-            console.error('Failed to fetch headers:', response.status);
-            return;
-        }
-
-        // Get Last-Modified header
-        const lastModified = response.headers.get('X-Page-Hash');
-        console.log('X-Page-Hash:', lastModified);
-
-        // Compare with previously stored value
-        const previousModified = localStorage.getItem('lastModified');
-
-        if (previousModified && previousModified !== lastModified) {
-            console.log('Page has changed. Refreshing...');
-            window.location.reload();
-        }
-
-        // Update stored value
-        localStorage.setItem('lastModified', lastModified);
-
-    } catch (error) {
-        console.error('Error checking Last-Modified header:', error);
-    }
-}
-
-// Start checking on page load and run every 60 seconds
+// Simple refresh every 4 hours for signboard updates
 window.addEventListener('load', () => {
-    checkLastModifiedAndRefresh(); // Initial check on load
-    setInterval(checkLastModifiedAndRefresh, 15*60000); // Repeat every 15 min
+    // Refresh every 4 hours (4 * 60 * 60 * 1000 milliseconds)
+    setInterval(() => {
+        window.location.reload();
+    }, 4 * 60 * 60 * 1000);
 });
-
     </script>
 </head>
 <body>

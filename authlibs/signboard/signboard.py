@@ -143,11 +143,6 @@ def sign_delete(sign):
         return redirect(url_for('signs.signs'))
 
 
-def fingerprint_seq(seq):
-    # Serialize in a deterministic way
-    # Ensure every element is a string or int; convert others if needed.
-    h = hashlib.blake2b(seq.encode("utf-8"), digest_size=8)
-    return h.hexdigest()
 
 # Show LIVE signboard
 @blueprint.route('/_signboard')
@@ -341,9 +336,7 @@ def do_signboard(debug=False):
             go = [{'s_what': "Welcome to MakeIt Labs!"}]
     
     html = render_template('welcome.html', signs=go)
-    response = make_response(html)
-    response.headers['X-Page-Hash'] = fingerprint_seq(html)
-    return response
+    return html
 
 def ai_curate_events(all_events, debug=False):
     """Use Google AI to curate and prioritize events"""
