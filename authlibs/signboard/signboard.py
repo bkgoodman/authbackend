@@ -470,11 +470,30 @@ Example:
     )
     
     try:
+        # Clean AI response - strip markdown code blocks if present
+        response_text = response.text.strip()
+        
+        # Check if response is wrapped in markdown code blocks
+        if response_text.startswith('```json'):
+            # Remove ```json at start and ``` at end
+            response_text = response_text[7:]  # Remove ```json
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]  # Remove ```
+            response_text = response_text.strip()
+        elif response_text.startswith('```'):
+            # Remove generic code block
+            response_text = response_text[3:]  # Remove ```
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]  # Remove ```
+            response_text = response_text.strip()
+        
         # Parse AI response as JSON
-        curated_events = json.loads(response.text.strip())
+        curated_events = json.loads(response_text)
         # Ensure we have exactly 3 events
         return curated_events[:3] if len(curated_events) >= 3 else curated_events
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
+        print(f"Raw AI response: {response.text}")
         # Fallback: return first 3 events (already sorted above)
         return [dict_to_sign(event) for event in sorted_events[:3]]
 
