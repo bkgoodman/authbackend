@@ -214,6 +214,7 @@ def get_calendar_events():
             when = f"{daystr} {shortstart} - {shortend}"
 
             summary = str(component.get('SUMMARY', 'Event'))
+            description = str(component.get('DESCRIPTION', ''))
             organizer = ""
             if 'ORGANIZER' in component:
                 for p in component['ORGANIZER'].params:
@@ -223,8 +224,7 @@ def get_calendar_events():
             events.append({
                 'what': summary,
                 'when': when,
-                'where': 'TBD',  # Would need more logic to determine room
-                'detail': f"Organizer: {organizer}" if organizer else "",
+                'detail': description,
                 'source': 'calendar',
                 'priority': 2  # 2 = Neutral priority, compete normally
             })
@@ -260,7 +260,6 @@ def get_eventbrite_events():
                     events.append({
                         'what': n,
                         'when': ds,
-                        'where': 'TBD',
                         'detail': desc,
                         'url': url,
                         'source': 'eventbrite',
@@ -417,7 +416,7 @@ ADDITIONAL RULES:
 - Select MAXIMUM 3 events total
 - Filter out individual reservations - focus on public events
 - If a title is long, create a short title and put details in the description
-- Room mapping rules:
+- If a good "where"/location is not specify - try to use following rules which match an eveent like:
    - Pottery -> "Pottery Studio (Basement)"
    - Woodworking -> "Wood Shop"
    - Laser -> "Laser Room"
@@ -426,12 +425,13 @@ ADDITIONAL RULES:
    - Welding -> "Welding Area"
    - Board Meetings -> "Conference Room"
    - Textiles/Sewing/Fabric -> "Textiles Studio"
+- Important to SUMMARIZE an event "detail" as best for  a short lobby signboard (No Google meet links or URLS, etc)!!
 
 RESPONSE FORMAT:
 Return ONLY a JSON array with exactly 3 objects. Each object must have these fields:
 - s_what: Short title (required)
 - s_when: Time/date (required)
-- s_where: Location (omit if unknown)
+- s_where: Location (OMMIT IF EMPTY!)
 - s_desc: Description (omit if not needed)
 - s_qr: URL (omit if no URL)
 
