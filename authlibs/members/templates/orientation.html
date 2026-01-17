@@ -20,7 +20,7 @@
 {% block body %}
 <div class="container">
     <h2>Member Orientation</h2>
-    <p>Showing the 15 most recent members created from the Pay System Event</p>
+    <p>Most recent new member signups</p>
     <p class="text-info"><small><strong>Tip:</strong> Click "Not on file" badges to quickly add waivers</small></p>
     
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -60,15 +60,12 @@
                                        title="Click to add waiver for {{ item.member.firstname }} {{ item.member.lastname }}">
                                         {{ item.waiver_status }}
                                     </a>
+                                    <small class="text-muted d-block">(Click to associate)</small>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if item.has_tag %}
                                     <span class="badge badge-info">Tag Assigned</span>
-                                    {% for tag in item.tags %}
-                                        <small class="text-muted">{{ tag.tag_ident }}</small>
-                                        {% if not loop.last %}, {% endif %}
-                                    {% endfor %}
                                 {% else %}
                                     <form method="POST" action="{{ url_for('members.orientation') }}" class="form-inline">
                                         <input type="hidden" name="member_id" value="{{ item.member.id }}">
