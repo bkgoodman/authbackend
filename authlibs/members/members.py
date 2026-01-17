@@ -150,7 +150,43 @@ def orientation_add_tag():
     
     # Add tag using existing function
     if add_member_tag(member_id, tag_ident, "rfid", tag_ident):
-        # If waiver is on file, enable member access and grant frontdoor access
+        # Grant frontdoor access whenever a tag is added
+        frontdoor_resource = Resource.query.filter(Resource.name == "frontdoor").one_or_none()
+        if frontdoor_resource:
+            # Check if member already has access
+            existing_access = AccessByMember.query.filter(
+                AccessByMember.member_id == member.id,
+                AccessByMember.resource_id == frontdoor_resource.id
+            ).one_or_none()
+            
+            if not existing_access:
+                # Create new access record
+                new_access = AccessByMember(
+                    member_id=member.id,
+                    resource_id=frontdoor_resource.id,
+                    level=AccessByMember.LEVEL_ARM,  # Basic access level
+                    active=1
+                )
+                db.session.add(new_access)
+                authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,
+                           resource_id=frontdoor_resource.id,
+                           member_id=member.id, doneby=current_user.id, commit=0)
+                flash_message = "Tag added and frontdoor access granted"
+            else:
+                # Enable existing access if it was disabled
+                if not existing_access.active:
+                    existing_access.active = 1
+                    existing_access.level = AccessByMember.LEVEL_ARM
+                    authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,
+                               resource_id=frontdoor_resource.id,
+                               member_id=member.id, doneby=current_user.id, commit=0)
+                    flash_message = "Tag added and frontdoor access enabled"
+                else:
+                    flash_message = "Tag added (frontdoor access already exists)"
+        else:
+            flash_message = "Tag added, but frontdoor resource not found"
+        
+        # If waiver is on file, also enable member access
         if member_waiver:
             # Enable member access if not already enabled
             if member.access_enabled != 1:
@@ -159,44 +195,13 @@ def orientation_add_tag():
                 authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id, 
                            message="Orientation completed - tag assigned", 
                            member_id=member.id, doneby=current_user.id, commit=0)
-            
-            # Grant frontdoor access
-            frontdoor_resource = Resource.query.filter(Resource.name == "frontdoor").one_or_none()
-            if frontdoor_resource:
-                # Check if member already has access
-                existing_access = AccessByMember.query.filter(
-                    AccessByMember.member_id == member.id,
-                    AccessByMember.resource_id == frontdoor_resource.id
-                ).one_or_none()
-                
-                if not existing_access:
-                    # Create new access record
-                    new_access = AccessByMember(
-                        member_id=member.id,
-                        resource_id=frontdoor_resource.id,
-                        level=AccessByMember.LEVEL_ARM,  # Basic access level
-                        active=1
-                    )
-                    db.session.add(new_access)
-                    authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,
-                               resource_id=frontdoor_resource.id,
-                               member_id=member.id, doneby=current_user.id, commit=0)
-                    flash("Tag added and frontdoor access granted", "success")
-                else:
-                    # Enable existing access if it was disabled
-                    if not existing_access.active:
-                        existing_access.active = 1
-                        existing_access.level = AccessByMember.LEVEL_ARM
-                        authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,
-                                   resource_id=frontdoor_resource.id,
-                                   member_id=member.id, doneby=current_user.id, commit=0)
-                        flash("Tag added and frontdoor access enabled", "success")
-                    else:
-                        flash("Tag added (frontdoor access already exists)", "success")
+                flash_message += " and member access enabled"
             else:
-                flash("Tag added, but frontdoor resource not found", "warning")
+                flash_message += " (member access already enabled)"
         else:
-            flash("Tag added (waiver not on file - access not enabled)", "warning")
+            flash_message += " (waiver not on file - member access not enabled)"
+        
+        flash(flash_message, "success")
         
         # Commit all changes and kick backend
         db.session.commit()

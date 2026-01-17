@@ -35,7 +35,11 @@
                                 {% if item.waiver_status == "On file" %}
                                     <span class="badge badge-success">{{ item.waiver_status }}</span>
                                 {% else %}
-                                    <span class="badge badge-warning">{{ item.waiver_status }}</span>
+                                    <a href="{{ url_for('waivers.relate', member_id=item.member.id) }}" 
+                                       class="badge badge-warning" 
+                                       style="text-decoration: none;">
+                                        {{ item.waiver_status }}
+                                    </a>
                                 {% endif %}
                             </td>
                             <td>
