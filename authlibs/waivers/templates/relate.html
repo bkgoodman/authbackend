@@ -1,6 +1,11 @@
 {% extends "layout_bootstrap.html" %}
 {% block body %}
 			<p>To assign a waiver to a member - select to appropriate radio boxes for each, then click "assign"</p>
+			{% if from_orientation %}
+			<div class="alert alert-info">
+				<strong>Showing Member waivers only</strong> - <a href="{{ url_for('waivers.relate') }}">Show all waiver types</a>
+			</div>
+			{% endif %}
   <form action="relate_assign" method="POST">
 		<div class=body>
 			<h3>Unassigned Waivers</h3>
