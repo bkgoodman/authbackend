@@ -54,6 +54,146 @@ def members():
             return redirect(url_for('members.member_show',id=current_user.member))
         return render_template('members.html',rec=members,page="all")
 
+@blueprint.route('/orientation', methods = ['GET'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def orientation():
+    """Show recent members needing orientation"""
+    
+    # Get the 15 most recent members created from pay system events
+    recent_members = db.session.query(Logs, Member)\
+        .join(Member, Logs.member_id == Member.id)\
+        .filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id)\
+        .order_by(Logs.datetime.desc())\
+        .limit(15)\
+        .all()
+    
+    orientation_list = []
+    for log, member in recent_members:
+        # Get waiver status (member waivers only)
+        member_waiver = Waiver.query.filter(
+            Waiver.member_id == member.id,
+            Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
+        ).first()
+        waiver_status = "On file" if member_waiver else "Not on file"
+        
+        # Check if member has tags assigned
+        tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
+        has_tag = len(tags) > 0
+        
+        # Get door access status
+        (warning,allowed,dooraccess)=getDoorAccess(member.id)
+        
+        # Determine if member is fully enabled and active
+        # Check if member has access enabled, waiver on file, tag assigned, and frontdoor access
+        is_fully_enabled = (
+            member.access_enabled == 1 and 
+            member_waiver is not None and 
+            has_tag and 
+            allowed
+        )
+        
+        orientation_list.append({
+            'member': member,
+            'waiver_status': waiver_status,
+            'has_tag': has_tag,
+            'tags': tags,
+            'access_enabled': member.access_enabled == 1,
+            'door_access_allowed': allowed,
+            'is_fully_enabled': is_fully_enabled,
+            'access_warning': warning
+        })
+    
+    return render_template('orientation.html', orientation_list=orientation_list, page="orientation")
+
+@blueprint.route('/orientation', methods = ['POST'])
+@login_required
+@roles_required(['Admin','Finance','Useredit'])
+def orientation_add_tag():
+    """Handle tag assignment from orientation page"""
+    member_id = request.form.get('member_id')
+    tag_ident = request.form.get('tag_ident')
+    
+    if not member_id or not tag_ident:
+        flash("Member ID and Tag ID are required", "danger")
+        return redirect(url_for('members.orientation'))
+    
+    # Validate RFID tag
+    tag_ident = authutil.rfid_validate(tag_ident)
+    if tag_ident is None:
+        flash("ERROR: The specified RFID tag is invalid, must be 10-digit all-numeric", "danger")
+        return redirect(url_for('members.orientation'))
+    
+    # Get member
+    member = Member.query.filter(Member.id == member_id).one_or_none()
+    if not member:
+        flash("Member not found", "danger")
+        return redirect(url_for('members.orientation'))
+    
+    # Check if member has waiver on file
+    member_waiver = Waiver.query.filter(
+        Waiver.member_id == member.id,
+        Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
+    ).first()
+    
+    # Add tag using existing function
+    if add_member_tag(member_id, tag_ident, "rfid", tag_ident):
+        # If waiver is on file, enable member access and grant frontdoor access
+        if member_waiver:
+            # Enable member access if not already enabled
+            if member.access_enabled != 1:
+                member.access_enabled = 1
+                member.access_reason = None
+                authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_ENABLED.id, 
+                           message="Orientation completed - tag assigned", 
+                           member_id=member.id, doneby=current_user.id, commit=0)
+            
+            # Grant frontdoor access
+            frontdoor_resource = Resource.query.filter(Resource.name == "frontdoor").one_or_none()
+            if frontdoor_resource:
+                # Check if member already has access
+                existing_access = AccessByMember.query.filter(
+                    AccessByMember.member_id == member.id,
+                    AccessByMember.resource_id == frontdoor_resource.id
+                ).one_or_none()
+                
+                if not existing_access:
+                    # Create new access record
+                    new_access = AccessByMember(
+                        member_id=member.id,
+                        resource_id=frontdoor_resource.id,
+                        level=AccessByMember.LEVEL_ARM,  # Basic access level
+                        active=1
+                    )
+                    db.session.add(new_access)
+                    authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,
+                               resource_id=frontdoor_resource.id,
+                               member_id=member.id, doneby=current_user.id, commit=0)
+                    flash("Tag added and frontdoor access granted", "success")
+                else:
+                    # Enable existing access if it was disabled
+                    if not existing_access.active:
+                        existing_access.active = 1
+                        existing_access.level = AccessByMember.LEVEL_ARM
+                        authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,
+                                   resource_id=frontdoor_resource.id,
+                                   member_id=member.id, doneby=current_user.id, commit=0)
+                        flash("Tag added and frontdoor access enabled", "success")
+                    else:
+                        flash("Tag added (frontdoor access already exists)", "success")
+            else:
+                flash("Tag added, but frontdoor resource not found", "warning")
+        else:
+            flash("Tag added (waiver not on file - access not enabled)", "warning")
+        
+        # Commit all changes and kick backend
+        db.session.commit()
+        authutil.kick_backend()
+    else:
+        flash("Error: That tag is already associated with a user", "danger")
+    
+    return redirect(url_for('members.orientation'))
+
 @blueprint.route('/', methods= ['POST'])
 @login_required
 @roles_required(['Admin','Finance','Useredit'])
