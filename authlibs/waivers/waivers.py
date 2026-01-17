@@ -197,15 +197,25 @@ def connect_waivers():
 @roles_required(['Admin','Finance','Useredit'])
 def relate():
   mem=None
+  from_orientation = False
   if 'member_id' in request.values:
     mid = int(request.values['member_id'])
     mem = Member.query.filter(Member.id==mid).one_or_none()
-  waivers = Waiver.query.filter(Subscription.member_id == None).all()
+    from_orientation = True
+  
+  # Filter waivers - only Member waivers if coming from orientation, otherwise all unassigned waivers
+  if from_orientation:
+    waivers = Waiver.query.filter(
+      Subscription.member_id == None,
+      Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
+    ).order_by(Waiver.created_date.desc()).all()
+  else:
+    waivers = Waiver.query.filter(Subscription.member_id == None).order_by(Waiver.created_date.desc()).all()
 
   wt ={}
   for w in Waiver.waiverTypes:
     wt[w['code']]=w['short']
-  return render_template('relate.html',waivers=waivers,linkmember=mem,waiverTypes=wt)
+  return render_template('relate.html',waivers=waivers,linkmember=mem,waiverTypes=wt,from_orientation=from_orientation)
 
 # Post handler for "relate" above
 @blueprint.route('/relate_assign', methods = ['POST'])
