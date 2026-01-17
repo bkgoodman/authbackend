@@ -26,7 +26,9 @@ def get_raw_menu():
                     'privs':'Useredit',
                     'url':url_for('members.orientation'),
                     'title':"Orientation",
-                    'alt':"Quick way to do orientations for new members"
+                    'img':url_for("static",filename="orientation.png"),
+                    'alt':"Fast Member Orientation",
+                    'importance':10
             },
             {
                     'checkfunc':rm_check,
