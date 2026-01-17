@@ -60,49 +60,61 @@ def members():
 def orientation():
     """Show recent members needing orientation"""
     
-    # Get the 15 most recent members created from pay system events
-    recent_members = db.session.query(Logs, Member)\
-        .join(Member, Logs.member_id == Member.id)\
+    # Get the 15 most recent member IDs created from pay system events
+    recent_log_entries = db.session.query(Logs.member_id)\
         .filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id)\
-        .order_by(Logs.datetime.desc())\
+        .order_by(Logs.time_logged.desc())\
         .limit(15)\
         .all()
     
+    # Extract member IDs from the query results
+    member_ids = [log.member_id for log in recent_log_entries if log.member_id]
+    
     orientation_list = []
-    for log, member in recent_members:
-        # Get waiver status (member waivers only)
-        member_waiver = Waiver.query.filter(
-            Waiver.member_id == member.id,
-            Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
-        ).first()
-        waiver_status = "On file" if member_waiver else "Not on file"
+    if member_ids:
+        # Now query the members from the main database
+        members = Member.query.filter(Member.id.in_(member_ids)).all()
         
-        # Check if member has tags assigned
-        tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
-        has_tag = len(tags) > 0
+        # Create a mapping of member_id to member for easy lookup
+        member_map = {member.id: member for member in members}
         
-        # Get door access status
-        (warning,allowed,dooraccess)=getDoorAccess(member.id)
-        
-        # Determine if member is fully enabled and active
-        # Check if member has access enabled, waiver on file, tag assigned, and frontdoor access
-        is_fully_enabled = (
-            member.access_enabled == 1 and 
-            member_waiver is not None and 
-            has_tag and 
-            allowed
-        )
-        
-        orientation_list.append({
-            'member': member,
-            'waiver_status': waiver_status,
-            'has_tag': has_tag,
-            'tags': tags,
-            'access_enabled': member.access_enabled == 1,
-            'door_access_allowed': allowed,
-            'is_fully_enabled': is_fully_enabled,
-            'access_warning': warning
-        })
+        for log in recent_log_entries:
+            if log.member_id in member_map:
+                member = member_map[log.member_id]
+                
+                # Get waiver status (member waivers only)
+                member_waiver = Waiver.query.filter(
+                    Waiver.member_id == member.id,
+                    Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
+                ).first()
+                waiver_status = "On file" if member_waiver else "Not on file"
+                
+                # Check if member has tags assigned
+                tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
+                has_tag = len(tags) > 0
+                
+                # Get door access status
+                (warning,allowed,dooraccess)=getDoorAccess(member.id)
+                
+                # Determine if member is fully enabled and active
+                # Check if member has access enabled, waiver on file, tag assigned, and frontdoor access
+                is_fully_enabled = (
+                    member.access_enabled == 1 and 
+                    member_waiver is not None and 
+                    has_tag and 
+                    allowed
+                )
+                
+                orientation_list.append({
+                    'member': member,
+                    'waiver_status': waiver_status,
+                    'has_tag': has_tag,
+                    'tags': tags,
+                    'access_enabled': member.access_enabled == 1,
+                    'door_access_allowed': allowed,
+                    'is_fully_enabled': is_fully_enabled,
+                    'access_warning': warning
+                })
     
     return render_template('orientation.html', orientation_list=orientation_list, page="orientation")
 
