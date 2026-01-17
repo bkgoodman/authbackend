@@ -1,8 +1,27 @@
+<style>
+.clickable-badge {
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+}
+.clickable-badge:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  filter: brightness(1.1);
+}
+.clickable-badge:after {
+  content: " ↗";
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+</style>
+
 {% extends "layout_bootstrap.html" %}
 {% block body %}
 <div class="container">
     <h2>Member Orientation</h2>
     <p>Showing the 15 most recent members created from the Pay System Event</p>
+    <p class="text-info"><small><strong>Tip:</strong> Click "Not on file" badges to quickly add waivers</small></p>
     
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -36,8 +55,9 @@
                                     <span class="badge badge-success">{{ item.waiver_status }}</span>
                                 {% else %}
                                     <a href="{{ url_for('waivers.relate', member_id=item.member.id) }}" 
-                                       class="badge badge-warning" 
-                                       style="text-decoration: none;">
+                                       class="badge badge-warning clickable-badge" 
+                                       style="text-decoration: none;"
+                                       title="Click to add waiver for {{ item.member.firstname }} {{ item.member.lastname }}">
                                         {{ item.waiver_status }}
                                     </a>
                                 {% endif %}
