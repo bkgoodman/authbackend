@@ -38,6 +38,13 @@
 		</div>
 	<hr />
 	<h3>Attach to Member:</h4>
+		{% if linkmember %}
+		<div class="alert alert-info">
+			<strong>Pre-selected member:</strong> {{ linkmember.firstname }} {{ linkmember.lastname }} ({{ linkmember.member }})
+			<input type="hidden" name="member_radio" value="{{ linkmember.member }}" />
+			<input type="radio" name="member_radio" value="{{ linkmember.member }}" checked style="display:none;" />
+		</div>
+		{% endif %}
 		<div class="container">
 			{% with add_radiobuttons=1 %}
 			{% include 'userlist.html' %}
@@ -71,5 +78,28 @@ function changedwaiversearch() {
     table.visibility="collapse";
   }
 }
+
+{% if linkmember %}
+// Auto-populate and select the pre-selected member when page loads
+window.onload = function() {
+  var searchField = document.getElementById('searchfield1');
+  if (searchField) {
+    searchField.value = '{{ linkmember.firstname|e }} {{ linkmember.lastname|e }}';
+    // Trigger search to populate the member list
+    changedDropdownText();
+    
+    // After a short delay, select the pre-selected member
+    setTimeout(function() {
+      var radioButtons = document.querySelectorAll('input[name="member_radio"]');
+      for (var i = 0; i < radioButtons.length; i++) {
+        if (radioButtons[i].value === '{{ linkmember.member|e }}') {
+          radioButtons[i].checked = true;
+          break;
+        }
+      }
+    }, 1000);
+  }
+};
+{% endif %}
 </script>
 {% endblock %}

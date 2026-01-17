@@ -23,6 +23,14 @@ def get_raw_menu():
                     'importance':1010
             },
             {
+                    'privs':'Useredit',
+                    'url':url_for('members.orientation'),
+                    'title':"Orientation",
+                    'img':url_for("static",filename="orientation.png"),
+                    'alt':"Fast Member Orientation",
+                    'importance':10
+            },
+            {
                     'checkfunc':rm_check,
                     'privs':'RATT',
                     'url':url_for('members.update_backends'),
