@@ -15,7 +15,7 @@
           <input class="form-control" id="waiversearch" type="text" oninput="changedwaiversearch();" />
         </div>
       </div>
-      <h2 class="alert alert-info" id="messagebox">Enter a phrase in the search box</h2>
+      <h2 class="alert alert-info" id="messagebox">{% if from_orientation %}Showing last 10 unassigned member waivers - enter search to filter{% else %}Enter a phrase in the search box{% endif %}</h2>
 			<table id="waiver_table" class="table table-sm bkg">
 					<tr>
 						<th>Name</th>
@@ -25,7 +25,7 @@
 						<th>Waiver Type</th>
 					</tr>
 					{% for s in waivers %}
-				<tr style="visibility:collapse">
+				<tr style="{% if from_orientation %}visibility:visible{% else %}visibility:collapse{% endif %}">
 				<td>{{ s.lastname }}, {{s.firstname}}</td>
 				<td>{{ s.email }}</td>
 				<td>{{ s.created_date }}</td>
@@ -79,11 +79,52 @@ function changedwaiversearch() {
       //console.log(row.cells[1].innerHTML);
     }
   } else {
+    // When search is cleared, return to default state
+    {% if from_orientation %}
+    // Show waivers by default when coming from orientation
+    msg.style.display="none";
+    for (var i = 0, row; row = table.rows[i]; i++) {
+       row.style.visibility="";
+    }
+    {% else %}
+    // Hide waivers when not coming from orientation
     msg.style.display="block";
     table.visibility="collapse";
+    for (var i = 0, row; row = table.rows[i]; i++) {
+       row.style.visibility="collapse";
+    }
+    {% endif %}
   }
 }
 
+{% if from_orientation %}
+// Initialize the page to show waivers when coming from orientation
+window.onload = function() {
+  var msg = document.getElementById("messagebox");
+  msg.style.display="none";
+  
+  // Handle member pre-selection if linkmember exists
+  {% if linkmember %}
+  var searchField = document.getElementById('searchfield1');
+  if (searchField) {
+    searchField.value = '{{ linkmember.firstname|e }} {{ linkmember.lastname|e }}';
+    // Trigger search to populate the member list
+    changedDropdownText();
+    
+    // After a short delay, select the pre-selected member
+    setTimeout(function() {
+      var radioButtons = document.querySelectorAll('input[name="member_radio"]');
+      for (var i = 0; i < radioButtons.length; i++) {
+        if (radioButtons[i].value === '{{ linkmember.member|e }}') {
+          radioButtons[i].checked = true;
+          break;
+        }
+      }
+    }, 1000);
+  }
+  {% endif %}
+};
+{% else %}
 {% if linkmember %}
 // Auto-populate and select the pre-selected member when page loads
 window.onload = function() {
@@ -105,6 +146,7 @@ window.onload = function() {
     }, 1000);
   }
 };
+{% endif %}
 {% endif %}
 </script>
 {% endblock %}
