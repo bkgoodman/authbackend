@@ -37,6 +37,7 @@
                 <thead>
                     <tr>
                         <th>Name</th>
+                        <th>When Added</th>
                         <th>Waiver Status</th>
                         <th>Tag</th>
                         <th>Access Status</th>
@@ -49,6 +50,12 @@
                                 <a href="{{ url_for('members.member_show', id=item.member.member) }}">
                                     {{ item.member.firstname }} {{ item.member.lastname }}
                                 </a>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <div>{{ ago.ago(item.time_logged)[2] }}</div>
+                                    <div class="text-muted">{{ ago.ago(item.time_logged)[1] }} ago</div>
+                                </div>
                             </td>
                             <td>
                                 {% if item.waiver_status == "On file" %}
