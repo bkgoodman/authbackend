@@ -204,13 +204,14 @@ def relate():
     from_orientation = True
   
   # Filter waivers - only Member waivers if coming from orientation, otherwise all unassigned waivers
+  # Limit to last 10 when coming from orientation to optimize for new member use case
   if from_orientation:
     waivers = Waiver.query.filter(
-      Subscription.member_id == None,
+      Waiver.member_id == None,
       Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
-    ).order_by(Waiver.created_date.desc()).all()
+    ).order_by(Waiver.created_date.desc()).limit(10).all()
   else:
-    waivers = Waiver.query.filter(Subscription.member_id == None).order_by(Waiver.created_date.desc()).all()
+    waivers = Waiver.query.filter(Waiver.member_id == None).order_by(Waiver.created_date.desc()).all()
 
   wt ={}
   for w in Waiver.waiverTypes:
