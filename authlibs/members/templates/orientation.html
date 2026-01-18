@@ -37,10 +37,10 @@
                 <thead>
                     <tr>
                         <th>Name</th>
+                        <th>When Added</th>
                         <th>Waiver Status</th>
                         <th>Tag</th>
                         <th>Access Status</th>
-                        <th>When Added</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -50,6 +50,12 @@
                                 <a href="{{ url_for('members.member_show', id=item.member.member) }}">
                                     {{ item.member.firstname }} {{ item.member.lastname }}
                                 </a>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <div>{{ ago.ago(item.time_logged)[0] }}</div>
+                                    <div class="text-muted">{{ ago.ago(item.time_logged)[1] }} ago</div>
+                                </div>
                             </td>
                             <td>
                                 {% if item.waiver_status == "On file" %}
@@ -100,12 +106,6 @@
                                 {% if item.access_warning %}
                                     <small class="text-warning d-block">{{ item.access_warning }}</small>
                                 {% endif %}
-                            </td>
-                            <td>
-                                <div class="small">
-                                    <div>{{ ago.whichday(item.time_logged) }}</div>
-                                    <div class="text-muted">{{ ago.ago(item.time_logged)[1] }}</div>
-                                </div>
                             </td>
                         </tr>
                     {% endfor %}
