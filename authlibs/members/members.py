@@ -61,7 +61,7 @@ def orientation():
     """Show recent members needing orientation"""
     
     # Get the 15 most recent member IDs created from pay system events
-    recent_log_entries = db.session.query(Logs.member_id)\
+    recent_log_entries = db.session.query(Logs)\
         .filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id)\
         .order_by(Logs.time_logged.desc())\
         .limit(15)\
@@ -113,10 +113,11 @@ def orientation():
                     'access_enabled': member.access_enabled == 1,
                     'door_access_allowed': allowed,
                     'is_fully_enabled': is_fully_enabled,
-                    'access_warning': warning
+                    'access_warning': warning,
+                    'time_logged': log.time_logged
                 })
     
-    return render_template('orientation.html', orientation_list=orientation_list, page="orientation")
+    return render_template('orientation.html', orientation_list=orientation_list, page="orientation", ago=ago)
 
 @blueprint.route('/orientation', methods = ['POST'])
 @login_required

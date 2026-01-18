@@ -40,6 +40,7 @@
                         <th>Waiver Status</th>
                         <th>Tag</th>
                         <th>Access Status</th>
+                        <th>When Added</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -99,6 +100,12 @@
                                 {% if item.access_warning %}
                                     <small class="text-warning d-block">{{ item.access_warning }}</small>
                                 {% endif %}
+                            </td>
+                            <td>
+                                <div class="small">
+                                    <div>{{ ago.whichday(item.time_logged) }}</div>
+                                    <div class="text-muted">{{ ago.ago(item.time_logged)[1] }}</div>
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
