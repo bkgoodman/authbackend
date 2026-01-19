@@ -55,7 +55,7 @@ def _safeemail(unsafe_str):
 
 def _safestr(s):
     """Sanitize input strings used in some operations"""
-    keepcharacters = ('-',' ','.')
+    keepcharacters = ('-',' ','.',"'")  # Added single quote to allowed characters
     return "".join(c for c in s if c.isalnum() or c in keepcharacters).strip()
 
 def _joinNameString(s):

@@ -1,6 +1,7 @@
 # vim:shiftwidth=2:noexpandtab
 
 from ..templateCommon import  *
+import urllib.parse
 
 from authlibs.comments import comments
 import datetime
@@ -429,9 +430,11 @@ def member_edit(id):
 @login_required
 def member_show(id):
    """Controller method to Display or modify a single user"""
-   #TODO: Move member query functions to membership module
+   #TODO: Move member query functions to membership query functions
    meta = {}
    access = {}
+   # URL-decode the member ID to handle quotes and special characters
+   id = urllib.parse.unquote(id)
    mid = authutil._safestr(id)
    member=db.session.query(Member)
    member = member.outerjoin(Subscription,Subscription.member_id==mid)

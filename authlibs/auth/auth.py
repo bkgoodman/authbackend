@@ -91,8 +91,8 @@ def membersearch(search):
   limit = 50
   for x in request.values:
       if x.startswith('filter_'): filters.append(x)
-  sstr = authutil._safestr(search)
-  sstr = "%"+sstr+"%"
+  # Don't strip quotes from search terms - allow searching for names with quotes
+  sstr = "%"+search+"%"  # Use raw search term instead of _safestr
   res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.id)
   res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr)))
   res = res.outerjoin(Subscription,Subscription.member_id == Member.id)
