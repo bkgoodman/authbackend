@@ -581,7 +581,7 @@ def on_message(client,userdata,msg):
                         if member:
                           mqttevt['member'] = re.sub("(^|\s)(\S)", convert_into_uppercase, member.replace(".", " "))
                           if memberNickname is not None and memberNickname.strip() != "":
-                            mqttevt['member'] = re.sub("(^|\s)(\S)", convert_into_uppercase, memberNickname.replace(".", " "))
+                            mqttevt['nickname'] = re.sub("(^|\s)(\S)", convert_into_uppercase, memberNickname.replace(".", " "))
                         mqttevt['tool'] = str(toolDisplay)
                         client.publish("displayboard/read/event",json.dumps(mqttevt,indent=2))
                     except BaseException as e:
