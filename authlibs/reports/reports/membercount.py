@@ -56,6 +56,7 @@ if __name__ == "__main__":
             and (s['canceled_at'] is None)
             and (s['ended_at'] is None)):
                 p =  s['plan']['id']
+                print (p)
                 if p in memberships:
                     ccc = 1
                     if p == "produo": ccc=2
