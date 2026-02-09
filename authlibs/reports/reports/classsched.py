@@ -79,7 +79,8 @@ def get_super_event_grid(super_map, oauth_token):
 
 # --- DEFINE YOUR GROUPS HERE ---
 MY_MAPPINGS = {
-    "Epilog Shop": ["444283543037"], 
+    "Epilog": ["444283543037"], 
+    "MOPA": ["1982595934811"], 
     "Wood Orientation": ["119567829597"],  
     "Wood Bandsaw": ["557157070797"],
     "Wood Lathe": ["1965258959451"],
