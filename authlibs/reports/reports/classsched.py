@@ -97,6 +97,7 @@ MY_MAPPINGS = {
     "Auto": ["1981598624830"],
     "Welding": ["1982281184384","1982278329846"], # TIG, MIG
     "Machine Shop": ["1982282866415", "1982283357885"], # Lathe Mill
+    "Glass": ["1982895978249"], # Stained Glass
     "Glenn": ["1982227839829", "1982220233077", "1982797679234"] # DriilDoctor, TOrmech, DieSub
 }
 
