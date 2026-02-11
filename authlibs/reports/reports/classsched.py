@@ -90,14 +90,14 @@ MY_MAPPINGS = {
     "Design Tools": ["632359854347", "850035929347", "850045999467","1320096898359"], #Inkscape, Bkebder, Onshape, Meetup
     "Pottery": ["678019884727", "1596586807119"], #Glazing, Intro
     "Metal Fab": ["1092937859559"], # VBandsaw
-    "Soft Metals": ["1978809165482","1740582431909", "1968713594357"], # Siver Wire Scape,< Copper Pendant, Smith & Annel
+    "Soft Metals": ["1978809165482","1740582431909", "1968713594357","1982891955216"], # Siver Wire Scape,< Copper Pendant, Smith & Annel, Ring Fab
     "Shopbot": ["1978640823968"],
     "Lil Tormy": ["1867525161029"],
     "Soldering": ["1703566807179"],
     "Auto": ["1981598624830"],
     "Welding": ["1982281184384","1982278329846"], # TIG, MIG
     "Machine Shop": ["1982282866415", "1982283357885"], # Lathe Mill
-    "Glenn": ["1982227839829", "1982220233077"] # DriilDoctor, TOrmech
+    "Glenn": ["1982227839829", "1982220233077", "1982797679234"] # DriilDoctor, TOrmech, DieSub
 }
 
 #get_super_event_grid(MY_MAPPINGS, TOKEN)
