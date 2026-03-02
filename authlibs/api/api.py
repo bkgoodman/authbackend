@@ -1109,7 +1109,7 @@ def vendig_api_charge(member,amount):
   m = m.one_or_none()
 
 
-  # REMOVE THESE TWO LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME
+  # REMOVE THESE TWO LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME - Must be commented out in production
   #result = {'status':'success','member':m.Member.member,'customer':m.customerid}
   #return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
@@ -1319,7 +1319,7 @@ def vendig_api_ReupBalance(member):
   else:
 
     """
-    # --------- REMOVE THESE LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME
+    # --------- REMOVE THESE LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME - Must be commented out in production
     result = {'status':'success','member':m.Member.member,'customer':m.customerid}
     authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message="${0:0.2f}".format(data['addAmount']/100.0),member_id=m.Member.id,commit=0)
     if m.Member.balance is None:
@@ -1331,7 +1331,7 @@ def vendig_api_ReupBalance(member):
     # --------- END REMOVE LINES
     """
     cid = m.customerid
-    #cid = 'cus_MN5oo9gAnx3Vtn' # BOMB TODO FIXME!!!
+    #cid = 'cus_MN5oo9gAnx3Vtn' # BOMB TODO FIXME!!!  Must be commented out in production
 
 
     try:
@@ -1341,7 +1341,7 @@ def vendig_api_ReupBalance(member):
       else:
         productId = current_app.config['globalConfig'].Config.get('Stripe','VendingProduct')
       if 'description' in data:
-        description== data['description']
+        description = data['description']
       else:
         description = "Vending Payment"
       vendstr = "OldBal: ${0:0.2f} Add: ${1:0.2f} Purchase: ${2:0.2f} Fee: ${3:0.2f} NewBal: ${4:0.2f}".format(
