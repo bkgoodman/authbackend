@@ -61,6 +61,10 @@ def members():
 def orientation():
     """Show recent members needing orientation"""
     
+    eastern = dateutil.tz.gettz('US/Eastern')
+    utc = dateutil.tz.gettz('UTC')
+    now = datetime.datetime.now().replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+    
     # Get the 15 most recent member IDs created from pay system events
     recent_log_entries = db.session.query(Logs)\
         .filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id)\
@@ -115,7 +119,7 @@ def orientation():
                     'door_access_allowed': allowed,
                     'is_fully_enabled': is_fully_enabled,
                     'access_warning': warning,
-                    'time_logged': log.time_logged
+                    'time_logged': log.time_logged.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
                 })
     
     return render_template('orientation.html', orientation_list=orientation_list, page="orientation", ago=ago)
