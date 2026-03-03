@@ -337,7 +337,9 @@ def on_message(client,userdata,msg):
 
                     fw_name = message['fw_name']
 
-                    if fw_name=='ratt':
+                    if fw_name=='goratt':
+                        log_text = 'Application Started (' + fw_name + ' firmware ' + message['fw_version']  + ')'
+                    elif fw_name=='ratt':
                         log_text = 'Application Started (' + fw_name + ' firmware ' + message['fw_version'] + ' mender artifact ' + message['mender_artifact'] + ')'
                     elif fw_name=='uratt':
                         reset_reasons = {
