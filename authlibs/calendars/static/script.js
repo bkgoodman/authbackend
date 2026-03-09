@@ -112,7 +112,7 @@ class BookingControl {
 
         const section = document.createElement('div');
         section.className = 'day-section';
-        section.dataset.date = dayStart.toISOString();
+        section.dataset.date = this.toDateKey(dayStart);
 
         // Day Separator
         const separator = document.createElement('div');
@@ -237,7 +237,7 @@ class BookingControl {
     scrollToTime(date, hour) {
         // Legacy method kept for init, but using scrollToDate mostly
         date.setHours(0, 0, 0, 0);
-        const dateStr = date.toISOString();
+        const dateStr = this.toDateKey(date);
         const section = document.querySelector(`.day-section[data-date="${dateStr}"]`);
 
         if (section) {
@@ -248,17 +248,14 @@ class BookingControl {
     }
 
     scrollToDate(date, ignoreOffset = false) {
-        const timestamp = date.getTime();
-
-        let targetTimestamp = timestamp;
+        let targetDate = new Date(date);
         if (!ignoreOffset) {
-            // Target 10am
-            const tenAmOffsetMs = 10 * 60 * 60 * 1000;
-            targetTimestamp += tenAmOffsetMs;
+            // Target 10am using setHours (DST-safe)
+            targetDate.setHours(10, 0, 0, 0);
         }
 
-        // Find slot closest to 10am
-        const slot = document.querySelector(`.time-slot[data-time="${targetTimestamp}"]`);
+        // Find slot closest to target time
+        const slot = document.querySelector(`.time-slot[data-time="${targetDate.getTime()}"]`);
 
         if (slot) {
             slot.scrollIntoView({ block: 'center', behavior: 'auto' });
@@ -279,7 +276,7 @@ class BookingControl {
 
             // Try finding section again after load
             setTimeout(() => {
-                const section = document.querySelector(`.day-section[data-date="${dayStart.toISOString()}"]`);
+                const section = document.querySelector(`.day-section[data-date="${this.toDateKey(dayStart)}"]`);
                 if (section) {
                     // Scroll to 10am instead of start
                     const offset = (10 * 60 * (40 / 30)); // 10 hours * 60 min * px/min roughly. 
@@ -687,7 +684,8 @@ class BookingControl {
         }
 
         if (visibleSection) {
-            return new Date(visibleSection.dataset.date);
+            const parts = visibleSection.dataset.date.split('-');
+            return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
         }
         return new Date();
     }
@@ -1014,6 +1012,13 @@ class BookingControl {
                 }, 3000 - elapsed);
             }
         }
+    }
+
+    toDateKey(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 }
 
