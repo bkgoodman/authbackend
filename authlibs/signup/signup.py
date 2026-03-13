@@ -17,6 +17,7 @@ import hashlib
 import base64
 from pytz import UTC
 from flask import make_response
+import sqlalchemy.exc
 
 blueprint = Blueprint("signup", __name__, template_folder='templates', static_folder="static",url_prefix="/signup")
 
@@ -67,6 +68,55 @@ def addMember(sub,plantype,firstname,lastname,email):
     db.session.add(s)
     db.session.add(Logs(member_id=mm.id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id))
     return (s,mm)
+
+def linkExistingMember(sub, plantype, firstname, lastname, email):
+    """
+    Called when addMember() fails with a UNIQUE constraint on members.member,
+    meaning this person already has a member record.  Instead of failing, we
+    find that existing Member row and link/update the new Stripe subscription
+    to it, effectively reactivating the membership.
+    """
+    membername = (firstname + " " + lastname).replace(" ", ".")
+    mm = Member.query.filter(Member.member == membername).first()
+    if mm is None:
+        raise ValueError(f"Duplicate insert signalled but member not found: {membername}")
+
+    expires = datetime.utcfromtimestamp(sub['current_period_end'])
+    created = datetime.utcfromtimestamp(sub['created'])
+    updated = datetime.utcnow()
+
+    # Find the existing Subscription row for this member
+    s = Subscription.query.filter(Subscription.member_id == mm.id).first()
+    if s is None:
+        # No subscription row yet — create one fresh
+        membership = "stripe:" + membername + ":" + email
+        s = Subscription(membership=membership)
+        s.member_id = mm.id
+        db.session.add(s)
+
+    # Update it with the new Stripe subscription details
+    s.paysystem    = "stripe"
+    s.subid        = sub.id
+    s.customerid   = sub['customer']
+    s.name         = firstname + " " + lastname
+    s.email        = email
+    s.plan         = plantype
+    s.rate_plan    = sub['plan']['id']
+    s.expires_date = expires
+    s.created_date = created
+    s.updated_date = updated
+    s.checked_date = datetime.utcnow()
+    s.active       = 'true'
+
+    # Update the member's last-updated timestamp.
+    # NOTE: Do NOT touch mm.active — it is a computed status string (e.g. 'Active',
+    # 'Grace Period', 'Recent Expire') managed by the Stripe sync process, not a
+    # flag we should set manually here.
+    mm.time_updated = updated
+
+    db.session.add(Logs(member_id=mm.id,
+                        event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_REACTIVATED.id))
+    return (s, mm)
 
 @blueprint.route('/howdiduhear', methods=['GET','POST'])
 def howdiduhear():
@@ -172,7 +222,8 @@ def postpay():
         plantype = 'hobbyist'
 
     isTest = socket.gethostname()  == "staging"
-    isError=False
+    isError = False
+    isDuplicate = False
     try:
         (s,mm) = addMember(sub,plantype,sessiondata['firstname'],sessiondata['lastname'],
                 sessiondata['email'])
@@ -183,15 +234,29 @@ def postpay():
                 sessiondata['email2'])
             createMissingMemberAccounts([mm],isTest=isTest)
         db.session.commit()
+    except sqlalchemy.exc.IntegrityError as e:
+        # Member record already exists — roll back the failed insert and
+        # instead link the new Stripe subscription to the existing member.
+        db.session.rollback()
+        print(f"Signup: duplicate member detected for {sessiondata['email']}, attempting to link subscription")
+        try:
+            (s, mm) = linkExistingMember(sub, plantype, sessiondata['firstname'],
+                                         sessiondata['lastname'], sessiondata['email'])
+            db.session.commit()
+            authutil.kick_backend()
+            isDuplicate = True   # reactivation succeeded
+        except BaseException as e2:
+            db.session.rollback()
+            print(f"Signup: link also failed for {sessiondata['email']}: {e2}\n")
+            isError = True
     except BaseException as e:
-        print (f"Signup error: {sessiondata['email']}: {e}\n")
-        isError=True
-
-
-
+        db.session.rollback()
+        print(f"Signup error: {sessiondata['email']}: {e}\n")
+        isError = True
 
     return render_template('complete.html',debug=debug,email=sessiondata['email'],
-            mtype=sessiondata['mtype'],isError=isError,where=where,what=what,stuff=stuff,iam=iam)
+            mtype=sessiondata['mtype'],isError=isError,isDuplicate=isDuplicate,
+            where=where,what=what,stuff=stuff,iam=iam)
 
 @blueprint.route('/survey',methods=['POST'])
 def survey():

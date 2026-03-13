@@ -10,8 +10,11 @@
 	{% if isError == False %}
 	<p>You should be receiving an email at {{ email }} very soon. Please check your inbox and spam folder. It will contain important information on setting up your MakeIt accounts, attending orientation so you can get access to the lab. If you do not hear back within a day, please email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a> for help, or come to one of our orientation sessions <b>Thursdays at 7:00pm</b>. We look forward to seeing you soon!
 	</p>
+	{% elif isDuplicate %}
+	<p><strong>Welcome back!</strong> We found your existing membership and have reactivated it with your new subscription.</p>
+	<p>You should receive a confirmation email at {{ email }} shortly. If you have any questions, email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a>.</p>
 	{% else %}
-	<p>Your payment was procsessed - but something went wrong activating your membership. Please email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a> for help,  and we will get this fixed immediatley - or come to one of our orientation sessions <b>Thursdays at 7:00pm</b>. Please provide name and email you used in registration.
+	<p>Your payment was processed - but something went wrong activating your membership. Please email <a href="mailto:info@makeitlabs.com">info@makeitlabs.com</a> for help, and we will get this fixed immediately - or come to one of our orientation sessions <b>Thursdays at 7:00pm</b>. Please provide the name and email you used in registration.
 	</p>
 	{% endif %}
 
