@@ -84,21 +84,22 @@ MY_MAPPINGS = {
     "Wood Orientation": ["119567829597"],  
     "Wood Bandsaw": ["557157070797"],
     "Wood Lathe": ["1965258959451"],
-    "Wood Serving": ["1612325150929"],
+    "Wood Projects": ["1612325150929", "1984349771584"], # Cutting board and Picture Frame
     "Blacksmithing": ["1243682861919"],
     "Waterjet": ["663602140867"],
     "Design Tools": ["632359854347", "850035929347", "850045999467","1320096898359"], #Inkscape, Bkebder, Onshape, Meetup
     "Pottery": ["678019884727", "1596586807119"], #Glazing, Intro
     "Metal Fab": ["1092937859559"], # VBandsaw
-    "Soft Metals": ["1978809165482","1740582431909", "1968713594357","1982891955216"], # Siver Wire Scape,< Copper Pendant, Smith & Annel, Ring Fab
+    "Soft Metals": ["1978809165482","1740582431909", "1968713594357","1982891955216", "1983318849067"], # Siver Wire Scape,< Copper Pendant, Smith & Annel, Ring Fab
     "Shopbot": ["1978640823968"],
     "Lil Tormy": ["1867525161029"],
     "Soldering": ["1703566807179"],
     "Auto": ["1981598624830"],
     "Welding": ["1982281184384","1982278329846"], # TIG, MIG
     "Machine Shop": ["1982282866415", "1982283357885"], # Lathe Mill
+    "Kitchen": ["1983906519806"], # Baguettes
     "Glass": ["1982895978249"], # Stained Glass
-    "Glenn": ["1982227839829", "1982220233077", "1982797679234"] # DriilDoctor, TOrmech, DieSub
+    "Glenn": ["1982227839829", "1982220233077", "1983334369489", "1982797679234", "1983589684142"] # DriilDoctor, TOrmech, DieSub, Lapedary
 }
 
 #get_super_event_grid(MY_MAPPINGS, TOKEN)
