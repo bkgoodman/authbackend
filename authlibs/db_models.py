@@ -480,6 +480,7 @@ class Node(db.Model):
     ip_addr = db.Column(db.String(20))
     name = db.Column(db.String(20))
     mac = db.Column(db.String(20))
+    always_on = db.Column(db.Boolean(), default=0)  # Node expected to be online 24/7
 
 class Purchasable(db.Model):
     __tablename__ = 'purchasable'

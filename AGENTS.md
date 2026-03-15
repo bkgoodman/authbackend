@@ -1,3 +1,18 @@
+# Project
+
+This is a Pyhton3 w/ Flask application to do member and membership managment for a makerspace, including member access to facilities and equipment, and integration into payment and waiver tracking.
+
 # Running and testing
 
 You are not going to be able to run this. Too many dependencies on stuff that probably doesn't exist on this system. You can try a quick python unit test of something or compile, but don't try to "run" the whole pacakge or to install stuff required to get the full code up and running.
+
+# Layout
+
+Most of the important code is in authlibs. Each directory in here is generally a high level UI category or functions (members, resources, nodes, waivers, etc). There is typically a single file in here that is a Flask blueprint that defines the web pages use for those, and static/ and template/ directories for Flask content.
+
+Each library generally follows very standard patterns for GUI pages, templates and database usage - so you can look across these to see common patterns and elements.
+
+User access validity is a more complex concept. It is generally calculated *dynamically* from common functions, looking directly at database content.
+
+Database is db_models.py - which defines the database schema used throughout
+
