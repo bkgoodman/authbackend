@@ -49,6 +49,11 @@ scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/log.db .
 #sqlite3 makeit.db '
 #ALTER TABLE tools ADD COLUMN remotable BOOLEAN;
 #'
+
+sqlite3 makeit.db '
+ALTER TABLE nodes ADD COLUMN always_on BOOLEAN DEFAULT 0;
+'
+
 #sqlite3 makeit.db '
 #ALTER TABLE members ADD COLUMN plates VARCHAR(50);
 #'
