@@ -12,6 +12,28 @@ set -x 1
 scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/makeit.db .
 scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/log.db .
 
+###
+### Database migration - Inventory system
+###
+
+sqlite3 log.db 'CREATE TABLE IF NOT EXISTS inventorylog (
+        id INTEGER NOT NULL PRIMARY KEY,
+        purchasable_id INTEGER,
+        resource_id INTEGER,
+        member_id INTEGER,
+        time_logged DATETIME DEFAULT CURRENT_TIMESTAMP,
+        operation VARCHAR(20),
+        quantity INTEGER,
+        unit_price INTEGER,
+        total_price INTEGER,
+        old_quantity INTEGER,
+        new_quantity INTEGER,
+        comment VARCHAR(200)
+);'
+sqlite3 log.db 'CREATE INDEX IF NOT EXISTS ix_inventorylog_purchasable_id ON inventorylog (purchasable_id);'
+sqlite3 log.db 'CREATE INDEX IF NOT EXISTS ix_inventorylog_time_logged ON inventorylog (time_logged);'
+sqlite3 log.db 'CREATE INDEX IF NOT EXISTS ix_inventorylog_operation ON inventorylog (operation);'
+
 
 ###
 ### Database migration from 2.1 to 2.2

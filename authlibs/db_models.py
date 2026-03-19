@@ -603,6 +603,22 @@ class UsageLog(db.Model):
     enabledSecs = db.Column(db.Integer())
     payTier = db.Column(db.Integer(),default=0)
 
+class InventoryLog(db.Model):
+    __tablename__ = 'inventorylog'
+    __bind_key__ = 'logs'
+    id = db.Column(db.Integer, primary_key=True)
+    purchasable_id = db.Column(db.Integer(), index=True)
+    resource_id = db.Column(db.Integer())
+    member_id = db.Column(db.Integer())
+    time_logged = db.Column(db.DateTime(timezone=True), server_default=db.func.now(), index=True)
+    operation = db.Column(db.String(20), index=True)    # 'purchase','pull','restock','adjust'
+    quantity = db.Column(db.Integer())                   # How many (positive)
+    unit_price = db.Column(db.Integer())                 # Cents per unit (0 for non-sale)
+    total_price = db.Column(db.Integer())                # Total cents (0 for non-sale)
+    old_quantity = db.Column(db.Integer())                # Qty before this operation
+    new_quantity = db.Column(db.Integer())                # Qty after this operation
+    comment = db.Column(db.String(200))
+
 # TODO I'm pretty sure this class isn't used at all (???)
 class OAuth(OAuthConsumerMixin, db.Model):
     __tablename__ = 'oauth'

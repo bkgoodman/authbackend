@@ -16,3 +16,10 @@ User access validity is a more complex concept. It is generally calculated *dyna
 
 Database is db_models.py - which defines the database schema used throughout
 
+# Inventory
+
+Inventory is a bit of a mess. There are two different inventory systems. One is for consumables (like 3d printer filament, etc) and the other is for tools (like 3d printers, laser cutters, etc). They are not well integrated.
+
+# Database Updates
+
+If you need to update the database schema, updates should be captured in the pulldb.sh file. This file will be used by _user_ to update database and schema for testing, and this is the primary way to specify how schema changes are to be made for production.

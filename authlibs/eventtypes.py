@@ -294,6 +294,21 @@ class RATTBE_LOGEVENT_PURCHASABLE_PURCHASE:
     desc="Item Purchase"
     slack_icon=":moneybag:"
 
+class RATTBE_LOGEVENT_INVENTORY_RESTOCK:
+    id=3040
+    desc="Inventory Restock"
+    slack_icon=":package:"
+
+class RATTBE_LOGEVENT_INVENTORY_PULL:
+    id=3041
+    desc="Inventory Pull"
+    slack_icon=":inbox_tray:"
+
+class RATTBE_LOGEVENT_INVENTORY_ADJUST:
+    id=3042
+    desc="Inventory Adjustment"
+    slack_icon=":pencil:"
+
 class RATTBE_LOGEVENT_RESOURCE_USE_BILLED:
     id=3031
     desc="Usage Charged"
