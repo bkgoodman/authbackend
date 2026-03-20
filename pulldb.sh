@@ -12,6 +12,29 @@ set -x 1
 scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/makeit.db .
 scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/log.db .
 
+###
+### Database migration - Inventory system
+###
+
+# sqlite3 log.db 'CREATE TABLE IF NOT EXISTS inventorylog (
+#         id INTEGER NOT NULL PRIMARY KEY,
+#         purchasable_id INTEGER,
+#         resource_id INTEGER,
+#         member_id INTEGER,
+#         time_logged DATETIME DEFAULT CURRENT_TIMESTAMP,
+#         operation VARCHAR(20),
+#         quantity INTEGER,
+#         unit_price INTEGER,
+#         total_price INTEGER,
+#         old_quantity INTEGER,
+#         new_quantity INTEGER,
+#         comment VARCHAR(200)
+# );'
+
+# sqlite3 log.db 'CREATE INDEX IF NOT EXISTS ix_inventorylog_purchasable_id ON inventorylog (purchasable_id);'
+# sqlite3 log.db 'CREATE INDEX IF NOT EXISTS ix_inventorylog_time_logged ON inventorylog (time_logged);'
+# sqlite3 log.db 'CREATE INDEX IF NOT EXISTS ix_inventorylog_operation ON inventorylog (operation);'
+
 
 ###
 ### Database migration from 2.1 to 2.2
@@ -50,9 +73,9 @@ scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/log.db .
 #ALTER TABLE tools ADD COLUMN remotable BOOLEAN;
 #'
 
-sqlite3 makeit.db '
-ALTER TABLE nodes ADD COLUMN always_on BOOLEAN DEFAULT 0;
-'
+#sqlite3 makeit.db '
+#ALTER TABLE nodes ADD COLUMN always_on BOOLEAN DEFAULT 0;
+#'
 
 #sqlite3 makeit.db '
 #ALTER TABLE members ADD COLUMN plates VARCHAR(50);
@@ -85,7 +108,7 @@ ALTER TABLE nodes ADD COLUMN always_on BOOLEAN DEFAULT 0;
 #INSERT INTO storageGrid VALUES(8,"Garage","Garage",6,8);
 #INSERT INTO storageGrid VALUES(9,"Cleanspace","Cleanspace",4,2);
 sqlite3 makeit.db '
-INSERT INTO purchasable VALUES(10,"Staging Test","Staging Test Purchasable",100,"prod_MIERLuABAuCcLR","Staging Test","#test-resource-admins",5);
+INSERT INTO purchasable VALUES(22,"Staging Test","Staging Test Purchasable",100,"prod_MIERLuABAuCcLR","Staging Test","#test-resource-admins",5);
 '
 
 

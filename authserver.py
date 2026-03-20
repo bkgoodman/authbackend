@@ -87,6 +87,7 @@ from authlibs.training import training
 from authlibs.prostore import prostore
 from authlibs.vending import vending
 from authlibs.purchasables import purchasables
+from authlibs.inventory import inventory
 from authlibs.facility import facility
 from authlibs.finrep import finrep
 from authlibs.signup import signup
@@ -629,6 +630,7 @@ with app.app_context():
     memberInfo.register_pages(app)
     facility.register_pages(app)
     purchasables.register_pages(app)
+    inventory.register_pages(app)
     slackutils.create_routes(app)
     g.main_menu = main_menu
     app.config['main_menu'] = main_menu
