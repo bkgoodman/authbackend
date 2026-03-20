@@ -97,14 +97,9 @@ def store_purchase(purchasable_id):
         return redirect(url_for('inventory.store', purchasable_id=purchasable_id))
     cid = sub.customerid
 
-    # Use resource prodcode as shared Stripe product
-    product_code = res.prodcode
-    if not product_code or product_code.strip() == "":
-        flash("Error: No product code configured for this resource", "danger")
-        return redirect(url_for('inventory.store', purchasable_id=purchasable_id))
-
     # Collect items from form
     tracked, _ = get_group_items(res.id)
+    purchasable_lookup = {p.id: p for p in Purchasable.query.filter(Purchasable.resource_id == res.id).all()}
     items = []
     for t in tracked:
         qty = int(request.form.get(f'qty_{t["id"]}', 0))
@@ -112,9 +107,17 @@ def store_purchase(purchasable_id):
             if t['current_qty'] is not None and qty > t['current_qty']:
                 flash(f"Not enough {t['name']} in stock (have {t['current_qty']}, requested {qty})", "danger")
                 return redirect(url_for('inventory.store', purchasable_id=purchasable_id))
+            # Use the purchasable's own Stripe product code
+            purch = purchasable_lookup.get(t['id'])
+            item_product = None
+            if purch and purch.product and purch.product.strip():
+                item_product = purch.product.strip()
+            if not item_product:
+                flash(f"Error: No Stripe product code for {t['name']}", "danger")
+                return redirect(url_for('inventory.store', purchasable_id=purchasable_id))
             items.append({'purchasable_id': t['id'], 'name': t['name'], 'qty': qty,
                           'unit_price': t['priceval'], 'current_qty': t['current_qty'],
-                          'resource_id': res.id})
+                          'resource_id': res.id, 'product_code': item_product})
 
     if not items:
         flash("No items selected", "warning")
@@ -153,7 +156,7 @@ def store_purchase(purchasable_id):
             price = stripe.Price.create(
                 unit_amount=line_amount,
                 currency='usd',
-                product=product_code)
+                product=i['product_code'])
             stripe.InvoiceItem.create(
                 customer=cid,
                 price=price,
