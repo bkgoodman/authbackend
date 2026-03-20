@@ -170,7 +170,7 @@ def orientation_add_tag():
                 new_access = AccessByMember(
                     member_id=member.id,
                     resource_id=frontdoor_resource.id,
-                    level=AccessByMember.LEVEL_ARM,  # Basic access level
+                    level=AccessByMember.LEVEL_USER,  # Basic access level
                     active=1
                 )
                 db.session.add(new_access)
@@ -182,7 +182,7 @@ def orientation_add_tag():
                 # Enable existing access if it was disabled
                 if not existing_access.active:
                     existing_access.active = 1
-                    existing_access.level = AccessByMember.LEVEL_ARM
+                    existing_access.level = AccessByMember.LEVEL_USER
                     authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id,
                                resource_id=frontdoor_resource.id,
                                member_id=member.id, doneby=current_user.id, commit=0)
