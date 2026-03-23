@@ -16,12 +16,38 @@
 }
 </style>
 
+{% macro dobuttons() %}
+		<div class="content mb-3 mt-2">
+			<span>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-asterisk"  onclick="location.href='{{ url_for('members.orientation') }}'" ></button>
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-backward" onclick="location.href='{{ meta.first }}'" ></button>
+			{% if meta.prev %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left"  onclick="location.href='{{ meta.prev }}'" ></button>
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-left disabled" ></button>
+			{% endif %}
+			{% if meta.next %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right" onclick="location.href='{{ meta.next }}'"  ></button>
+			{% else %}
+				<button class="btn btn-lg btn-light glyphicon glyphicon-chevron-right disabled"  ></button>
+			{% endif %}
+			<button class="btn btn-lg btn-light glyphicon glyphicon-step-forward"  onclick="location.href='{{ meta.last }}'"></button>
+            <a class="btn btn-lg {{ 'btn-warning' if meta.hide_completed else 'btn-light' }}" href="{{ meta.toggle_hide_url }}">
+                {% if meta.hide_completed %}Show All{% else %}Hide Completed{% endif %}
+            </a>
+			</span>
+			<span class="ml-3">{{ meta.displayoffset }} - {{ meta.lastoffset}} of {{ meta.count }}</span>
+		</div>
+{%- endmacro -%}
+
 {% extends "layout_bootstrap.html" %}
 {% block body %}
 <div class="container">
     <h2>Member Orientation</h2>
     <p>Most recent new member signups</p>
     <p class="text-info"><small><strong>Tip:</strong> Click "Not on file" badges to quickly add waivers</small></p>
+    
+    {{ dobuttons() }}
     
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -117,6 +143,8 @@
             No recent members found from Pay System events.
         </div>
     {% endif %}
+    
+    {{ dobuttons() }}
     
     <div class="mt-3">
         <a href="{{ url_for('members.members') }}" class="btn btn-secondary">Back to Members</a>

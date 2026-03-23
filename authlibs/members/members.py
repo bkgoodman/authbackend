@@ -61,68 +61,171 @@ def members():
 def orientation():
     """Show recent members needing orientation"""
     
+    import re
     eastern = dateutil.tz.gettz('US/Eastern')
     utc = dateutil.tz.gettz('UTC')
     now = datetime.datetime.now().replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
     
-    # Get the 15 most recent member IDs created from pay system events
-    recent_log_entries = db.session.query(Logs)\
+    limit = 15
+    offset = 0
+    if 'limit' in request.values:
+        if request.values['limit'] != "all":
+            limit = int(request.values['limit'])
+        else:
+            limit = 200
+    if 'offset' in request.values:
+        offset = int(request.values['offset'])
+
+    hide_completed = request.values.get('hide_completed', '0') == '1'
+
+    all_log_entries = db.session.query(Logs)\
         .filter(Logs.event_type == eventtypes.RATTBE_LOGEVENT_CONFIG_NEW_MEMBER_PAYSYS.id)\
         .order_by(Logs.time_logged.desc())\
-        .limit(15)\
         .all()
+
+    filtered_entries = []
     
-    # Extract member IDs from the query results
-    member_ids = [log.member_id for log in recent_log_entries if log.member_id]
+    # We will build member list and filter appropriately
+    # The member query matching is fast, getDoorAccess can be slower so we lazily check
+    if hide_completed:
+        for log in all_log_entries:
+            if not log.member_id:
+                continue
+            member = Member.query.filter(Member.id == log.member_id).one_or_none()
+            if not member:
+                continue
+            if not member.access_enabled:
+                filtered_entries.append((log, member))
+                continue
+            member_waiver = Waiver.query.filter(
+                Waiver.member_id == member.id,
+                Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
+            ).first()
+            if not member_waiver:
+                filtered_entries.append((log, member))
+                continue
+            tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
+            if len(tags) == 0:
+                filtered_entries.append((log, member))
+                continue
+            (warning,allowed,dooraccess) = getDoorAccess(member.id)
+            if not allowed:
+                filtered_entries.append((log, member))
+                continue
+    else:
+        for log in all_log_entries:
+            if not log.member_id:
+                continue
+            member = Member.query.filter(Member.id == log.member_id).one_or_none()
+            if not member:
+                continue
+            filtered_entries.append((log, member))
+
+    count = len(filtered_entries)
+    paginated_entries = filtered_entries[offset:offset+limit]
     
     orientation_list = []
-    if member_ids:
-        # Now query the members from the main database
-        members = Member.query.filter(Member.id.in_(member_ids)).all()
-        
-        # Create a mapping of member_id to member for easy lookup
-        member_map = {member.id: member for member in members}
-        
-        for log in recent_log_entries:
-            if log.member_id in member_map:
-                member = member_map[log.member_id]
-                
-                # Get waiver status (member waivers only)
-                member_waiver = Waiver.query.filter(
-                    Waiver.member_id == member.id,
-                    Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
-                ).first()
-                waiver_status = "On file" if member_waiver else "Not on file"
-                
-                # Check if member has tags assigned
-                tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
-                has_tag = len(tags) > 0
-                
-                # Get door access status
-                (warning,allowed,dooraccess)=getDoorAccess(member.id)
-                
-                # Determine if member is fully enabled and active
-                # Check if member has access enabled, waiver on file, tag assigned, and frontdoor access
-                is_fully_enabled = (
-                    member.access_enabled == 1 and 
-                    member_waiver is not None and 
-                    has_tag and 
-                    allowed
-                )
-                
-                orientation_list.append({
-                    'member': member,
-                    'waiver_status': waiver_status,
-                    'has_tag': has_tag,
-                    'tags': tags,
-                    'access_enabled': member.access_enabled == 1,
-                    'door_access_allowed': allowed,
-                    'is_fully_enabled': is_fully_enabled,
-                    'access_warning': warning,
-                    'time_logged': log.time_logged.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
-                })
     
-    return render_template('orientation.html', orientation_list=orientation_list, page="orientation", ago=ago)
+    for log, member in paginated_entries:
+        member_waiver = Waiver.query.filter(
+            Waiver.member_id == member.id,
+            Waiver.waivertype == Waiver.WAIVER_TYPE_MEMBER
+        ).first()
+        waiver_status = "On file" if member_waiver else "Not on file"
+        
+        tags = MemberTag.query.filter(MemberTag.member_id == member.id).all()
+        has_tag = len(tags) > 0
+        
+        (warning,allowed,dooraccess) = getDoorAccess(member.id)
+        
+        is_fully_enabled = (
+            member.access_enabled == 1 and 
+            member_waiver is not None and 
+            has_tag and 
+            allowed
+        )
+        
+        orientation_list.append({
+            'member': member,
+            'waiver_status': waiver_status,
+            'has_tag': has_tag,
+            'tags': tags,
+            'access_enabled': member.access_enabled == 1,
+            'door_access_allowed': allowed,
+            'is_fully_enabled': is_fully_enabled,
+            'access_warning': warning,
+            'time_logged': log.time_logged.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+        })
+
+    nextoffset = offset+limit
+    if (offset >= count - limit):
+        nextoffset=None
+    else:
+        if re.search(r"[\?\&]offset=(\d+)",request.url):
+            nextoffset = re.sub(r"([\?\&])offset=(\d+)",r"\g<1>offset="+str(nextoffset),request.url)
+        else:
+            if request.url.find("?")  == -1:
+              nextoffset = request.url+"?offset="+str(nextoffset)
+            else:
+              nextoffset = request.url+"&offset="+str(nextoffset)
+
+    prevoffset = offset-limit
+    if (prevoffset < 0): prevoffset=0
+    if offset <= 0:
+      prevoffset = None
+    else:
+      if re.search(r"[\?\&]offset=(\d+)",request.url):
+          prevoffset = re.sub(r"([\?\&])offset=(\d+)",r"\g<1>offset="+str(prevoffset),request.url)
+      else:
+          if request.url.find("?")  == -1:
+            prevoffset = request.url+"?offset="+str(prevoffset)
+          else:
+            prevoffset = request.url+"&offset="+str(prevoffset)
+
+    if re.search(r"[\?\&]offset=(\d+)",request.url):
+        firstoffset = re.sub(r"([\?\&])offset=(\d+)",r"",request.url)
+    else:
+        firstoffset = request.url
+
+    lo = offset+limit
+    if (lo > count):
+        lo = count
+
+    lastoffset = count-limit
+    if (lastoffset < 0): lastoffset=0
+    if re.search(r"[\?\&]offset=(\d+)",request.url):
+        lastoffset = re.sub(r"([\?\&])offset=(\d+)",r"\g<1>offset="+str(lastoffset),request.url)
+    else:
+        if request.url.find("?") != -1:
+            lastoffset = request.url+"&offset="+str(lastoffset)
+        else:
+            lastoffset = request.url+"?offset="+str(lastoffset)
+            
+    if re.search(r"[\?\&]hide_completed=1",request.url):
+        toggle_hide_url = re.sub(r"([\?\&])hide_completed=1",r"\g<1>hide_completed=0",request.url)
+    elif re.search(r"[\?\&]hide_completed=0",request.url):
+        toggle_hide_url = re.sub(r"([\?\&])hide_completed=0",r"\g<1>hide_completed=1",request.url)
+    else:
+        if request.url.find("?") != -1:
+            toggle_hide_url = request.url+"&hide_completed=1"
+        else:
+            toggle_hide_url = request.url+"?hide_completed=1"
+
+    meta = {
+            'offset':offset,
+            'limit':limit,
+            'first':firstoffset,
+            'prev':prevoffset,
+            'next':nextoffset,
+            'last':lastoffset,
+            'count':count,
+            'displayoffset':offset+1 if count > 0 else 0,
+            'lastoffset':lo,
+            'hide_completed': hide_completed,
+            'toggle_hide_url': toggle_hide_url
+    }
+    
+    return render_template('orientation.html', orientation_list=orientation_list, page="orientation", ago=ago, meta=meta)
 
 @blueprint.route('/orientation', methods = ['POST'])
 @login_required
