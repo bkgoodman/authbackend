@@ -27,6 +27,7 @@ def purchasables():
             'priceval':0 if x.price is None else x.price,
             'price':"" if x.price is None else f"${x.price/100.0:0.2f}",
 			'product':x.product,
+			'resource_id':x.resource_id,
 			})
 	resources = Resource.query.all()
 	return render_template('purchasables.html',resources=resources,purchasables=sorted(purchasables,key=lambda x:x['name']),editable=True,purchasable={},)
@@ -225,6 +226,28 @@ def purchasable_purchase():
         pass
     logmsg = f"Purchased {r.name} for ${request.form['pricestr']}{commentstr}"
     authutil.log(eventtypes.RATTBE_LOGEVENT_PURCHASABLE_PURCHASE.id,resource_id=r.resource_id,member_id=current_user.id,message=logmsg,commit=0)
+
+    # If this purchasable is inventory-tracked, also deduct from inventory
+    latest_inv = InventoryLog.query.filter(
+        InventoryLog.purchasable_id == r.id
+    ).order_by(InventoryLog.id.desc()).first()
+    if latest_inv is not None:
+        old_qty = latest_inv.new_quantity if latest_inv.new_quantity is not None else 0
+        new_qty = old_qty - 1
+        il = InventoryLog(
+            purchasable_id=r.id,
+            resource_id=r.resource_id,
+            member_id=current_user.id,
+            operation='purchase',
+            quantity=1,
+            unit_price=cents,
+            total_price=cents,
+            old_quantity=old_qty,
+            new_quantity=new_qty,
+            comment=f"Quick purchase{commentstr}" if commentstr else "Quick purchase"
+        )
+        db.session.add(il)
+
     db.session.commit()
     return redirect(url_for('purchasables.purchasables'))
 

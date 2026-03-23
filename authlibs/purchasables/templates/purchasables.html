@@ -60,15 +60,16 @@
 			<td>{{ purchasable.description }}</td>
 			<td>{{ purchasable.price }}</td>
 			<td>
+				{% if purchasable.resource_id %}
+				<a href="{{ url_for('inventory.store', purchasable_id=purchasable.id) }}" class="btn btn-success"
+					title="Buy from Store">
+					<i class="fa fa-shopping-cart"></i> Buy
+				</a>
+				{% else %}
 				<button type="button" class="btn btn-success" data-toggle="modal" data-target="#purchaseModal"
 					onClick="selectItem( '{{ purchasable.name }}', {{ purchasable.id }}, {{ purchasable.priceval }} )">
 					Buy
 				</button>
-				{% if purchasable.resource_id %}
-				<a href="{{ url_for('inventory.store', purchasable_id=purchasable.id) }}" class="btn btn-info btn-sm"
-					title="Store / Inventory">
-					<i class="fa fa-shopping-cart"></i>
-				</a>
 				{% endif %}
 			</td>
 		</tr>
