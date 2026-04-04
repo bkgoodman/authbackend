@@ -28,6 +28,8 @@ CLASSROOM	makeitlabs.com_1885ovbr2ecl0irsh4dq4rc0t5pfa6gb74sjedpo6ksj6d1k64@reso
 DARKROOM	c_188fr2u7d5i7kgpflmt7ue7rfgo0q@resource.calendar.google.com
 EVENT_ROOM	makeitlabs.com_188aq2sk57k2ujq7grms0tavvo1nk@resource.calendar.google.com
 CONFERENCE	makeitlabs.com_188634rlsva2kha1iikp7lifrnipo6gb74ojge9g64q3ad1k60@resource.calendar.google.com
+EMBROIDERY  c_18896vricr9p2g69hphhra6uhs3r2@resource.calendar.google.com
+
 """
 
 # Add user names to bookings
@@ -97,6 +99,18 @@ resources = {
                 "name":"MOPA Laser",
                 "img" : "icon_MOPA.png",
                 "cal" : "c_1886b6dkec306jdkk38lsbpbejeo8@resource.calendar.google.com"
+                },
+        "embroidery":{
+                "url":"Embroidery",
+                "name":"Embroidery",
+                "img" : "icon_embroidery.png",
+                "cal":"c_18896vricr9p2g69hphhra6uhs3r2@resource.calendar.google.com"
+                },
+        "classroom":{
+                "url":"Clasroom",
+                "name":"Classroom",
+                "img" : "icon_classroom.png",
+                "cal":"makeitlabs.com_1885ovbr2ecl0irsh4dq4rc0t5pfa6gb74sjedpo6ksj6d1k64@resource.calendar.google.com"
                 },
         "auto":{
                 "url":"AutoLift",
