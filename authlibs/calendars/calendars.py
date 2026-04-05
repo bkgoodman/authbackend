@@ -30,6 +30,9 @@ EVENT_ROOM	makeitlabs.com_188aq2sk57k2ujq7grms0tavvo1nk@resource.calendar.google
 CONFERENCE	makeitlabs.com_188634rlsva2kha1iikp7lifrnipo6gb74ojge9g64q3ad1k60@resource.calendar.google.com
 EMBROIDERY  c_18896vricr9p2g69hphhra6uhs3r2@resource.calendar.google.com
 
+KERN c_1886igtlroq94ic5hro66r88vg274@resource.calendar.google.com
+UV c_18876mnepfo42jnunrjppi4cuqkcu@resource.calendar.google.com
+
 """
 
 # Add user names to bookings
@@ -105,6 +108,18 @@ resources = {
                 "name":"MOPA Laser",
                 "img" : "icon_MOPA.png",
                 "cal" : "c_1886b6dkec306jdkk38lsbpbejeo8@resource.calendar.google.com"
+                },
+        "UV":{
+                "url":"UV",
+                "name":"xTool UV Laser",
+                "img" : "icon_uv.png",
+                "cal" : "c_18876mnepfo42jnunrjppi4cuqkcu@resource.calendar.google.com"
+                },
+        "Kern":{
+                "url":"Kern",
+                "name":"Kern Laser",
+                "img" : "icon_kern.png",
+                "cal" : "c_1886igtlroq94ic5hro66r88vg274@resource.calendar.google.com"
                 },
         "embroidery":{
                 "url":"Embroidery",
