@@ -46,6 +46,12 @@ def add_users(bookings):
 
 
 resources = {
+        "av":{
+                "url":"av",
+                "name":"A/V Studio",
+                "img" : "icon_av.png",
+                "cal" : "c_1885imaecf8ekjg8ida0uaulgg2ku@resource.calendar.google.com"
+                },
         "shopbot":{
                 "url":"shopbot",
                 "name":"Shopbot",
