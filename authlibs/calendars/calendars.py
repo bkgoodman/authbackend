@@ -6,6 +6,17 @@ from authlibs.comments import comments
 from authlibs import accesslib
 import datetime
 from ..google_admin import calendar_read,calendar_create,get_booking,edit_booking, delete_booking
+import dateutil.tz
+
+def parse_time_input(tstr):
+    if tstr.endswith('Z'):
+        return datetime.datetime.fromisoformat(tstr.replace('Z', '+00:00'))
+    elif '+' in tstr[-6:] or ('-' in tstr[-6:] and 'T' in tstr):
+        return datetime.datetime.fromisoformat(tstr)
+    else:
+        dt = datetime.datetime.fromisoformat(tstr)
+        eastern = dateutil.tz.gettz('US/Eastern')
+        return dt.replace(tzinfo=eastern)
 
 blueprint = Blueprint("calendars", __name__, template_folder='templates', static_folder="static",url_prefix="/calendars")
 
@@ -169,8 +180,8 @@ def update_booking(resource):
 
     description = request.form.get('description','')
     eventid = request.form.get('calendar_id','')
-    start = datetime.datetime.fromisoformat(request.form.get('start').replace('Z', '+00:00'))
-    end = datetime.datetime.fromisoformat(request.form.get('end').replace('Z', '+00:00'))
+    start = parse_time_input(request.form.get('start'))
+    end = parse_time_input(request.form.get('end'))
     result = edit_booking(current_user.email,eventid,description,start,end)
     if result is not None:
         flash (f"Failed: {result}","danger")
@@ -188,8 +199,8 @@ def create_booking(resource):
 
     debug=f"{request.form}\n"
     description = request.form.get('description','')
-    start = datetime.datetime.fromisoformat(request.form.get('start').replace('Z', '+00:00'))
-    end = datetime.datetime.fromisoformat(request.form.get('end').replace('Z', '+00:00'))
+    start = parse_time_input(request.form.get('start'))
+    end = parse_time_input(request.form.get('end'))
     try:
         event_id,result = calendar_create(current_user.email,resources[resource]['cal'],description,start,end)
     except BaseException as e:

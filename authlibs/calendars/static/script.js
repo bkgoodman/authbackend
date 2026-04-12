@@ -477,8 +477,8 @@ class BookingControl {
 
         // Submit form
         this.submitForm('create', {
-            start: newBooking.start.toISOString(),
-            end: newBooking.end.toISOString(),
+            start: this.toNaiveLocalISO(newBooking.start),
+            end: this.toNaiveLocalISO(newBooking.end),
             description: newBooking.description
         });
 
@@ -538,8 +538,8 @@ class BookingControl {
         this.submitForm('update', {
             id: this.editingBooking.id,
             calendar_id: this.editingBooking.calendar_id,
-            start: this.editingBooking.start.toISOString(),
-            end: this.editingBooking.end.toISOString(),
+            start: this.toNaiveLocalISO(this.editingBooking.start),
+            end: this.toNaiveLocalISO(this.editingBooking.end),
             description: this.editingBooking.description
         });
 
@@ -970,6 +970,11 @@ class BookingControl {
 
         document.body.appendChild(form);
         form.submit();
+    }
+
+    toNaiveLocalISO(date) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`;
     }
 
     refreshView() {
