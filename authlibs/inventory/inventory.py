@@ -98,10 +98,12 @@ def store_purchase(purchasable_id):
     cid = sub.customerid
 
     # Collect items from form
-    tracked, _ = get_group_items(res.id)
+    tracked, untracked = get_group_items(res.id)
     purchasable_lookup = {p.id: p for p in Purchasable.query.filter(Purchasable.resource_id == res.id).all()}
     items = []
-    for t in tracked:
+    
+    all_purchasables = tracked + untracked
+    for t in all_purchasables:
         qty = int(request.form.get(f'qty_{t["id"]}', 0))
         if qty > 0:
             if t['current_qty'] is not None and qty > t['current_qty']:
@@ -185,23 +187,25 @@ def store_purchase(purchasable_id):
     commentstr = f" ({comment})" if comment else ""
     for i in items:
         cost_str = f"${i['unit_price'] * i['qty'] / 100.0:0.2f}"
-        old_qty = i['current_qty'] if i['current_qty'] is not None else 0
-        new_qty = old_qty - i['qty']
+        # Only log into InventoryLog if the item was already tracked
+        if i['current_qty'] is not None:
+            old_qty = i['current_qty']
+            new_qty = old_qty - i['qty']
 
-        # Structured inventory journal
-        il = InventoryLog(
-            purchasable_id=i['purchasable_id'],
-            resource_id=res.id,
-            member_id=current_user.id,
-            operation='purchase',
-            quantity=i['qty'],
-            unit_price=i['unit_price'],
-            total_price=i['unit_price'] * i['qty'],
-            old_quantity=old_qty,
-            new_quantity=new_qty,
-            comment=comment if comment else None
-        )
-        db.session.add(il)
+            # Structured inventory journal
+            il = InventoryLog(
+                purchasable_id=i['purchasable_id'],
+                resource_id=res.id,
+                member_id=current_user.id,
+                operation='purchase',
+                quantity=i['qty'],
+                unit_price=i['unit_price'],
+                total_price=i['unit_price'] * i['qty'],
+                old_quantity=old_qty,
+                new_quantity=new_qty,
+                comment=comment if comment else None
+            )
+            db.session.add(il)
 
         # Informational log event
         logmsg = f"Purchased {i['qty']}x {i['name']} for {cost_str}{commentstr}"
