@@ -57,7 +57,7 @@
     <p class="text-muted">{{ resource.description }}</p>
     {% endif %}
 
-    {% if tracked | length > 0 %}
+    {% if tracked | length > 0 or untracked | length > 0 %}
     <!-- Purchase Section -->
     <div class="card mb-4">
         <div class="card-header bg-success text-white">
@@ -100,6 +100,22 @@
                             </td>
                         </tr>
                         {% endfor %}
+                        {% for item in untracked %}
+                        <tr>
+                            <td><strong>{{ item.name }}</strong></td>
+                            <td>{{ item.description }}</td>
+                            <td>{{ item.pricestr }}</td>
+                            <td>
+                                <span class="text-muted"><small>Not Tracked</small></span>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm purchase-qty"
+                                    name="qty_{{ item.id }}" value="0" min="0" max="999"
+                                    data-price="{{ item.priceval }}" data-name="{{ item.name }}"
+                                    onchange="updateTotal()" oninput="updateTotal()">
+                            </td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
                 <div class="form-group">
@@ -117,8 +133,7 @@
     </div>
     {% else %}
     <div class="alert alert-info">
-        No inventory-tracked items for this resource yet.
-        {% if is_arm %}Use the "Set Initial Inventory" section below to start tracking.{% endif %}
+        No purchasable items configured for this resource.
     </div>
     {% endif %}
 
