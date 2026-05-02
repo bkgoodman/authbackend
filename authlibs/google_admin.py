@@ -326,12 +326,13 @@ def calendar_read(email,resource):
             # Response needs to be 'accepted'
             #print (f"{event['summary']} {event['id']} {event['organizer']} SELF={isSelf} ACCAPTED={isAccepted}")
             if (isAccepted):
+                summary = event['summary'] if 'summary' in event else 'Reserved'
                 booking = {
                         'calendar_id':event['id'],
                         'organizer_email':event['organizer']['email'],
                         'user':event['organizer']['email'], # REWRITE LATER
                         'isMine' : 1 if isSelf else 0,
-                        'description' : event['summary'],
+                        'description' : summary,
                         'start':start.isoformat(),
                         'end':end.isoformat(),
                         }
