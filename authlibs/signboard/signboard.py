@@ -465,7 +465,7 @@ Example:
     prompt = f"Current datetime is {str(datetime.datetime.now())}. Here are the available events:\n{events_text}\n\nSelect and format the best 3 events for display."
     
     response = client.models.generate_content(
-        model="gemini-3-pro-preview",
+        model="gemini-3.5-flash",
         config=genai.types.GenerateContentConfig(
             system_instruction=system),
         contents=prompt
