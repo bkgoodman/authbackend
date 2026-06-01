@@ -132,9 +132,9 @@
 			}
 		}
 
-		// Check localStorage state
-		var autoRefreshState = localStorage.getItem('logs_autorefresh');
-		if (autoRefreshState === 'on') {
+		// Check URL parameters to see if auto-refresh is active
+		var urlParams = new URLSearchParams(window.location.search);
+		if (urlParams.get('autorefresh') === 'on') {
 			toggle.checked = true;
 			updateStatusUI(true);
 			startTimer();
@@ -145,12 +145,15 @@
 
 		// Handle toggle change
 		$(toggle).on('change', function() {
+			var url = new URL(window.location.href);
 			if (this.checked) {
-				localStorage.setItem('logs_autorefresh', 'on');
+				url.searchParams.set('autorefresh', 'on');
+				window.history.replaceState({}, '', url.toString());
 				updateStatusUI(true);
 				startTimer();
 			} else {
-				localStorage.setItem('logs_autorefresh', 'off');
+				url.searchParams.delete('autorefresh');
+				window.history.replaceState({}, '', url.toString());
 				updateStatusUI(false);
 				stopTimer();
 			}
