@@ -34,7 +34,7 @@
 	<div class="d-flex align-items-center justify-content-between" style="margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center;">
 		<div class="sectionhead" style="margin: 0; padding: 0; border: none;">Logs</div>
 		<div style="display: flex; align-items: center;">
-			<span style="font-size: 14px; font-weight: 500; color: #555; margin-right: 10px;">Auto Refresh</span>
+			<span style="font-size: 14px; font-weight: 500; color: #555; margin-right: 10px;">Auto Refresh: <span id="autoRefreshStatus" style="font-weight: bold; color: #888; transition: color 0.3s ease;">Off</span></span>
 			<label class="switch" style="position: relative; display: inline-block; width: 46px; height: 24px; margin: 0; vertical-align: middle;">
 				<input type="checkbox" id="autoRefreshToggle" style="opacity: 0; width: 0; height: 0;">
 				<span class="slider round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; -webkit-transition: .4s; transition: .4s; border-radius: 24px;"></span>
@@ -105,7 +105,18 @@
 	<script type="text/javascript">
 	$(document).ready(function() {
 		var toggle = document.getElementById('autoRefreshToggle');
+		var statusText = document.getElementById('autoRefreshStatus');
 		var refreshTimer = null;
+
+		function updateStatusUI(isOn) {
+			if (isOn) {
+				statusText.textContent = 'On';
+				statusText.style.color = '#28a745';
+			} else {
+				statusText.textContent = 'Off';
+				statusText.style.color = '#888';
+			}
+		}
 
 		function startTimer() {
 			if (refreshTimer) clearTimeout(refreshTimer);
@@ -125,18 +136,22 @@
 		var autoRefreshState = localStorage.getItem('logs_autorefresh');
 		if (autoRefreshState === 'on') {
 			toggle.checked = true;
+			updateStatusUI(true);
 			startTimer();
 		} else {
 			toggle.checked = false;
+			updateStatusUI(false);
 		}
 
 		// Handle toggle change
 		$(toggle).on('change', function() {
 			if (this.checked) {
 				localStorage.setItem('logs_autorefresh', 'on');
+				updateStatusUI(true);
 				startTimer();
 			} else {
 				localStorage.setItem('logs_autorefresh', 'off');
+				updateStatusUI(false);
 				stopTimer();
 			}
 		});
