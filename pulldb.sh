@@ -111,6 +111,11 @@ sqlite3 makeit.db '
 INSERT INTO purchasable VALUES(22,"Staging Test","Staging Test Purchasable",100,"prod_MIERLuABAuCcLR","Staging Test","#test-resource-admins",5);
 '
 
+# TEST fused glass product ID is prod_UBQPgyNyWCEfPJ
+sqlite3 makeit.db '
+update purchasable set product="prod_UBQPgyNyWCEfPJ" where id in (9,10);
+'
+
 
 # Changes Brad to use my Test Stripe Account
 # Test CC for Brad
