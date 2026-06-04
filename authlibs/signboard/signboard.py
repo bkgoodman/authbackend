@@ -410,6 +410,7 @@ def ai_curate_events(all_events, debug=False):
         events_text += f"  Where: {event.get('where', 'N/A')}\n"
         events_text += f"  Detail: {event.get('detail', 'N/A')}\n"
         events_text += f"  Source: {event.get('source', 'N/A')}\n"
+        events_text += f"  QR_Code: {event.get('url', '')}\n"
         events_text += f"  Priority: {event.get('priority', 2)} (0=Always display, 1=Only if nothing else, 2=Normal)\n"
     
     system = """
@@ -471,9 +472,11 @@ Example:
         contents=prompt
     )
     
+    #print (f"Prompt: {prompt}\n")
     try:
         # Clean AI response - strip markdown code blocks if present
         response_text = response.text.strip()
+        #print (f"Respomnse: {response_text}\n")
         
         # Check if response is wrapped in markdown code blocks
         if response_text.startswith('```json'):
