@@ -79,11 +79,15 @@ def createUser(firstname,lastname,userid,alt_email,password,isTest=False):
 
 def _buildUserGmailService(user_email):
     """Create a Gmail API service delegated to act as a specific domain user.
-    Used for managing per-user Gmail settings like forwarding."""
-    credentials = ServiceAccountCredentials.from_json_keyfile_name(KEYFILE, SCOPES)
-    delegated_credentials = credentials.create_delegated(user_email)
-    http_auth = delegated_credentials.authorize(Http())
-    service = discovery.build('gmail', 'v1', http=http_auth)
+    Used for managing per-user Gmail settings like forwarding.
+    Uses google.oauth2 (newer library) with with_subject() for delegation,
+    which is required for Gmail settings APIs on behalf of a user.
+    Note: Gmail may not be ready immediately after account creation —
+    callers should delay/retry if they get authorization errors."""
+    from google.oauth2 import service_account
+    creds = service_account.Credentials.from_service_account_file(KEYFILE, scopes=SCOPES)
+    delegated_creds = creds.with_subject(user_email)
+    service = discovery.build('gmail', 'v1', credentials=delegated_creds)
     return service
 
 def setupEmailForwarding(makeitlabs_email, forward_to_email):
