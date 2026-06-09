@@ -325,6 +325,9 @@ def relate_assign():
           try:
             user = google_admin.createUser(newm['first'],newm['last'],newm['email'],newm['alt_email'],password)
             google_admin.sendWelcomeEmail(user,password,newm['alt_email'])
+            # Set up email forwarding in background (Gmail needs time to provision)
+            makeitlabs_email = newm['email'].lower() + '@makeitlabs.com'
+            membership._start_forwarding_background(makeitlabs_email, newm['alt_email'])
           except BaseException as e:
             logger.error("Error create Google act: "+str(e))
             flash("Error create Google act: "+str(e),"warning")
