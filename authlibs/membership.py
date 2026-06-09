@@ -264,7 +264,7 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
         else:
             nameparts = utilities.nameToFirstLast(m.member)
             # - Use first portion of name as Firstname, all remaining as Familyname
-            password = "%s%d%d" % (nameparts['last'],random.randint(1,100000),len(nameparts['last']))
+            password = "%s%d%d" % (nameparts['last'],random.randint(100000,999999),len(nameparts['last']))
             try:
               google.createUser(nameparts['first'],nameparts['last'],m.member,m.alt_email,password)
               m.email=m.member.lower()+"@makeitlabs.com"
@@ -405,7 +405,7 @@ Usage: testgooglecreate [firstname] [lastname] [alt_email] [--test]
     alt_email = args[2] if len(args) > 2 else "test@example.com"
     userid = (firstname + "." + lastname).replace(" ", ".")
     makeitlabs_email = userid.lower() + "@makeitlabs.com"
-    password = "%s%d%d" % (lastname, random.randint(1, 100000), len(lastname))
+    password = "%s%d%d" % (lastname, random.randint(100000, 999999), len(lastname))
 
     print("=== Google Account Creation Test ===")
     print("  First name:    %s" % firstname)
@@ -443,16 +443,23 @@ Usage: testgooglecreate [firstname] [lastname] [alt_email] [--test]
         print("  FAILED - %s" % str(e))
         print("  (Continuing to forwarding setup...)")
 
-    # Step 3: Set up email forwarding
+    # Step 3: Set up email forwarding (retry — Gmail may not be provisioned yet)
+    max_retries = 20
+    retry_delay = 10
     print("Step 3: Setting up email forwarding %s -> %s..." % (makeitlabs_email, alt_email))
-    try:
-        result = google.setupEmailForwarding(makeitlabs_email, alt_email)
-        if result:
-            print("  OK - Email forwarding enabled")
-        else:
-            print("  FAILED - Returned False after retries")
-    except BaseException as e:
-        print("  FAILED - %s" % str(e))
+    print("  (Will retry up to %d times, %d seconds apart)" % (max_retries, retry_delay))
+    for attempt in range(1, max_retries + 1):
+        try:
+            google.setupEmailForwarding(makeitlabs_email, alt_email)
+            print("  OK - Email forwarding enabled (attempt %d)" % attempt)
+            break
+        except BaseException as e:
+            print("  Attempt %d/%d failed: %s" % (attempt, max_retries, str(e)))
+            if attempt < max_retries:
+                print("  Waiting %d seconds..." % retry_delay)
+                time.sleep(retry_delay)
+            else:
+                print("  FAILED - All %d attempts exhausted" % max_retries)
 
     print("\nDone.")
 
