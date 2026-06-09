@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 # Scopes set in https://admin.google.com/ac/owl/domainwidedelegation
 SCOPES = ['https://www.googleapis.com/auth/admin.directory.user.readonly','https://www.googleapis.com/auth/admin.directory.user',
         'https://www.googleapis.com/auth/gmail.compose','https://www.googleapis.com/auth/admin.directory.resource.calendar',
+        'https://www.googleapis.com/auth/gmail.settings.basic',
         'https://www.googleapis.com/auth/gmail.settings.sharing']
 KEYFILE = 'makeitlabs.json'
 EMAIL_USER = 'makeitlabs.automation@makeitlabs.com'
@@ -99,6 +100,10 @@ def setupEmailForwarding(makeitlabs_email, forward_to_email):
     Filters created via service account delegation bypass the verification
     requirement, so forwarding works immediately without the target user
     needing to click a confirmation link.
+    
+    Requires two steps:
+    1. Register the forwarding address (even if it won't be verified, Gmail requires it to exist).
+    2. Create the filter.
 
     Mail is still delivered to the makeitlabs inbox (filters forward a copy).
     """
@@ -106,7 +111,22 @@ def setupEmailForwarding(makeitlabs_email, forward_to_email):
 
     service = _buildUserGmailService(makeitlabs_email)
 
-    # Create a filter that matches all mail and forwards to the personal address
+    # Step 1: Register the forwarding address
+    fwd_body = {'forwardingEmail': forward_to_email}
+    try:
+        service.users().settings().forwardingAddresses().create(
+            userId='me', body=fwd_body
+        ).execute()
+        logger.info("Forwarding address registered for %s -> %s" %
+                    (makeitlabs_email, forward_to_email))
+    except errors.HttpError as e:
+        if e.resp.status == 409:
+            logger.info("Forwarding address already exists for %s -> %s (OK)" %
+                        (makeitlabs_email, forward_to_email))
+        else:
+            raise
+
+    # Step 2: Create a filter that matches all mail and forwards to the personal address
     filter_body = {
         'criteria': {
             'query': '*'
