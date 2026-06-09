@@ -60,6 +60,13 @@ def get_raw_menu():
                     'importance':1200
             },
             {
+                    'url':url_for('printerstatus.status'),
+                    'img':url_for("static",filename="3dprinter.png"),
+                    'alt':"View 3D Printer status and progress",
+                    'title':"3D Printer Status",
+                    'importance':1250
+            },
+            {
                     'url':url_for('memberFolders.folder'),
                     'img':url_for("static",filename="memberFolder.png"),
                     'alt':"Member Folder",

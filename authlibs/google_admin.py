@@ -33,9 +33,10 @@ import base64
 import logging
 logger = logging.getLogger(__name__)
 
-# Settings
+# Scopes set in https://admin.google.com/ac/owl/domainwidedelegation
 SCOPES = ['https://www.googleapis.com/auth/admin.directory.user.readonly','https://www.googleapis.com/auth/admin.directory.user',
-        'https://www.googleapis.com/auth/gmail.compose','https://www.googleapis.com/auth/admin.directory.resource.calendar']
+        'https://www.googleapis.com/auth/gmail.compose','https://www.googleapis.com/auth/admin.directory.resource.calendar',
+        'https://www.googleapis.com/auth/gmail.settings.sharing']
 KEYFILE = 'makeitlabs.json'
 EMAIL_USER = 'makeitlabs.automation@makeitlabs.com'
 ADMIN_USER = 'bill.schongar@makeitlabs.com'
@@ -75,6 +76,50 @@ def createUser(firstname,lastname,userid,alt_email,password,isTest=False):
         service = _buildAdminService()
         service.users().insert(body=userinfo).execute()
     return userid
+
+def _buildUserGmailService(user_email):
+    """Create a Gmail API service delegated to act as a specific domain user.
+    Used for managing per-user Gmail settings like forwarding."""
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(KEYFILE, SCOPES)
+    delegated_credentials = credentials.create_delegated(user_email)
+    http_auth = delegated_credentials.authorize(Http())
+    service = discovery.build('gmail', 'v1', http=http_auth)
+    return service
+
+def setupEmailForwarding(makeitlabs_email, forward_to_email):
+    """Set up auto-forwarding on a makeitlabs.com Gmail account to forward
+    all incoming mail to the member's personal (alt) email address.
+    Mail is kept in the makeitlabs inbox as well.
+
+    Requires the gmail.settings.sharing scope to be authorized for the
+    service account in the Google Admin Console domain-wide delegation.
+
+    This is a single-attempt call. For retry logic with delays (e.g. waiting
+    for Gmail provisioning), use a background thread wrapper.
+    """
+    logger.info("Setting up email forwarding: %s -> %s" % (makeitlabs_email, forward_to_email))
+
+    service = _buildUserGmailService(makeitlabs_email)
+
+    # Step 1: Register the forwarding address
+    fwd_body = {'forwardingEmail': forward_to_email}
+    result = service.users().settings().forwardingAddresses().create(
+        userId='me', body=fwd_body
+    ).execute()
+    logger.info("Forwarding address created for %s -> %s (status: %s)" %
+                (makeitlabs_email, forward_to_email, result.get('verificationStatus')))
+
+    # Step 2: Enable auto-forwarding (keep copy in inbox)
+    fwd_config = {
+        'enabled': True,
+        'emailAddress': forward_to_email,
+        'disposition': 'leaveInInbox'
+    }
+    service.users().settings().updateAutoForwarding(
+        userId='me', body=fwd_config
+    ).execute()
+    logger.info("Auto-forwarding enabled for %s -> %s" % (makeitlabs_email, forward_to_email))
+    return True
 
 def sendWelcomeEmail(username,password,email):
     logger.info("Sending welcome email to %s at %s" % (username,email))

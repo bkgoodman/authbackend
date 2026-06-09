@@ -7,7 +7,7 @@ import random,string
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
 from authlibs.db_models import db, ApiKey,  Role, UserRoles, Member, Resource, AccessByMember
 from authlibs.payments import cli_updatepayments
-from authlibs.membership import cli_syncmemberpayments,cli_creatememberfoldertest,cli_createmembertest
+from authlibs.membership import cli_syncmemberpayments,cli_creatememberfoldertest,cli_createmembertest,cli_testgooglecreate
 from authlibs.resources.resources import cli_queryresourceinvoice,cli_refundinvoice
 from authlibs.slackutils import cli_slacktest
 from authlibs.ubersearch import cli_ubersearch
@@ -147,6 +147,10 @@ commands = {
 	"createmembertest":{
 		'usage':"createmembertest",
 		'cmd':cli_createmembertest
+	},
+	"testgooglecreate":{
+		'usage':"testgooglecreate [firstname] [lastname] [alt_email] [--test] [--help]  -- Test Google account creation + forwarding",
+		'cmd':cli_testgooglecreate
 	},
 	"grant":{
 		'usage':"grant {memberid} {priv} -- Grant a Backend GUI Privlage to user",
