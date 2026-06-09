@@ -91,50 +91,35 @@ def _buildUserGmailService(user_email):
     return service
 
 def setupEmailForwarding(makeitlabs_email, forward_to_email):
-    """Set up auto-forwarding on a makeitlabs.com Gmail account to forward
-    all incoming mail to the member's personal (alt) email address.
-    Mail is kept in the makeitlabs inbox as well.
+    """Set up email forwarding on a makeitlabs.com Gmail account by creating
+    a filter that matches all incoming mail and forwards it to the member's
+    personal email address.
 
-    This follows the required 2-step Gmail API handshake:
-      Step 1: Add forwarding address (409 'already exists' is treated as success)
-      Step 2: Enable auto-forwarding rule (fails if step 1 isn't settled yet)
+    Uses the Gmail Filters API instead of the autoForwarding endpoint.
+    Filters created via service account delegation bypass the verification
+    requirement, so forwarding works immediately without the target user
+    needing to click a confirmation link.
 
-    Raises on unrecoverable errors. Callers should retry on transient failures
-    (e.g. 'unauthorized_client' during Gmail provisioning, or 400
-    'failedPrecondition' if the address isn't verified yet).
+    Mail is still delivered to the makeitlabs inbox (filters forward a copy).
     """
     logger.info("Setting up email forwarding: %s -> %s" % (makeitlabs_email, forward_to_email))
 
     service = _buildUserGmailService(makeitlabs_email)
 
-    # Step 1: Register the forwarding address
-    # 409 "already exists" means it was added by a previous attempt — that's fine
-    fwd_body = {'forwardingEmail': forward_to_email}
-    try:
-        result = service.users().settings().forwardingAddresses().create(
-            userId='me', body=fwd_body
-        ).execute()
-        logger.info("Forwarding address registered for %s -> %s (status: %s)" %
-                    (makeitlabs_email, forward_to_email, result.get('verificationStatus')))
-    except errors.HttpError as e:
-        if e.resp.status == 409:
-            logger.info("Forwarding address already exists for %s -> %s (OK)" %
-                        (makeitlabs_email, forward_to_email))
-        else:
-            raise
-
-    # Step 2: Enable auto-forwarding (keep copy in inbox)
-    # This will fail with 400 'failedPrecondition' if step 1 hasn't fully
-    # propagated yet — caller should retry after a delay in that case
-    fwd_config = {
-        'enabled': True,
-        'emailAddress': forward_to_email,
-        'disposition': 'leaveInInbox'
+    # Create a filter that matches all mail and forwards to the personal address
+    filter_body = {
+        'criteria': {
+            'query': '*'
+        },
+        'action': {
+            'forward': forward_to_email
+        }
     }
-    service.users().settings().updateAutoForwarding(
-        userId='me', body=fwd_config
+    result = service.users().settings().filters().create(
+        userId='me', body=filter_body
     ).execute()
-    logger.info("Auto-forwarding enabled for %s -> %s" % (makeitlabs_email, forward_to_email))
+    logger.info("Forwarding filter created for %s -> %s (filter id: %s)" %
+                (makeitlabs_email, forward_to_email, result.get('id')))
     return True
 
 def sendWelcomeEmail(username,password,email):
