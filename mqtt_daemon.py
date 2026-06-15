@@ -222,6 +222,20 @@ def on_message(client,userdata,msg):
                     }
                     urllib.request.urlopen(url,data)
                     
+            elif topic[0]=="printers":
+                #printers/00m09d470802228 {"name": "MakeIt Left", "status": "RUNNING", "percent": 40, "min_remaining": 20, "reported": "2026-06-09T17:36:42.238514", "job": "AJ_HATHAWAY-Foxy"}
+                #printers/00M09D470802228 {"name": "MakeIt Left", "status": "FINISH", "percent": 100, "min_remaining": 0, "reported": "2026-06-15T09:45:55.293886", "job": "jay_briand-JASK\u00d3\u0141KA_MOLD"}
+                #printers/00M09D462500690 {"name": "MakeIt Right", "status": "FINISH", "percent": 100, "min_remaining": 0, "reported": "2026-06-15T09:45:06.713445", "job": "jay_briand-PRED8_VIBE_mold"}
+                #printers/0938aj632500655 {"name": "Gamera", "status": "FAILED", "percent": 0, "min_remaining": 0, "reported": "2026-06-09T17:36:42.425520", "job": "dose_divider3_v12"}
+                #printers/0938AJ632500655 {"name": "Gamera", "status": "FINISH", "percent": 100, "min_remaining": 0, "reported": "2026-06-15T09:45:36.165388", "job": "Tom_Doucet_P-T800_T_121_body"}
+                #printers/0948AB510700445 {"name": "Godzilla", "status": "IDLE", "percent": 0, "min_remaining": 0, "reported": "2026-06-09T22:11:14.196290", "job": ""}
+                r = redis.Redis()
+                j = json.loads(msg.payload)
+                printer = topic[1]
+                print ("GOT PRINTER",printer,message)
+                r.set("printer/"+printer,msg.payload)
+                return
+
             elif topic[0]=="facility" and topic[1]=="minisplit" and topic[2]=="report":
                 r = redis.Redis()
                 minisplit = topic[3]
@@ -692,6 +706,7 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("ratt/#")
     client.subscribe("facility/minisplit/report/#")
     client.subscribe("facility/alarm/system")
+    client.subscribe("printers/#")
 
 if __name__ == '__main__':
     global verbose
