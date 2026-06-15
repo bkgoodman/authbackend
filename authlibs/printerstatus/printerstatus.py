@@ -19,7 +19,7 @@ def status():
     r = redis.Redis()
     printers = []
     
-    for p in r.keys("printers/*"):
+    for p in r.keys("printer/*"):
         p_data = r.get(p)
         if not p_data:
             continue
@@ -47,7 +47,7 @@ def status():
             filename = None
 
         printers.append({
-            'name': j.get('name', p.decode('utf-8').replace('printers/', '')),
+            'name': j.get('name', p.decode('utf-8').replace('printer/', '')),
             'status': mapped_status,
             'progress': j.get('percent', 0),
             'time_remaining': time_remaining,
