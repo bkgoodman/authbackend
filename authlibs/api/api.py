@@ -730,6 +730,44 @@ def api_v1_show_resource_fob(id,fob):
         return json.dumps(x), 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
     return "{\"status\":\"Fob not found\"}", 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/v1/resources/<string:id>/checkfob/<string:fob>', methods=['OPTIONS'])
+#@api_only
+def api_v1_check_resource_fob_options(id,fob):
+    return "", 200, {
+                        'Access-Control-Allow-Origin':'*',
+                        'Access-Control-Allow-Headers':'Content-Type,Authorization',
+                        'Access-Control-Allow-Credentials':'true',
+                        'Access-Control-Allow-Methods':'OPTIONS,GET',
+                        'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+@blueprint.route('/v1/resources/<string:id>/checkfob/<string:fob>', methods=['GET'])
+@api_only
+def api_v1_check_resource_fob(id,fob):
+    """(API) Return success or failure if a specific fob has access to a specific resource"""
+    rid = safestr(id)
+    res = Resource.query.filter(Resource.name == rid).one_or_none()
+    if not res:
+        return json_dump({'result':'failure','reason':'Resource not found'}), 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+    tag = MemberTag.query.filter(MemberTag.tag_ident == fob).one_or_none()
+    if not tag:
+        return json_dump({'result':'failure','reason':'Fob not found'}), 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+    q = accesslib.access_query(resource_id=res.id, member_id=tag.member_id, tags=True)
+    q = q.filter(MemberTag.tag_ident == fob)
+    val = q.one_or_none()
+    
+    if not val:
+        return json_dump({'result':'failure','reason':'No access record found'}), 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+    u = accesslib.accessQueryToDict(val)
+    (warning, allowed) = accesslib.determineAccess(u, res.info_text, res)
+
+    if allowed == 'allowed':
+        return json_dump({'result':'success','reason':'Access Allowed', 'member': u['member']}), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+    else:
+        return json_dump({'result':'failure','reason': warning, 'member': u['member']}), 403, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['OPTIONS'])
 #@api_only
 def api_v1_show_resource_acl_options(id):
