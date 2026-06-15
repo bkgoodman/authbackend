@@ -145,7 +145,7 @@ def bin_edit(id):
         bin.aruco = int(p)
     except:
         pass
-    if (bin.aruco != 0) and ((bin.aruco < 1) or (bin.aruco > 499)):
+    if (bin.aruco is not None) and (bin.aruco != 0) and ((bin.aruco < 1) or (bin.aruco > 499)):
         flash("Grid aruco codes must be 1-499")
         return redirect(url_for('prostore.grid'))
 

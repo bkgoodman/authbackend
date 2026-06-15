@@ -47,6 +47,11 @@ def stripNone(x):
 		return None
 	return x
 
+@blueprint.route('/site', methods = ['GET'])
+def member_site():
+        return redirect("https://accounts.google.com/AccountChooser?hd=makeitlabs.com&continue=https://sites.google.com/a/makeitlabs.com/members")
+
+
 @blueprint.route('/', methods = ['GET'])
 @login_required
 def members():
