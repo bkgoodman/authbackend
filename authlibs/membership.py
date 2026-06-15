@@ -227,6 +227,10 @@ def _forwarding_worker(makeitlabs_email, forward_to_email, initial_delay=30, max
                         (makeitlabs_email, forward_to_email, attempt))
             return
         except BaseException as e:
+            if "Invalid forwarding address" in str(e) and "400" in str(e):
+                logger.info("Background forwarding 'Invalid forwarding address' error ignored for %s -> %s (treated as success)" %
+                            (makeitlabs_email, forward_to_email))
+                return
             logger.warning("Background forwarding attempt %d/%d failed for %s -> %s: %s" %
                            (attempt, max_retries, makeitlabs_email, forward_to_email, str(e)))
             if attempt < max_retries:
@@ -454,6 +458,9 @@ Usage: testgooglecreate [firstname] [lastname] [alt_email] [--test]
             print("  OK - Email forwarding enabled (attempt %d)" % attempt)
             break
         except BaseException as e:
+            if "Invalid forwarding address" in str(e) and "400" in str(e):
+                print("  OK - Ignoring 'Invalid forwarding address' error (treated as success)")
+                break
             print("  Attempt %d/%d failed: %s" % (attempt, max_retries, str(e)))
             if attempt < max_retries:
                 print("  Waiting %d seconds..." % retry_delay)

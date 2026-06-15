@@ -1,47 +1,62 @@
 # vim:shiftwidth=2:expandtab
 
 from ..templateCommon import *
+import redis
+import json
 
 blueprint = Blueprint("printerstatus", __name__, template_folder='templates', static_folder="static", url_prefix="/printerstatus")
+#printers/00m09d470802228 {"name": "MakeIt Left", "status": "RUNNING", "percent": 40, "min_remaining": 20, "reported": "2026-06-09T17:36:42.238514", "job": "AJ_HATHAWAY-Foxy"}
+#printers/00M09D470802228 {"name": "MakeIt Left", "status": "FINISH", "percent": 100, "min_remaining": 0, "reported": "2026-06-15T09:45:55.293886", "job": "jay_briand-JASK\u00d3\u0141KA_MOLD"}
+#printers/00M09D462500690 {"name": "MakeIt Right", "status": "FINISH", "percent": 100, "min_remaining": 0, "reported": "2026-06-15T09:45:06.713445", "job": "jay_briand-PRED8_VIBE_mold"}
+#printers/0938aj632500655 {"name": "Gamera", "status": "FAILED", "percent": 0, "min_remaining": 0, "reported": "2026-06-09T17:36:42.425520", "job": "dose_divider3_v12"}
+#printers/0938AJ632500655 {"name": "Gamera", "status": "FINISH", "percent": 100, "min_remaining": 0, "reported": "2026-06-15T09:45:36.165388", "job": "Tom_Doucet_P-T800_T_121_body"}
+#printers/0948AB510700445 {"name": "Godzilla", "status": "IDLE", "percent": 0, "min_remaining": 0, "reported": "2026-06-09T22:11:14.196290", "job": ""}
+
 
 @blueprint.route('/', methods=['GET'])
 @login_required
 def status():
-    # Mock data representing 4 printers with various states
-    printers = [
-        {
-            'name': 'Prusa i3 MK3S+ #1',
-            'status': 'running', # green
-            'progress': 68,
-            'time_remaining': '1h 45m',
-            'filename': 'benchy_0.2mm_pla.gcode',
-            'error': None
-        },
-        {
-            'name': 'Prusa i3 MK3S+ #2',
-            'status': 'idle', # red
-            'progress': 0,
-            'time_remaining': None,
-            'filename': None,
-            'error': None
-        },
-        {
-            'name': 'Bambu Lab X1C #1',
-            'status': 'running', # green
-            'progress': 92,
-            'time_remaining': '12m',
-            'filename': 'housing_lid_petg.gcode',
-            'error': None
-        },
-        {
-            'name': 'Formlabs Form 3',
-            'status': 'error', # black
-            'progress': 0,
-            'time_remaining': None,
-            'filename': 'resin_vat_bracket.stl',
-            'error': 'Resin level low or cartridge missing'
-        }
-    ]
+    r = redis.Redis()
+    printers = []
+    
+    for p in r.keys("printers/*"):
+        p_data = r.get(p)
+        if not p_data:
+            continue
+        try:
+            j = json.loads(p_data)
+        except json.JSONDecodeError:
+            continue
+            
+        raw_status = j.get('status', 'IDLE').upper()
+        if raw_status == 'RUNNING':
+            mapped_status = 'running'
+        elif raw_status == 'FAILED':
+            mapped_status = 'error'
+        else:
+            mapped_status = 'idle'
+            
+        time_rem = j.get('min_remaining', 0)
+        if time_rem > 0:
+            time_remaining = f"{time_rem // 60}h {time_rem % 60}m" if time_rem >= 60 else f"{time_rem}m"
+        else:
+            time_remaining = None
+
+        filename = j.get('job', None)
+        if not filename:
+            filename = None
+
+        printers.append({
+            'name': j.get('name', p.decode('utf-8').replace('printers/', '')),
+            'status': mapped_status,
+            'progress': j.get('percent', 0),
+            'time_remaining': time_remaining,
+            'filename': filename,
+            'error': 'Printer reported failure' if mapped_status == 'error' else None
+        })
+        
+    # Sort printers by name so they appear consistently
+    printers.sort(key=lambda x: x['name'])
     return render_template('printerstatus.html', printers=printers)
 
 def register_pages(app):
