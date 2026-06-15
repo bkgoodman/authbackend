@@ -232,7 +232,6 @@ def on_message(client,userdata,msg):
                 r = redis.Redis()
                 j = json.loads(msg.payload)
                 printer = topic[1]
-                print ("GOT PRINTER",printer,message)
                 r.set("printer/"+printer,msg.payload)
                 return
 
