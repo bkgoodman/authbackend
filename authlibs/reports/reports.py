@@ -155,7 +155,7 @@ Take SPECIAL care when writing SQL queries, that any tables you reference above 
 
     
     response = client.models.generate_content(
-        model="gemini-3-pro-preview",
+        model="gemini-3.5-flash",
         config=genai.types.GenerateContentConfig(
             system_instruction=system),
         contents=f"{schema}\n\nThe user's question is as follows: {question}",
@@ -206,7 +206,7 @@ User has asked a question. We queried a bunch of data from our database in an at
 
         """,
     response = client.models.generate_content(
-        model="gemini-3-pro-preview",
+        model="gemini-3.5-flash",
         config=genai.types.GenerateContentConfig(
             system_instruction=system),
         contents=prompt,
