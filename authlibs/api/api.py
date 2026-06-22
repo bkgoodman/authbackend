@@ -768,6 +768,15 @@ def api_v1_check_resource_fob(id,fob):
     else:
         return json_dump({'result':'failure','reason': warning, 'member': u['member']}), 403, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
+@blueprint.route('/v1/badtag/<string:tagno>', methods=['GET'])
+@api_only
+def api_v1_badtag(tagno):
+    """(API) Write tagno to redis to be picked up by orientation screen"""
+    import redis
+    r = redis.Redis()
+    r.set('orientation_recent_tag', tagno, ex=300)
+    return json_dump({'result':'success'}), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['OPTIONS'])
 #@api_only
 def api_v1_show_resource_acl_options(id):

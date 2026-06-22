@@ -111,6 +111,9 @@
                                                    title="Must be 10-digit numeric RFID tag">
                                             <div class="input-group-append">
                                                 <button type="submit" class="btn btn-primary btn-sm">Add Tag</button>
+                                                {% if recent_tag %}
+                                                <button type="button" class="btn btn-success btn-sm ml-1" onclick="this.form.tag_ident.value='{{ recent_tag }}'; this.form.submit();">Swiped {{ recent_tag }}</button>
+                                                {% endif %}
                                             </div>
                                         </div>
                                     </form>
