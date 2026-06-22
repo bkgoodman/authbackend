@@ -230,7 +230,15 @@ def orientation():
             'toggle_hide_url': toggle_hide_url
     }
     
-    return render_template('orientation.html', orientation_list=orientation_list, page="orientation", ago=ago, meta=meta)
+    import redis
+    r = redis.Redis()
+    recent_tag = r.get('orientation_recent_tag')
+    if recent_tag:
+        recent_tag = recent_tag.decode('utf-8')
+    else:
+        recent_tag = None
+    
+    return render_template('orientation.html', orientation_list=orientation_list, page="orientation", ago=ago, meta=meta, recent_tag=recent_tag)
 
 @blueprint.route('/orientation', methods = ['POST'])
 @login_required
