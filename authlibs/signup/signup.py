@@ -203,6 +203,30 @@ def postpay():
     debug += "\n\nSubscription:\n\n"
     debug += str(sub)
 
+    # Set the payment method from this subscription as the customer's default
+    # invoice payment method. Without this, the card is attached but not the
+    # default, which causes vending/consumable charges to fail.
+    try:
+        pm = sub.get('default_payment_method')
+        if pm is None:
+            # Fallback: look at the latest invoice's payment intent
+            latest_invoice = stripe.Invoice.retrieve(sub['latest_invoice'])
+            pi = stripe.PaymentIntent.retrieve(latest_invoice['payment_intent'])
+            pm = pi.get('payment_method')
+        if pm:
+            stripe.Customer.modify(
+                sub['customer'],
+                invoice_settings={
+                    'default_payment_method': pm
+                },
+            )
+            debug += f"\n\nSet default payment method: {pm}\n"
+        else:
+            debug += "\n\nWARNING: No payment method found to set as default\n"
+    except BaseException as e:
+        debug += f"\n\nError setting default payment method: {e}\n"
+        logger.error(f"Signup: failed to set default payment method for customer {sub['customer']}: {e}")
+
     # Add subscription data into Redis for quick reference for 
 
     sessiondata['subscription'] = checkout_session['subscription']
