@@ -28,7 +28,7 @@ if __name__ == "__main__":
     no_sub = 0
 
     stripe.api_version = '2020-08-27'
-    stripe.api_key = open("stripe_default_pm_fix.key").readline().strip()
+    stripe.api_key = open("stripenamefix.key").readline().strip()
 
     for customer in stripe.Customer.auto_paging_iter(False):
         cust_id = customer.id
@@ -80,18 +80,18 @@ if __name__ == "__main__":
             ## ---------------------------------------------------------------
             ## UNCOMMENT THE BLOCK BELOW TO ACTUALLY FIX THE CUSTOMERS
             ## ---------------------------------------------------------------
-            # try:
-            #     stripe.Customer.modify(
-            #         cust_id,
-            #         invoice_settings={
-            #             'default_payment_method': fix_pm
-            #         },
-            #     )
-            #     fixed += 1
-            #     print(f"  -> FIXED: set default to {fix_pm}")
-            # except BaseException as e:
-            #     print(f"  -> ERROR fixing {cust_id}: {e}")
-            #     err += 1
+            try:
+                stripe.Customer.modify(
+                    cust_id,
+                    invoice_settings={
+                        'default_payment_method': fix_pm
+                    },
+                )
+                fixed += 1
+                print(f"  -> FIXED: set default to {fix_pm}")
+            except BaseException as e:
+                print(f"  -> ERROR fixing {cust_id}: {e}")
+                err += 1
             ## ---------------------------------------------------------------
 
         else:
