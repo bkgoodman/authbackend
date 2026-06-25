@@ -311,7 +311,7 @@
 
   <div class="printer-grid">
     {% for printer in printers %}
-      <div class="printer-card status-{{ printer.status }}">
+      <a href="{{ url_for('printerstatus.cam', serialno=printer.serialno, name=printer.name) }}" class="printer-card status-{{ printer.status }}" style="text-decoration: none; display: block; color: inherit;">
         <!-- Card Header -->
         <div class="card-header-flex">
           <h3 class="printer-name">{{ printer.name }}</h3>
@@ -358,7 +358,7 @@
             <p class="error-message">{{ printer.error }}</p>
           </div>
         {% endif %}
-      </div>
+      </a>
     {% endfor %}
   </div>
 </div>

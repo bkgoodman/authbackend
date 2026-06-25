@@ -3,6 +3,8 @@
 from ..templateCommon import *
 import redis
 import json
+import requests
+from flask import Response, abort, request
 
 blueprint = Blueprint("printerstatus", __name__, template_folder='templates', static_folder="static", url_prefix="/printerstatus")
 #printers/00m09d470802228 {"name": "MakeIt Left", "status": "RUNNING", "percent": 40, "min_remaining": 20, "reported": "2026-06-09T17:36:42.238514", "job": "AJ_HATHAWAY-Foxy"}
@@ -48,6 +50,7 @@ def status():
 
         printers.append({
             'name': j.get('name', p.decode('utf-8').replace('printer/', '')),
+            'serialno': p.decode('utf-8').replace('printer/', ''),
             'status': mapped_status,
             'progress': j.get('percent', 0),
             'time_remaining': time_remaining,
@@ -58,6 +61,21 @@ def status():
     # Sort printers by name so they appear consistently
     printers.sort(key=lambda x: x['name'])
     return render_template('printerstatus.html', printers=printers)
+
+@blueprint.route('/cam/<string:serialno>', methods=['GET'])
+@login_required
+def cam(serialno):
+    name = request.args.get('name', serialno)
+    return render_template('printercam.html', serialno=serialno, name=name)
+
+@blueprint.route('/cam_image/<string:serialno>', methods=['GET'])
+@login_required
+def cam_image(serialno):
+    try:
+        r = requests.get(f"http://printmon/images/{serialno}", timeout=5)
+        return Response(r.content, mimetype=r.headers.get('content-type', 'image/jpeg'))
+    except requests.RequestException:
+        abort(502)
 
 def register_pages(app):
     app.register_blueprint(blueprint)
