@@ -16,6 +16,14 @@ def get_raw_menu():
                     'importance':1000
             },
             {
+                    'checkfunc':rm_check,
+                    'url':url_for('resources.magic_authorize'),
+                    'img':url_for("static",filename="magic_wand.png"),
+                    'title':"Magic Authorize",
+                    'alt':"Quickly authorize recently denied users",
+                    'importance':1005
+            },
+            {
                     'url':url_for('members.members'),
                     'img':url_for("static",filename="office.png"),
                     'alt':"View, Create or Edit members and their access",

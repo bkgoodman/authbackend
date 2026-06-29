@@ -272,6 +272,9 @@ def orientation_add_tag():
     
     # Add tag using existing function
     if add_member_tag(member_id, tag_ident, "rfid", tag_ident):
+        import redis
+        r = redis.Redis()
+        r.delete('orientation_recent_tag')
         # Grant frontdoor access whenever a tag is added
         frontdoor_resource = Resource.query.filter(Resource.name == "frontdoor").one_or_none()
         if frontdoor_resource:
@@ -900,7 +903,16 @@ def member_tags(id):
     if not member:
       flash("Invalid Tag","danger")
       return redirect(url_for('members.members'))
-    return render_template('member_tags.html',mid=mid,tags=tags,rec=member,page="tags")
+      
+    import redis
+    r = redis.Redis()
+    recent_tag = r.get('orientation_recent_tag')
+    if recent_tag:
+        recent_tag = recent_tag.decode('utf-8')
+    else:
+        recent_tag = None
+        
+    return render_template('member_tags.html',mid=mid,tags=tags,rec=member,page="tags", recent_tag=recent_tag)
 
 @blueprint.route('/updatebackends', methods = ['GET'])
 @login_required
@@ -950,6 +962,9 @@ def member_tagadd(id):
         flash("ERROR: The specified RFID tag is invalid, must be 10-digit all-numeric",'danger')
     else:
         if add_member_tag(mid,ntag,ntagtype,ntagname):
+            import redis
+            r = redis.Redis()
+            r.delete('orientation_recent_tag')
             authutil.kick_backend()
             flash("Tag added.",'success')
         else:

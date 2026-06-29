@@ -1238,6 +1238,129 @@ def message(resource):
         flash("Sent %s emails" % (email_ok),"success")
     return render_template('email.html',rec=r)
 
+@blueprint.route('/magic_authorize', methods=['GET'])
+@login_required
+def magic_authorize():
+    """List resources that the current user is ARM for, for Magic Authorize"""
+    # ARMs only
+    if not accesslib.user_is_authorizor(current_user, level=2):
+        flash("Unauthorized", "danger")
+        return redirect(url_for('index'))
+        
+    resources = []
+    for r in Resource.query.all():
+        if accesslib.user_privs_on_resource(member=current_user, resource=r) >= AccessByMember.LEVEL_ARM:
+            resources.append(r)
+            
+    resources = sorted(resources, key=lambda x: x.name)
+    return render_template('magic_authorize.html', resources=resources)
+
+@blueprint.route('/magic_authorize/<int:resource_id>', methods=['GET'])
+@login_required
+def magic_authorize_resource(resource_id):
+    """List members who were denied access to this resource in the last 60 minutes"""
+    if not accesslib.user_is_authorizor(current_user, level=2):
+        flash("Unauthorized", "danger")
+        return redirect(url_for('index'))
+        
+    r = Resource.query.filter(Resource.id == resource_id).one_or_none()
+    if not r:
+        flash("Resource not found", "warning")
+        return redirect(url_for('resources.magic_authorize'))
+        
+    if accesslib.user_privs_on_resource(member=current_user, resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Unauthorized", "danger")
+        return redirect(url_for('resources.magic_authorize'))
+
+    time_window = datetime.datetime.utcnow() - datetime.timedelta(minutes=60)
+    
+    # Find users denied in the last 60 mins
+    denials = Logs.query.filter(
+        Logs.resource_id == r.id,
+        Logs.event_type.in_([
+            eventtypes.RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id,
+            eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_DENIED.id,
+            eventtypes.RATTBE_LOGEVENT_TOOL_PROHIBITED.id
+        ]),
+        Logs.time_logged >= time_window
+    ).group_by(Logs.member_id).all()
+    
+    denied_members = []
+    for log in denials:
+        # Verify they don't already have active access
+        existing = AccessByMember.query.filter(
+            AccessByMember.member_id == log.member_id,
+            AccessByMember.resource_id == r.id,
+            AccessByMember.active == 1
+        ).one_or_none()
+        
+        if not existing:
+            m = Member.query.filter(Member.id == log.member_id).one_or_none()
+            if m:
+                denied_members.append(m)
+                
+    return render_template('magic_authorize_resource.html', resource=r, denied_members=denied_members)
+
+@blueprint.route('/magic_authorize/<int:resource_id>', methods=['POST'])
+@login_required
+def magic_authorize_action(resource_id):
+    """Authorize the checked users"""
+    if not accesslib.user_is_authorizor(current_user, level=2):
+        flash("Unauthorized", "danger")
+        return redirect(url_for('index'))
+        
+    r = Resource.query.filter(Resource.id == resource_id).one_or_none()
+    if not r:
+        flash("Resource not found", "warning")
+        return redirect(url_for('resources.magic_authorize'))
+        
+    if accesslib.user_privs_on_resource(member=current_user, resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Unauthorized", "danger")
+        return redirect(url_for('resources.magic_authorize'))
+
+    member_ids = request.form.getlist('member_ids')
+    count = 0
+    for m_id_str in member_ids:
+        try:
+            m_id = int(m_id_str)
+        except ValueError:
+            continue
+            
+        m = Member.query.filter(Member.id == m_id).one_or_none()
+        if not m:
+            continue
+            
+        acc = AccessByMember.query.filter(
+            AccessByMember.member_id == m.id,
+            AccessByMember.resource_id == r.id
+        ).one_or_none()
+        
+        if not acc:
+            acc = AccessByMember(
+                member_id=m.id,
+                resource_id=r.id,
+                level=AccessByMember.LEVEL_USER,
+                active=1
+            )
+            db.session.add(acc)
+            authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id, resource_id=r.id, member_id=m.id, doneby=current_user.id, message="Magic Authorize", commit=0)
+            count += 1
+        else:
+            if not acc.active or acc.level < AccessByMember.LEVEL_USER:
+                acc.active = 1
+                if acc.level < AccessByMember.LEVEL_USER:
+                    acc.level = AccessByMember.LEVEL_USER
+                authutil.log(eventtypes.RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED.id, resource_id=r.id, member_id=m.id, doneby=current_user.id, message="Magic Authorize (Updated)", commit=0)
+                count += 1
+                
+    if count > 0:
+        db.session.commit()
+        authutil.kick_backend()
+        flash(f"Magic Authorized {count} members for {r.name}", "success")
+    else:
+        flash("No members were authorized", "warning")
+        
+    return redirect(url_for('resources.magic_authorize_resource', resource_id=r.id))
 def _get_resources():
   q = db.session.query(Resource.name,Resource.owneremail, Resource.description, Resource.id)
   return q.all()
