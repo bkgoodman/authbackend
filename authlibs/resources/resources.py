@@ -1291,7 +1291,8 @@ def magic_authorize_resource(resource_id):
         existing = AccessByMember.query.filter(
             AccessByMember.member_id == log.member_id,
             AccessByMember.resource_id == r.id,
-            AccessByMember.active == 1
+            AccessByMember.active == 1,
+            AccessByMember.level >= AccessByMember.LEVEL_USER
         ).one_or_none()
         
         if not existing:
