@@ -58,6 +58,9 @@
         <input type="hidden" id="unassign_member_hidden" name="unassign_member_hidden"  value="no" />
         <input type="hidden" name="input_orig_member" value="{{ bin.ProBin.member_id }}" />
         <label for="input_status">Bin Status</label>
+        {% if bin.ProBin and bin.ProBin.status_updated_at %}
+        <span style="font-size: 0.85em; color: #666; margin-left: 10px;">(Since: {{ ago.ago(bin.ProBin.status_updated_at)[0] }} - {{ ago.ago(bin.ProBin.status_updated_at)[1] }} ago)</span>
+        {% endif %}
         <select class="form-control" id="status_select" name="input_status">
           {% for stat in statuses %}
             <option name="{{ stat[0] }}" value="{{ stat[0] }}"
