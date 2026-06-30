@@ -465,6 +465,9 @@ def grid():
           ab[b.location]['style'] = "background-color:#a3ff9f"
         if b.active != "Active" and b.active != "Grace Period":
           ab[b.location]['style'] = "background-color:#ffd0d0"
+        if b.ProBin.status >= 4:
+          ab[b.location]['style'] = "background-color:#000000; color:#ffffff"
+          ab[b.location]['a_style'] = "color:#ffffff"
       else: 
         if b.member_id == current_user.id:
           ab[b.location]['style'] = "background-color:#D0FFD0"
