@@ -64,7 +64,7 @@
 			</select>
       <label for="input_status">Bin Status</label>
 			{% if bin.ProBin and bin.ProBin.status_updated_at %}
-			<span style="font-size: 0.85em; color: #666; margin-left: 10px;">(Since: {{ bin.ProBin.status_updated_at.strftime('%b %d, %Y') }})</span>
+			<span style="font-size: 0.85em; color: #666; margin-left: 10px;">(Since: {{ ago.ago(bin.ProBin.status_updated_at)[0] }} - {{ ago.ago(bin.ProBin.status_updated_at)[1] }} ago)</span>
 			{% endif %}
 			<select class="form-control" name="input_status">
 				{% for stat in statuses %}
