@@ -128,7 +128,7 @@ def bin_add(bin):
   newbin = ProBin()
   newbin.name=""
   newbin.aruco=get_next_bin_aruco() or 1
-  return render_template('bin_add.html',bin=newbin,locations=locs,statuses=enumerate(ProBin.BinStatuses),forcestatus = 2,selectlocation=bin)
+  return render_template('bin_add.html',bin=newbin,locations=locs,statuses=enumerate(ProBin.BinStatuses),forcestatus = 2,selectlocation=bin, ago=ago)
   
 @blueprint.route('/bin/<string:id>', methods=['GET','POST'])
 @roles_required(['Admin','ProStore'])
@@ -206,7 +206,7 @@ def bin_edit(id):
   locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).outerjoin(ProBin).group_by(ProLocation.id)
   locs=locs.all()
   print ("BIN",b)
-  return render_template('bin.html',bin=b,locations=locs,iAmPro=iamPro,statuses=enumerate(ProBin.BinStatuses),comments=comments)
+  return render_template('bin.html',bin=b,locations=locs,iAmPro=iamPro,statuses=enumerate(ProBin.BinStatuses),comments=comments, ago=ago)
 
 @blueprint.route('/locations', methods=['GET','POST'])
 @roles_required(['Admin','ProStore'])
