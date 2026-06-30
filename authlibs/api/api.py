@@ -1455,3 +1455,59 @@ New Vending Balance: ${4:0.2f}""".format(
 @api_only
 def api_autobill(resource):
     return autobill(resource)
+
+@blueprint.route('/v1/prostore/auto_process', methods=['POST'])
+@api_only
+def api_v1_prostore_auto_process():
+    from authlibs.db_models import ProBin, Subscription, db
+    from authlibs.prostore.notices import sendnotices
+    import datetime
+
+    result = {'processed': 0, 'errors': 0, 'actions': []}
+    
+    bins = ProBin.query.filter(ProBin.member_id != None).all()
+    now = datetime.datetime.utcnow()
+    
+    for bin in bins:
+        sub = Subscription.query.filter(Subscription.member_id == bin.member_id).one_or_none()
+        if not sub:
+            continue
+            
+        is_lapsed = sub.expires_date is not None and sub.expires_date < now
+        
+        # Rule 1: Active to Grace
+        if bin.status == ProBin.BINSTATUS_IN_USE and is_lapsed:
+            delta = now - sub.expires_date
+            if delta.days >= 85:
+                bin.status = ProBin.BINSTATUS_GRACE_PERIOD
+                bin.status_updated_at = now
+                err, debug = sendnotices(bin.id, "Grace", debugOnly=False)
+                if err:
+                    result['errors'] += 1
+                else:
+                    result['processed'] += 1
+                    result['actions'].append(f"Bin {bin.id} moved to Grace Period")
+                    
+        # Rule 2: Grace to Forfeited
+        elif bin.status == ProBin.BINSTATUS_GRACE_PERIOD and is_lapsed:
+            if bin.status_updated_at:
+                delta = now - bin.status_updated_at
+                if delta.days >= 85:
+                    bin.status = ProBin.BINSTATUS_FORFEITED
+                    bin.status_updated_at = now
+                    err, debug = sendnotices(bin.id, "Forefeit", debugOnly=False)
+                    if err:
+                        result['errors'] += 1
+                    else:
+                        result['processed'] += 1
+                        result['actions'].append(f"Bin {bin.id} moved to Forfeited")
+                        
+        # Rule 3: Auto-Recovery
+        elif bin.status == ProBin.BINSTATUS_GRACE_PERIOD and not is_lapsed:
+            bin.status = ProBin.BINSTATUS_IN_USE
+            bin.status_updated_at = now
+            result['processed'] += 1
+            result['actions'].append(f"Bin {bin.id} recovered to In-Use")
+
+    db.session.commit()
+    return json_dump(result), 200, {'Content-type': 'application/json'}

@@ -77,7 +77,8 @@ def bins():
         return redirect(url_for("prostore.bins"))
 
     if b.strip() != "": brec.name=b.strip()
-    brec.status = request.form['input_status']
+    brec.status = int(request.form['input_status'])
+    brec.status_updated_at = datetime.utcnow()
     db.session.add(brec)
     log_bin_event(brec,eventtypes.RATTBE_LOGEVENT_PROSTORE_ASSIGNED.id)
     db.session.commit()
@@ -153,7 +154,10 @@ def bin_edit(id):
       bin.name = request.form['input_name']
     else:
       bin.name=None
-    bin.status = request.form['input_status']
+    new_status = int(request.form['input_status'])
+    if bin.status != new_status:
+        bin.status = new_status
+        bin.status_updated_at = datetime.utcnow()
     bin.location_id = request.form['input_location']
     p= request.form['input_aruco']
     try:
