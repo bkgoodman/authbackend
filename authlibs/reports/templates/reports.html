@@ -25,6 +25,11 @@
 				<th></th>
 			</tr>
 			<tr>
+				<td>New Member Surveys</td>
+				<td>Visualization of member interests and discovery methods</td>
+				<td><button onClick="runreport('surveys')" class="button btn btn-primary">Report</button></td>
+			</tr>
+			<tr>
 				<td>New Member Report</td>
 				<td>Report on usage for members newer than 90 days</td>
 				<td><button onClick="runreport('newmemberreport')" class="button btn btn-primary">Report</button></td>
@@ -103,7 +108,11 @@
 	<script type="text/javascript">
 		function myDisplay(text) {
 			document.getElementById("spinner").style.display = "none";
-			document.getElementById("reporttext").innerText = text;
+			if (text.startsWith("HTML:")) {
+				document.getElementById("reporttext").innerHTML = text.substring(5);
+			} else {
+				document.getElementById("reporttext").innerText = text;
+			}
 		}
 		function runreport(report) {
 			document.getElementById("spinner").style.display = "inline-block";
