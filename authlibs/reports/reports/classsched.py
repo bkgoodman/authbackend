@@ -30,7 +30,6 @@ def get_super_event_grid(super_map, oauth_token):
     url = f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/"
     params = {"status": "live,ended,completed,started", "time_filter": "all", "expand": "ticket_classes", "page_size": 100}
 
-    print(f"Rolling up {len(all_target_ids)} IDs into {len(super_map)} Super-Events...")
     has_more = True
     continuation = None
     while has_more:
