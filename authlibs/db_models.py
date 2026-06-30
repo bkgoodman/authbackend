@@ -286,6 +286,7 @@ class ProBin(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(15), nullable=True,unique=True)
     status = db.Column(db.Integer,nullable=False)
+    status_updated_at = db.Column(db.DateTime, nullable=True)
     aruco = db.Column(db.Integer)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     location_id = db.Column(db.Integer(), db.ForeignKey('prostorelocations.id', ondelete='CASCADE'))
