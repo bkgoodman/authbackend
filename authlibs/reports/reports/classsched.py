@@ -52,30 +52,71 @@ def get_super_event_grid(super_map, oauth_token):
         has_more = response.get('pagination', {}).get('has_more_items', False)
         continuation = response.get('pagination', {}).get('continuation')
 
-    # 4. PRINTING
-    short_months = [m[5:] + "-" + m[2:4] for m in month_keys]
-    header = "Category".ljust(25) + "|" + "|".join(m.center(6) for m in short_months)
-    print("\n" + header + "\n" + "-" * len(header))
+    # 4. PRINT HTML
+    html = "HTML:\n"
+    html += "<style>\n"
+    html += "table.classsched { border-collapse: collapse; width: 100%; font-family: sans-serif; }\n"
+    html += "table.classsched th, table.classsched td { border: 1px solid #ddd; padding: 8px; text-align: center; }\n"
+    html += "table.classsched th { background-color: #f2f2f2; position: sticky; top: 0; }\n"
+    html += "table.classsched td:first-child { text-align: left; font-weight: bold; background-color: #f9f9f9; position: sticky; left: 0; z-index: 1; }\n"
+    html += "</style>\n"
+    
+    html += "<div style='font-family: Arial, sans-serif; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>\n"
+    html += "<h2 style='color: #333; margin-top: 0;'>Class Schedule & Attendance Report</h2>"
+    html += "<p style='color: #666; margin-bottom: 20px;'>Attendance percentage per class category.</p>"
 
+    html += "<div style='overflow-x: auto;'>\n"
+    html += "<table class='classsched'>\n"
+    
+    short_months = [m[5:] + "-" + m[2:4] for m in month_keys]
+    html += "<tr><th>Category</th>" + "".join(f"<th>{m}</th>" for m in short_months) + "</tr>\n"
+    
+    current_m = datetime.now().strftime('%Y-%m')
+    
     for name in super_map.keys():
-        row = [name.ljust(25)]
+        html += f"<tr><td>{name}</td>"
         for m in month_keys:
             s, c = super_grid[name][m]['s'], super_grid[name][m]['c']
-            row.append(f"{int(s/c*100)}%".center(6) if c > 0 else "-".center(6))
-        print("|".join(row))
-    # 4. CSV DUMP TO STDOUT
-    print("\n\n--- BEGIN CSV DUMP ---\n\n")
-    writer = csv.writer(sys.stdout)
-    writer.writerow(["Category"] + month_keys)
-
-    for name, months in super_grid.items():
-        row = [name]
-        for m in month_keys:
-            s, c = months[m]['s'], months[m]['c']
-            val = round(s / c, 2) if c > 0 else ""
-            row.append(val)
-        writer.writerow(row)
-    print("--- END CSV DUMP ---")
+            pct = s / c if c > 0 else None
+            
+            bg_color = "#ffffff"
+            text_color = "#000000"
+            text = f"{int(pct*100)}%" if pct is not None else "-"
+            
+            if pct is not None:
+                if m < current_m:
+                    # Past month
+                    lightness = 90 - (pct * 50) # 90 down to 40
+                    hue = 60 + (pct * 60) # 60 up to 120
+                    bg_color = f"hsl({hue}, 80%, {lightness}%)"
+                    if lightness < 50: text_color = "#ffffff"
+                elif m == current_m:
+                    # Current month
+                    lightness = 95 - (pct * 65) # 95 down to 30
+                    sat = 20 + (pct * 80) # 20 up to 100
+                    bg_color = f"hsl(120, {sat}%, {lightness}%)"
+                    if lightness < 50: text_color = "#ffffff"
+                else:
+                    # Future month
+                    if pct >= 0.75:
+                        # Scale from Green (120) to Red (0) as pct goes from 0.75 to 1.0
+                        hue = 120 - ((pct - 0.75) / 0.25 * 120)
+                        lightness = 40 + ((pct - 0.75) / 0.25 * 10) # 40 up to 50
+                        bg_color = f"hsl({hue}, 100%, {lightness}%)"
+                        if hue < 60 or lightness < 50: text_color = "#ffffff"
+                    else:
+                        # Scale from Yellow (60) to Green (120) as pct goes from 0.0 to 0.75
+                        hue = 60 + (pct / 0.75 * 60)
+                        lightness = 80 - (pct / 0.75 * 40) # 80 down to 40
+                        bg_color = f"hsl({hue}, 80%, {lightness}%)"
+                        if lightness < 50: text_color = "#ffffff"
+            
+            html += f"<td style='background-color: {bg_color}; color: {text_color};'>{text}</td>"
+        html += "</tr>\n"
+        
+    html += "</table>\n"
+    html += "</div>\n</div>\n"
+    print(html)
 
 # --- DEFINE YOUR GROUPS HERE ---
 MY_MAPPINGS = {
