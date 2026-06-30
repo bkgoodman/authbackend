@@ -13,6 +13,14 @@ import urllib
 blueprint = Blueprint("prostore", __name__, template_folder='templates', static_folder="static",url_prefix="/prostore")
 
 
+def get_next_bin_aruco():
+  used = set([r[0] for r in db.session.query(ProBin.aruco).filter(ProBin.aruco >= 1, ProBin.aruco <= 499).all() if r[0] is not None])
+  for i in range(1, 500):
+    if i not in used:
+      return i
+  return None
+
+
 def log_bin_event(bin,event,commit=0):
   f=[]
   if bin.location_id:
@@ -44,11 +52,18 @@ def bins():
           return redirect(url_for("prostore.bins"))
       brec.location_id = loc.id
 
-    arucono= request.form['input_aruco']
-    try:
-        bin.aruco = int(arucono)
-    except:
-        pass
+    arucono = request.form.get('input_aruco', '').strip()
+    if arucono:
+        try:
+            brec.aruco = int(arucono)
+        except:
+            pass
+    else:
+        brec.aruco = get_next_bin_aruco()
+
+    if brec.aruco is not None and brec.aruco != 0 and (brec.aruco < 1 or brec.aruco > 499):
+        flash("Grid aruco codes must be 1-499", "danger")
+        return redirect(url_for("prostore.bins"))
 
     if 'member_radio' in request.form:
       m = request.form['member_radio']
@@ -111,7 +126,7 @@ def bin_add(bin):
   locs=db.session.query(ProLocation,func.count(ProBin.id).label("usecount")).filter(ProLocation.location == bin).outerjoin(ProBin).group_by(ProLocation.id).all()
   newbin = ProBin()
   newbin.name=""
-  newbin.aruco=db.session.query(func.max(ProBin.aruco)).scalar()+1
+  newbin.aruco=get_next_bin_aruco() or 1
   return render_template('bin_add.html',bin=newbin,locations=locs,statuses=enumerate(ProBin.BinStatuses),forcestatus = 2,selectlocation=bin)
   
 @blueprint.route('/bin/<string:id>', methods=['GET','POST'])
