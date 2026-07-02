@@ -1459,55 +1459,82 @@ def api_autobill(resource):
 @blueprint.route('/v1/prostore/auto_process', methods=['GET', 'POST'])
 @api_only
 def api_v1_prostore_auto_process():
-    from authlibs.db_models import ProBin, Subscription, db
+    from authlibs.db_models import ProBin, Subscription, db, ProLocation, Member, Waiver
     from authlibs.prostore.notices import sendnotices
+    from authlibs.accesslib import addQuickAccessQuery
+    from sqlalchemy import func
     import datetime
 
     result = {'processed': 0, 'errors': 0, 'actions': []}
-    
-    bins = ProBin.query.filter(ProBin.member_id != None).all()
     now = datetime.datetime.utcnow()
     
-    for bin in bins:
-        sub = Subscription.query.filter(Subscription.member_id == bin.member_id).one_or_none()
-        if not sub:
-            continue
-            
-        is_lapsed = sub.expires_date is not None and sub.expires_date < now
+    # Run the complex anomaly-detection query from the original notices GUI
+    bins_q = ProBin.query.filter(ProBin.member_id != None)
+    bins_q = bins_q.outerjoin(ProLocation).add_column(ProLocation.location)
+    bins_q = bins_q.outerjoin(Member).add_column(Member.member)
+
+    sq = db.session.query(Waiver.member_id, func.count(Waiver.member_id).label("waiverCount")).group_by(Waiver.member_id)
+    sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE).subquery()
+    
+    bins_q = bins_q.add_column(sq.c.waiverCount.label("waiverCount")).outerjoin(sq, (sq.c.member_id == Member.id))
+    bins_q = bins_q.outerjoin(Subscription, Subscription.member_id == Member.id)
+    bins_q = bins_q.add_columns(Subscription.rate_plan)
+    bins_q = addQuickAccessQuery(bins_q)
+    bins = ProBin.addBinStatusStr(bins_q).all()
+
+    for b in bins:
+        pb = b.ProBin
+        sub = Subscription.query.filter(Subscription.member_id == pb.member_id).one_or_none()
         
-        # Rule 1: Active to Grace
-        if bin.status == ProBin.BINSTATUS_IN_USE and is_lapsed:
+        # State machine logic
+        is_lapsed = sub is not None and sub.expires_date is not None and sub.expires_date < now
+        
+        if pb.status == ProBin.BINSTATUS_IN_USE and is_lapsed:
             delta = now - sub.expires_date
             if delta.days >= 85:
-                bin.status = ProBin.BINSTATUS_GRACE_PERIOD
-                bin.status_updated_at = now
-                err, debug = sendnotices(bin.id, "Grace", debugOnly=False)
-                if err:
-                    result['errors'] += 1
-                else:
-                    result['processed'] += 1
-                    result['actions'].append(f"Bin {bin.id} moved to Grace Period")
-                    
-        # Rule 2: Grace to Forfeited
-        elif bin.status == ProBin.BINSTATUS_GRACE_PERIOD and is_lapsed:
-            if bin.status_updated_at:
-                delta = now - bin.status_updated_at
+                pb.status = ProBin.BINSTATUS_GRACE_PERIOD
+                pb.status_updated_at = now
+                result['actions'].append(f"Bin {pb.id} moved to Grace Period")
+                
+        elif pb.status == ProBin.BINSTATUS_GRACE_PERIOD and is_lapsed:
+            if pb.status_updated_at:
+                delta = now - pb.status_updated_at
                 if delta.days >= 85:
-                    bin.status = ProBin.BINSTATUS_FORFEITED
-                    bin.status_updated_at = now
-                    err, debug = sendnotices(bin.id, "Forefeit", debugOnly=False)
-                    if err:
-                        result['errors'] += 1
-                    else:
-                        result['processed'] += 1
-                        result['actions'].append(f"Bin {bin.id} moved to Forfeited")
-                        
-        # Rule 3: Auto-Recovery
-        elif bin.status == ProBin.BINSTATUS_GRACE_PERIOD and not is_lapsed:
-            bin.status = ProBin.BINSTATUS_IN_USE
-            bin.status_updated_at = now
-            result['processed'] += 1
-            result['actions'].append(f"Bin {bin.id} recovered to In-Use")
+                    pb.status = ProBin.BINSTATUS_FORFEITED
+                    pb.status_updated_at = now
+                    result['actions'].append(f"Bin {pb.id} moved to Forfeited")
+                    
+        elif pb.status == ProBin.BINSTATUS_GRACE_PERIOD and not is_lapsed:
+            pb.status = ProBin.BINSTATUS_IN_USE
+            pb.status_updated_at = now
+            result['actions'].append(f"Bin {pb.id} recovered to In-Use")
+
+        # Evaluate anomalies for notices exactly like the original GUI
+        rcmd = []
+        if b.waiverCount is None or b.waiverCount < 1: rcmd.append("NoWaiver")
+        if b.active != "Active": rcmd.append("Subscription")
+        if b.rate_plan not in ('pro', 'produo'): rcmd.append("NonPro")
+        
+        # Check Dups
+        for bbb in bins:
+            if b.location and bbb.location:
+                if (b.location != bbb.location) and (b.member == bbb.member):
+                    rcmd.append("Dup")
+                    
+        if pb.status == ProBin.BINSTATUS_GONE: rcmd.append("BinGone")
+        elif pb.status == ProBin.BINSTATUS_GRACE_PERIOD: rcmd.append("Grace")
+        elif pb.status == ProBin.BINSTATUS_FORFEITED: rcmd.append("Forefeit")
+        elif pb.status == ProBin.BINSTATUS_MOVED: rcmd.append("Moved")
+        elif pb.status == ProBin.BINSTATUS_DONATED: rcmd.append("Donated")
+        
+        if len(rcmd) > 0:
+            # We found an anomaly, fire off the combined email(s) immediately
+            err, debug = sendnotices(pb.id, " ".join(rcmd), debugOnly=False)
+            if err:
+                result['errors'] += 1
+            else:
+                result['processed'] += 1
+                result['actions'].append(f"Sent notices ({' '.join(rcmd)}) for bin {pb.id}")
 
     db.session.commit()
     return json_dump(result), 200, {'Content-type': 'application/json'}
