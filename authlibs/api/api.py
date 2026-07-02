@@ -1456,7 +1456,7 @@ New Vending Balance: ${4:0.2f}""".format(
 def api_autobill(resource):
     return autobill(resource)
 
-@blueprint.route('/v1/prostore/auto_process', methods=['POST'])
+@blueprint.route('/v1/prostore/auto_process', methods=['GET', 'POST'])
 @api_only
 def api_v1_prostore_auto_process():
     from authlibs.db_models import ProBin, Subscription, db
