@@ -1272,7 +1272,7 @@ def magic_authorize_resource(resource_id):
         flash("Unauthorized", "danger")
         return redirect(url_for('resources.magic_authorize'))
 
-    time_window = datetime.datetime.utcnow() - datetime.timedelta(minutes=60)
+    time_window = datetime.datetime.utcnow() - datetime.timedelta(minutes=180)
     
     # Find users denied in the last 60 mins
     denials = Logs.query.filter(
