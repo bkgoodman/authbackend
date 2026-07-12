@@ -143,20 +143,24 @@
 
 <script type="text/javascript">
 function printlabel() {
-      console.log("Printing","{{ bin.member}}","{{ bin.ProBin.aruco }}")
-      {% if bin.ProBin.aruco is not none and bin.member is not none %}
+      console.log("Printing bin ID","{{ bin.ProBin.id }}")
       
-
-      fetch('{{ url_for("prostore.print_label", member=bin.member, code=bin.ProBin.aruco) }}')
+      fetch('{{ url_for("prostore.print_label", bin_id=bin.ProBin.id) }}')
         .then((response) => response.json())
         .then((data) => {
-          // Handle the server's response (if needed)
+          // Handle the server's response
           console.log("Print successful:", data);
+          if (data.result === 'ok') {
+            // Update the aruco field on the page in case it was newly assigned
+            var arucoInput = document.getElementById('input_aruco');
+            if (arucoInput && data.code) {
+              arucoInput.value = data.code;
+            }
+          }
         })
         .catch((error) => {
           console.error("Error printing:", error);
         });
-                {% endif %}
     }
 function unassign() {
   var x = $("#unassign_button")[0];

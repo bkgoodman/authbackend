@@ -20,6 +20,13 @@ def get_next_bin_aruco():
       return i
   return None
 
+def get_next_loc_aruco():
+  used = set([r[0] for r in db.session.query(ProLocation.aruco).filter(ProLocation.aruco >= 500, ProLocation.aruco <= 999).all() if r[0] is not None])
+  for i in range(500, 1000):
+    if i not in used:
+      return i
+  return None
+
 
 def log_bin_event(bin,event,commit=0):
   f=[]
@@ -106,18 +113,54 @@ def bins():
   locs=locs.all()
   return render_template('bins.html',bins=bins,bin=None,locations=locs,statuses=enumerate(ProBin.BinStatuses))
 
-@blueprint.route('/print_label/<string:member>/<int:code>', methods=['GET'])
+@blueprint.route('/print_label/<int:bin_id>', methods=['GET'])
 @roles_required(['Admin','ProStore'])
 @login_required
-def print_label(member,code):
+def print_label(bin_id):
     try:
-        data = urllib.parse.urlencode({'number': code, 'name': member}).encode('utf-8')
+        bin = ProBin.query.filter(ProBin.id == bin_id).one_or_none()
+        if not bin:
+            return (json_dump({"result": "error", "message":"Bin not found"} ,indent=2), 404, {'Content-type': 'application/json', 'Content-Language': 'en'})
+            
+        if not bin.aruco:
+            bin.aruco = get_next_bin_aruco()
+            if not bin.aruco:
+                return (json_dump({"result": "error", "message":"No available aruco codes"} ,indent=2), 500, {'Content-type': 'application/json', 'Content-Language': 'en'})
+            db.session.commit()
+            
+        member = Member.query.filter(Member.id == bin.member_id).one_or_none()
+        member_name = member.member if member else "Unassigned"
+        
+        data = urllib.parse.urlencode({'number': bin.aruco, 'name': member_name}).encode('utf-8')
         req = urllib.request.Request("http://labelprinter:8080", data=data, method='POST')
         with urllib.request.urlopen(req) as response:
             html = response.read().decode('utf-8')
     except BaseException as e:
         return (json_dump({"result": "error", "message":str(e)} ,indent=2), 500, {'Content-type': 'application/json', 'Content-Language': 'en'})
-    return (json_dump({"result": "ok", "member":member, "code": code} ,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+    return (json_dump({"result": "ok", "member":member_name, "code": bin.aruco} ,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+@blueprint.route('/print_location_label/<int:loc_id>', methods=['GET'])
+@roles_required(['Admin','ProStore'])
+@login_required
+def print_location_label(loc_id):
+    try:
+        loc = ProLocation.query.filter(ProLocation.id == loc_id).one_or_none()
+        if not loc:
+            return (json_dump({"result": "error", "message":"Location not found"} ,indent=2), 404, {'Content-type': 'application/json', 'Content-Language': 'en'})
+            
+        if not loc.aruco:
+            loc.aruco = get_next_loc_aruco()
+            if not loc.aruco:
+                return (json_dump({"result": "error", "message":"No available aruco codes"} ,indent=2), 500, {'Content-type': 'application/json', 'Content-Language': 'en'})
+            db.session.commit()
+            
+        data = urllib.parse.urlencode({'number': loc.aruco, 'name': loc.location}).encode('utf-8')
+        req = urllib.request.Request("http://labelprinter:8080", data=data, method='POST')
+        with urllib.request.urlopen(req) as response:
+            html = response.read().decode('utf-8')
+    except BaseException as e:
+        return (json_dump({"result": "error", "message":str(e)} ,indent=2), 500, {'Content-type': 'application/json', 'Content-Language': 'en'})
+    return (json_dump({"result": "ok", "location":loc.location, "code": loc.aruco} ,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 @blueprint.route('/bin_add/<string:bin>', methods=['GET'])
 @roles_required(['Admin','ProStore'])

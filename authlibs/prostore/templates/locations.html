@@ -10,6 +10,7 @@
             <th>Location</th>
             <th>Aruco</th>
             <th></th>
+            <th></th>
         </tr>
 	{% for loc in locations %}
 	  <tr>
@@ -18,6 +19,9 @@
 		{{ loc.ProLocation.location }}</td>
 		<td>{% if loc.ProLocation.aruco %}{{ loc.ProLocation.aruco }}{% endif %}</td>
 		<td>{{ loc.loctypestr }}</td>
+		<td>
+			<button class="btn btn-sm btn-primary" onclick="printLocationLabel({{ loc.ProLocation.id }})">Print Label</button>
+		</td>
 	  </tr>
 	{% endfor %}
 	</table>
@@ -51,5 +55,24 @@
 
 </form>
 </div>
+</div>
 {% endif %} <!-- Add New Node -->
+<script type="text/javascript">
+function printLocationLabel(loc_id) {
+    fetch('{{ url_for("prostore.print_location_label", loc_id=0) }}'.replace('0', loc_id))
+    .then(response => response.json())
+    .then(data => {
+        if (data.result === 'ok') {
+            console.log("Print successful:", data);
+            window.location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    })
+    .catch(error => {
+        console.error("Error printing:", error);
+        alert("Error printing location label.");
+    });
+}
+</script>
 {% endblock %}

@@ -215,15 +215,29 @@ def postpay():
     try:
         pm = sub.get('default_payment_method')
         if pm is None:
-            # Fallback: look at the latest invoice's payment intent
-            latest_invoice = stripe.Invoice.retrieve(sub['latest_invoice'])
-            pi = stripe.PaymentIntent.retrieve(latest_invoice['payment_intent'])
-            pm = pi.get('payment_method')
+            # Fallback 1: look at the latest invoice's payment intent
+            try:
+                latest_invoice = stripe.Invoice.retrieve(sub['latest_invoice'])
+                if latest_invoice.get('payment_intent'):
+                    pi = stripe.PaymentIntent.retrieve(latest_invoice['payment_intent'])
+                    pm = pi.get('payment_method')
+            except BaseException as e2:
+                debug += f"\n\nInvoice/PI fallback failed: {e2}\n"
+        if pm is None:
+            # Fallback 2: use most recently attached card (same as fix script)
+            try:
+                attached_pms = stripe.PaymentMethod.list(customer=sub['customer'], type="card")
+                if attached_pms['data']:
+                    pm = attached_pms['data'][0].id
+                    debug += f"\n\nUsing attached card as fallback: {pm}\n"
+            except BaseException as e3:
+                debug += f"\n\nAttached PM fallback failed: {e3}\n"
         if pm:
             cust_update['invoice_settings'] = {'default_payment_method': pm}
             debug += f"\n\nSet default payment method: {pm}\n"
         else:
             debug += "\n\nWARNING: No payment method found to set as default\n"
+            logger.warning(f"Signup: no payment method found for customer {sub['customer']}")
     except BaseException as e:
         debug += f"\n\nError setting default payment method: {e}\n"
         logger.error(f"Signup: failed to set default payment method for customer {sub['customer']}: {e}")
@@ -368,6 +382,9 @@ def payment():
         line_items=[ line_item ],
         mode="subscription",
         discounts = discounts,
+        payment_intent_data={
+            "setup_future_usage": "off_session",
+        },
         subscription_data={
             "metadata": {
                 "emails": emails,
