@@ -127,7 +127,11 @@ def resource_show(resource):
 
 	resources = Resource.query.all()
 	resources = sorted(resources,key=lambda x: x.name)
-	return render_template('resource_edit.html',rec=r,resources=resources,readonly=readonly,tools=tools,comments=cc,maint=maint,train=train)
+	
+	from authlibs.db_models import ResourceNotice
+	notices = ResourceNotice.query.filter((ResourceNotice.resource_id == r.id) & (ResourceNotice.active == True)).all()
+
+	return render_template('resource_edit.html',rec=r,resources=resources,readonly=readonly,tools=tools,comments=cc,maint=maint,train=train, notices=notices)
 
 @blueprint.route('/<string:resource>/usage', methods=['GET'])
 @login_required
@@ -1375,6 +1379,55 @@ def magic_authorize_action(resource_id):
 def _get_resources():
   q = db.session.query(Resource.name,Resource.owneremail, Resource.description, Resource.id)
   return q.all()
+
+@blueprint.route('/<string:resource>/addnotice', methods=['POST'])
+@login_required
+def add_notice(resource):
+    r = Resource.query.filter(Resource.name==resource).one_or_none()
+    if not r:
+        flash("Error: Resource not found")
+        return redirect(url_for('resources.resources'))
+    if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Error: Permission denied")
+        return redirect(url_for('resources.resources'))
+
+    from authlibs.db_models import ResourceNotice
+    notice = ResourceNotice()
+    notice.resource_id = r.id
+    notice.title = request.form['input_notice_title'].strip()
+    notice.message = request.form['input_notice_message'].strip()
+    notice.created_by = current_user.id
+    
+    if notice.title == "":
+        flash("Error: Title is required for a notice")
+        return redirect(url_for('resources.resource_show', resource=r.name))
+
+    db.session.add(notice)
+    db.session.commit()
+    flash("Notice Added", "success")
+    return redirect(url_for('resources.resource_show', resource=r.name))
+
+@blueprint.route('/<string:resource>/deletenotice/<int:notice_id>', methods=['POST'])
+@login_required
+def delete_notice(resource, notice_id):
+    r = Resource.query.filter(Resource.name==resource).one_or_none()
+    if not r:
+        flash("Error: Resource not found")
+        return redirect(url_for('resources.resources'))
+    if accesslib.user_privs_on_resource(member=current_user,resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Error: Permission denied")
+        return redirect(url_for('resources.resources'))
+
+    from authlibs.db_models import ResourceNotice
+    notice = ResourceNotice.query.filter((ResourceNotice.id == notice_id) & (ResourceNotice.resource_id == r.id)).one_or_none()
+    if notice:
+        notice.active = False
+        db.session.commit()
+        flash("Notice deactivated", "success")
+    else:
+        flash("Notice not found", "warning")
+        
+    return redirect(url_for('resources.resource_show', resource=r.name))
 
 def register_pages(app):
   graph.register_pages(app)

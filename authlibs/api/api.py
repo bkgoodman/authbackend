@@ -1538,3 +1538,26 @@ def api_v1_prostore_auto_process():
 
     db.session.commit()
     return json_dump(result), 200, {'Content-type': 'application/json'}
+
+@blueprint.route('/v1/resources/<string:resource>/notices', methods=['GET'])
+def get_resource_notices(resource):
+    from authlibs.db_models import ResourceNotice
+    r = Resource.query.filter(Resource.name == resource).one_or_none()
+    if not r:
+        r = Resource.query.filter(Resource.short == resource).one_or_none()
+    if not r:
+        return json_dump({'error': 'Resource not found'}), 404, {'Content-type': 'application/json'}
+    
+    notices = ResourceNotice.query.filter((ResourceNotice.resource_id == r.id) & (ResourceNotice.active == True)).order_by(ResourceNotice.time_created.desc()).all()
+    
+    result = []
+    for n in notices:
+        result.append({
+            'id': n.id,
+            'title': n.title,
+            'message': n.message,
+            'time_created': n.time_created.isoformat() if n.time_created else None
+        })
+        
+    return json_dump(result), 200, {'Content-type': 'application/json'}
+
