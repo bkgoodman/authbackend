@@ -228,6 +228,17 @@ class Resource(db.Model):
     free_min = db.Column(db.Integer())  # Free Minutes per period
     free_min_pro = db.Column(db.Integer())  # Free Minutes per period - Pro Members
 
+class ResourceNotice(db.Model):
+    __tablename__ = 'resourcenotices'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'))
+    title = db.Column(db.String(100))
+    message = db.Column(db.String())
+    time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    created_by = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
+    active = db.Column(db.Boolean(), default=True)
+
 class Training(db.Model):
     __tablename__ = 'training'
     __bind_key__ = 'main'

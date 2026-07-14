@@ -180,7 +180,19 @@ CREATE TABLE maintsched (
         machinetime_unit VARCHAR(12),
         resource_id INTEGER,
         PRIMARY KEY (id),
-        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE);
+
+CREATE TABLE resourcenotices (
+        id INTEGER NOT NULL, 
+        resource_id INTEGER, 
+        title VARCHAR(100), 
+        message TEXT, 
+        time_created DATETIME DEFAULT CURRENT_TIMESTAMP, 
+        created_by INTEGER, 
+        active BOOLEAN, 
+        PRIMARY KEY (id), 
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE, 
+        FOREIGN KEY(created_by) REFERENCES members (id) ON DELETE CASCADE
 );
 CREATE TABLE prostorelocations (
         location VARCHAR(50) NOT NULL,
