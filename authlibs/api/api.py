@@ -1539,14 +1539,21 @@ def api_v1_prostore_auto_process():
     db.session.commit()
     return json_dump(result), 200, {'Content-type': 'application/json'}
 
-@blueprint.route('/v1/resources/<string:resource>/notices', methods=['GET'])
+@blueprint.route('/v1/resources/<string:resource>/notices', methods=['GET', 'OPTIONS'])
 def get_resource_notices(resource):
+    if request.method == 'OPTIONS':
+        return "", 200, {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+
     from authlibs.db_models import ResourceNotice
     r = Resource.query.filter(Resource.name == resource).one_or_none()
     if not r:
         r = Resource.query.filter(Resource.short == resource).one_or_none()
     if not r:
-        return json_dump({'error': 'Resource not found'}), 404, {'Content-type': 'application/json'}
+        return json_dump({'error': 'Resource not found'}), 404, {'Access-Control-Allow-Origin': '*', 'Content-type': 'application/json'}
     
     notices = ResourceNotice.query.filter((ResourceNotice.resource_id == r.id) & (ResourceNotice.active == True)).order_by(ResourceNotice.time_created.desc()).all()
     
@@ -1559,5 +1566,5 @@ def get_resource_notices(resource):
             'time_created': n.time_created.isoformat() if n.time_created else None
         })
         
-    return json_dump(result), 200, {'Content-type': 'application/json'}
+    return json_dump(result), 200, {'Access-Control-Allow-Origin': '*', 'Content-type': 'application/json'}
 
