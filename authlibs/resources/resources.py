@@ -1238,45 +1238,14 @@ def message(resource):
         flash("Sent %s emails" % (email_ok),"success")
     return render_template('email.html',rec=r)
 
-@blueprint.route('/magic_authorize', methods=['GET'])
-@login_required
-def magic_authorize():
-    """List resources that the current user is ARM for, for Magic Authorize"""
-    # ARMs only
-    if not accesslib.user_is_authorizor(current_user, level=2):
-        flash("Unauthorized", "danger")
-        return redirect(url_for('index'))
-        
-    resources = []
-    for r in Resource.query.all():
-        if accesslib.user_privs_on_resource(member=current_user, resource=r) >= AccessByMember.LEVEL_ARM:
-            resources.append(r)
-            
-    resources = sorted(resources, key=lambda x: x.name)
-    return render_template('magic_authorize.html', resources=resources)
+MAGIC_AUTH_WINDOW_MINUTES = 180  # 3-hour window
 
-@blueprint.route('/magic_authorize/<int:resource_id>', methods=['GET'])
-@login_required
-def magic_authorize_resource(resource_id):
-    """List members who were denied access to this resource in the last 60 minutes"""
-    if not accesslib.user_is_authorizor(current_user, level=2):
-        flash("Unauthorized", "danger")
-        return redirect(url_for('index'))
-        
-    r = Resource.query.filter(Resource.id == resource_id).one_or_none()
-    if not r:
-        flash("Resource not found", "warning")
-        return redirect(url_for('resources.magic_authorize'))
-        
-    if accesslib.user_privs_on_resource(member=current_user, resource=r) < AccessByMember.LEVEL_ARM:
-        flash("Unauthorized", "danger")
-        return redirect(url_for('resources.magic_authorize'))
-
-    time_window = datetime.datetime.utcnow() - datetime.timedelta(minutes=60)
-    
-    # Find users denied in the last 60 mins
+def _get_denied_members_for_resource(resource):
+    """Return list of Members denied access to this resource within the magic auth window,
+    excluding those who already have active access."""
+    time_window = datetime.datetime.utcnow() - datetime.timedelta(minutes=MAGIC_AUTH_WINDOW_MINUTES)
     denials = Logs.query.filter(
-        Logs.resource_id == r.id,
+        Logs.resource_id == resource.id,
         Logs.event_type.in_([
             eventtypes.RATTBE_LOGEVENT_MEMBER_ENTRY_DENIED.id,
             eventtypes.RATTBE_LOGEVENT_MEMBER_KIOSK_DENIED.id,
@@ -1284,22 +1253,63 @@ def magic_authorize_resource(resource_id):
         ]),
         Logs.time_logged >= time_window
     ).group_by(Logs.member_id).all()
-    
+
     denied_members = []
     for log in denials:
-        # Verify they don't already have active access
         existing = AccessByMember.query.filter(
             AccessByMember.member_id == log.member_id,
-            AccessByMember.resource_id == r.id,
+            AccessByMember.resource_id == resource.id,
             AccessByMember.active == 1,
             AccessByMember.level >= AccessByMember.LEVEL_USER
         ).one_or_none()
-        
         if not existing:
             m = Member.query.filter(Member.id == log.member_id).one_or_none()
             if m:
                 denied_members.append(m)
-                
+    return denied_members
+
+@blueprint.route('/magic_authorize', methods=['GET'])
+@login_required
+def magic_authorize():
+    """List resources the user is ARM for that have pending denials.
+    If exactly one resource qualifies, skip straight to it."""
+    if not accesslib.user_is_authorizor(current_user, level=2):
+        flash("Unauthorized", "danger")
+        return redirect(url_for('index'))
+
+    # Only include resources with pending denials
+    resources_with_denials = []
+    for r in Resource.query.all():
+        if accesslib.user_privs_on_resource(member=current_user, resource=r) >= AccessByMember.LEVEL_ARM:
+            if _get_denied_members_for_resource(r):
+                resources_with_denials.append(r)
+
+    resources_with_denials = sorted(resources_with_denials, key=lambda x: x.name)
+
+    # Auto-redirect if exactly one resource has pending denials
+    if len(resources_with_denials) == 1:
+        return redirect(url_for('resources.magic_authorize_resource', resource_id=resources_with_denials[0].id))
+
+    return render_template('magic_authorize.html', resources=resources_with_denials)
+
+@blueprint.route('/magic_authorize/<int:resource_id>', methods=['GET'])
+@login_required
+def magic_authorize_resource(resource_id):
+    """List members who were denied access to this resource in the last 3 hours"""
+    if not accesslib.user_is_authorizor(current_user, level=2):
+        flash("Unauthorized", "danger")
+        return redirect(url_for('index'))
+
+    r = Resource.query.filter(Resource.id == resource_id).one_or_none()
+    if not r:
+        flash("Resource not found", "warning")
+        return redirect(url_for('resources.magic_authorize'))
+
+    if accesslib.user_privs_on_resource(member=current_user, resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Unauthorized", "danger")
+        return redirect(url_for('resources.magic_authorize'))
+
+    denied_members = _get_denied_members_for_resource(r)
     return render_template('magic_authorize_resource.html', resource=r, denied_members=denied_members)
 
 @blueprint.route('/magic_authorize/<int:resource_id>', methods=['POST'])
