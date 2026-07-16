@@ -382,9 +382,6 @@ def payment():
         line_items=[ line_item ],
         mode="subscription",
         discounts = discounts,
-        payment_intent_data={
-            "setup_future_usage": "off_session",
-        },
         subscription_data={
             "metadata": {
                 "emails": emails,
