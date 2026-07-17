@@ -6,11 +6,13 @@ from . import config
 from . import dbutil
 from . import utilities
 import random
+import threading
 from collections import defaultdict
 from . import config
 import sys
 import argparse
 from .db_models import db, Subscription, Member, Blacklist, Logs
+from authlibs.memberFolders.memberFolders import createMemberFolder
 import configparser
 from . import eventtypes
 from datetime import datetime
@@ -213,6 +215,41 @@ def googleEmailExists(m):
   return (len(search) > 0)
   
   
+def _forwarding_worker(makeitlabs_email, forward_to_email, initial_delay=30, max_retries=3, retry_delay=30):
+    """Background worker: waits for Gmail to be provisioned, then sets up forwarding.
+    Runs in a daemon thread so it won't block the web request or prevent shutdown."""
+    import time
+    time.sleep(initial_delay)
+    for attempt in range(1, max_retries + 1):
+        try:
+            google.setupEmailForwarding(makeitlabs_email, forward_to_email)
+            logger.info("Background forwarding setup succeeded for %s -> %s (attempt %d)" %
+                        (makeitlabs_email, forward_to_email, attempt))
+            return
+        except BaseException as e:
+            if "Invalid forwarding address" in str(e) and "400" in str(e):
+                logger.info("Background forwarding 'Invalid forwarding address' error ignored for %s -> %s (treated as success)" %
+                            (makeitlabs_email, forward_to_email))
+                return
+            logger.warning("Background forwarding attempt %d/%d failed for %s -> %s: %s" %
+                           (attempt, max_retries, makeitlabs_email, forward_to_email, str(e)))
+            if attempt < max_retries:
+                time.sleep(retry_delay)
+    logger.error("All %d background forwarding attempts failed for %s -> %s" %
+                 (max_retries, makeitlabs_email, forward_to_email))
+
+def _start_forwarding_background(makeitlabs_email, forward_to_email):
+    """Kick off email forwarding setup in a background thread.
+    Returns immediately so the caller (web request) is not blocked."""
+    t = threading.Thread(
+        target=_forwarding_worker,
+        args=(makeitlabs_email, forward_to_email),
+        daemon=True
+    )
+    t.start()
+    logger.info("Started background forwarding thread for %s -> %s" %
+                (makeitlabs_email, forward_to_email))
+
 def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
     """For any Member without a Member ID, create one (includes Google Domain account). If we can't, notify admins"""
     
@@ -231,16 +268,20 @@ def createMissingMemberAccounts(members,isTest=True,searchGoogle=False):
         else:
             nameparts = utilities.nameToFirstLast(m.member)
             # - Use first portion of name as Firstname, all remaining as Familyname
-            password = "%s%d%d" % (nameparts['last'],random.randint(1,100000),len(nameparts['last']))
+            password = "%s%d%d" % (nameparts['last'],random.randint(100000,999999),len(nameparts['last']))
             try:
               google.createUser(nameparts['first'],nameparts['last'],m.member,m.alt_email,password)
               m.email=m.member.lower()+"@makeitlabs.com"
               google.sendWelcomeEmail(m.member,password,m.alt_email)
               msg = "Created new Google account for %s %s" % (m.member,m.alt_email)
               logger.warn(msg)
+              # Set up email forwarding in background thread (Gmail may not be
+              # ready immediately after account creation, so we delay and retry)
+              _start_forwarding_background(m.email, m.alt_email)
             except BaseException as e:
               msg = "Failed createing Google account for %s: %s" % (m.alt_email,str(e))
               logger.error(msg)
+            createMemberFolder(m)
         
 
         
@@ -332,3 +373,103 @@ Options:
         isTest=True
 
     syncWithSubscriptions(isTest)  
+
+def cli_createmembertest(cmd,**kwargs):
+    google.createUser("Testy","McTesterson","testy.testerson","test@example.com","test123abcd!")
+
+def cli_testgooglecreate(cmd,**kwargs):
+    """Test the full Google account creation + email forwarding pipeline.
+    Creates a real Google account (unless --test), sends welcome email,
+    and sets up email forwarding. Does NOT touch the database."""
+    args = cmd[1:]
+
+    if '--help' in args:
+        print("""
+Usage: testgooglecreate [firstname] [lastname] [alt_email] [--test]
+
+  Creates a Google account (firstname.lastname@makeitlabs.com), sends a
+  welcome email to alt_email, and sets up email forwarding from the new
+  makeitlabs.com address to alt_email.
+
+  Does NOT create any database records.
+
+  Options:
+    --test   Dry run: print what would happen but don't call Google APIs
+    --help   Show this help
+
+  Defaults to Testy McTesterson <test@example.com> if no args given.
+        """)
+        return
+
+    isTest = '--test' in args
+    args = [a for a in args if not a.startswith('--')]
+
+    firstname = args[0] if len(args) > 0 else "Testy"
+    lastname  = args[1] if len(args) > 1 else "McTesterson"
+    alt_email = args[2] if len(args) > 2 else "test@example.com"
+    userid = (firstname + "." + lastname).replace(" ", ".")
+    makeitlabs_email = userid.lower() + "@makeitlabs.com"
+    password = "%s%d%d" % (lastname, random.randint(100000, 999999), len(lastname))
+
+    print("=== Google Account Creation Test ===")
+    print("  First name:    %s" % firstname)
+    print("  Last name:     %s" % lastname)
+    print("  User ID:       %s" % userid)
+    print("  MakeIt email:  %s" % makeitlabs_email)
+    print("  Alt email:     %s" % alt_email)
+    print("  Password:      %s" % password)
+    print("  Mode:          %s" % ("DRY RUN" if isTest else "LIVE"))
+    print()
+
+    if isTest:
+        print("[TEST] Would create Google user: %s" % userid)
+        print("[TEST] Would send welcome email to: %s" % alt_email)
+        print("[TEST] Would set up forwarding: %s -> %s" % (makeitlabs_email, alt_email))
+        print("\nDry run complete. No API calls made.")
+        return
+
+    # Step 1: Create Google account
+    print("Step 1: Creating Google account...")
+    try:
+        google.createUser(firstname, lastname, userid, alt_email, password)
+        print("  OK - Google account created for %s" % userid)
+    except BaseException as e:
+        print("  FAILED - %s" % str(e))
+        print("\nAborting (no account to forward from).")
+        return
+
+    # Step 2: Send welcome email
+    print("Step 2: Sending welcome email to %s..." % alt_email)
+    try:
+        google.sendWelcomeEmail(userid, password, alt_email)
+        print("  OK - Welcome email sent")
+    except BaseException as e:
+        print("  FAILED - %s" % str(e))
+        print("  (Continuing to forwarding setup...)")
+
+    # Step 3: Set up email forwarding (retry — Gmail may not be provisioned yet)
+    max_retries = 20
+    retry_delay = 10
+    print("Step 3: Setting up email forwarding %s -> %s..." % (makeitlabs_email, alt_email))
+    print("  (Will retry up to %d times, %d seconds apart)" % (max_retries, retry_delay))
+    for attempt in range(1, max_retries + 1):
+        try:
+            google.setupEmailForwarding(makeitlabs_email, alt_email)
+            print("  OK - Email forwarding enabled (attempt %d)" % attempt)
+            break
+        except BaseException as e:
+            if "Invalid forwarding address" in str(e) and "400" in str(e):
+                print("  OK - Ignoring 'Invalid forwarding address' error (treated as success)")
+                break
+            print("  Attempt %d/%d failed: %s" % (attempt, max_retries, str(e)))
+            if attempt < max_retries:
+                print("  Waiting %d seconds..." % retry_delay)
+                time.sleep(retry_delay)
+            else:
+                print("  FAILED - All %d attempts exhausted" % max_retries)
+
+    print("\nDone.")
+
+def cli_creatememberfoldertest(cmd,**kwargs):
+    bkg = Member.query.filter(Member.member=="Bradley.Goodman").one()
+    createMemberFolder(bkg)

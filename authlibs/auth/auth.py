@@ -80,6 +80,7 @@ def authorize():
         (level,levelText)=authutil.getResourcePrivs(resource=r)
         res.append({'resource':r,'level':level,'levelText':levelText})
 
+    res = sorted(res,key=lambda x: x['resource'].name)
     return render_template("authorize.html",members=members,resources=res,**others)
 
 @blueprint.route("/membersearch/<string:search>",methods=['GET'])
@@ -90,8 +91,8 @@ def membersearch(search):
   limit = 50
   for x in request.values:
       if x.startswith('filter_'): filters.append(x)
-  sstr = authutil._safestr(search)
-  sstr = "%"+sstr+"%"
+  # Don't strip quotes from search terms - allow searching for names with quotes
+  sstr = "%"+search+"%"  # Use raw search term instead of _safestr
   res = db.session.query(Member.member,Member.firstname,Member.lastname,Member.alt_email,Member.id)
   res = res.filter((Member.firstname.ilike(sstr) | Member.lastname.ilike(sstr) | Member.alt_email.ilike(sstr) | Member.member.ilike(sstr)))
   res = res.outerjoin(Subscription,Subscription.member_id == Member.id)

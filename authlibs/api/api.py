@@ -4,6 +4,7 @@ from authlibs import accesslib
 
 from authlibs.ubersearch import ubersearch
 from authlibs import membership
+from authlibs.resources.resources import autobill
 from authlibs import payments
 from authlibs.waivers.waivers import cli_waivers,connect_waivers
 from authlibs.slackutils import automatch_missing_slack_ids,add_user_to_channel,send_slack_message
@@ -123,7 +124,7 @@ def check_api_access(username,password):
 @api_only
 def api_v1_reloadacl():
     authutil.kick_backend()
-    return json_dump({'status':'success'}), 200, {'Content-type': 'application/json'}
+    return (json_dump({'status':'success'}), 200, {'Content-type': 'application/json'})
 
 @blueprint.route('/test/localhost', methods=['GET'])
 @localhost_only
@@ -198,7 +199,7 @@ def api_v1_nodeconfig(node):
 
     result['mac']=n.mac
     result['name']=n.name
-    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+    #return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
     kv = KVopt.query.add_column(NodeConfig.value).outerjoin(NodeConfig,((NodeConfig.node_id == n.id) & (NodeConfig.key_id == KVopt.id))).all()
     result['params']={}
@@ -604,7 +605,7 @@ def api_v1_macconfig(mac):
     if not n:
       result['status']='error'
       result['message']='Node not found'
-      return json_dump(result, 200, {'Content-type': 'text/plain'})
+      return json_dump(result), 200, {'Content-type': 'text/plain'}
     return api_v1_nodeconfig(n.name)
 
 @blueprint.route('/v3/test', methods=['GET'])
@@ -728,6 +729,53 @@ def api_v1_show_resource_fob(id,fob):
                 x['lastkiosk']=str(t.time_reported)
         return json.dumps(x), 200, {'Access-Control-Allow-Origin':'*','Content-Type': 'application/json', 'Content-Language': 'en'}
     return "{\"status\":\"Fob not found\"}", 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+@blueprint.route('/v1/resources/<string:id>/checkfob/<string:fob>', methods=['OPTIONS'])
+#@api_only
+def api_v1_check_resource_fob_options(id,fob):
+    return "", 200, {
+                        'Access-Control-Allow-Origin':'*',
+                        'Access-Control-Allow-Headers':'Content-Type,Authorization',
+                        'Access-Control-Allow-Credentials':'true',
+                        'Access-Control-Allow-Methods':'OPTIONS,GET',
+                        'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+@blueprint.route('/v1/resources/<string:id>/checkfob/<string:fob>', methods=['GET'])
+@api_only
+def api_v1_check_resource_fob(id,fob):
+    """(API) Return success or failure if a specific fob has access to a specific resource"""
+    rid = safestr(id)
+    res = Resource.query.filter(Resource.name == rid).one_or_none()
+    if not res:
+        return json_dump({'result':'failure','reason':'Resource not found'}), 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+    tag = MemberTag.query.filter(MemberTag.tag_ident == fob).one_or_none()
+    if not tag:
+        return json_dump({'result':'failure','reason':'Fob not found'}), 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+    q = accesslib.access_query(resource_id=res.id, member_id=tag.member_id, tags=True)
+    q = q.filter(MemberTag.tag_ident == fob)
+    val = q.one_or_none()
+    
+    if not val:
+        return json_dump({'result':'failure','reason':'No access record found'}), 404, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+    u = accesslib.accessQueryToDict(val)
+    (warning, allowed) = accesslib.determineAccess(u, res.info_text, res)
+
+    if allowed == 'allowed':
+        return json_dump({'result':'success','reason':'Access Allowed', 'member': u['member']}), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+    else:
+        return json_dump({'result':'failure','reason': warning, 'member': u['member']}), 403, {'Content-Type': 'application/json', 'Content-Language': 'en'}
+
+@blueprint.route('/v1/badtag/<string:tagno>', methods=['GET'])
+@api_only
+def api_v1_badtag(tagno):
+    """(API) Write tagno to redis to be picked up by orientation screen"""
+    import redis
+    r = redis.Redis()
+    r.set('orientation_recent_tag', tagno, ex=300)
+    return json_dump({'result':'success'}), 200, {'Content-Type': 'application/json', 'Content-Language': 'en'}
 
 @blueprint.route('/v1/resources/<string:id>/acl', methods=['OPTIONS'])
 #@api_only
@@ -875,7 +923,7 @@ def api_healthcheck():
       'version':current_app.jinja_env.globals['VERSION'],
       'health':health
     }
-    return json_dump(status, 200, {'Content-type': 'application/json'})
+    return (json_dump(status,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 def error_401():
     """Sends a 401 response that enables basic auth"""
@@ -896,7 +944,7 @@ def api_cron_nightly():
     logger.error("Non-Production environment - NOT creating google/slack accounts")
   if (membership.syncWithSubscriptions(isTest)  ):
     logger.info("Nightly CRON member sync failed")
-    return json_dump({'status':'error','reason':'Member sync failed'}, 200, {'Content-type': 'text/plain'})
+    return (json_dump({'status':'error','reason':'Member sync failed'}), 200, {'Content-type': 'text/plain'})
   cli_waivers([])
   connect_waivers()
   try:
@@ -905,7 +953,7 @@ def api_cron_nightly():
     logger.info("Error in nightly slack sync")
   authutil.kick_backend()
   logger.info("Nightly CRON finished")
-  return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
+  return (json_dump({'status':'ok'}), 200, {'Content-type': 'text/plain'})
 
 @blueprint.route('/cron/weekly_notices', methods=['GET'])
 @api_only
@@ -913,10 +961,10 @@ def api_cron_weekly_notices():
   err = send_all_notices()
   if err:
     logger.warning("Weekly notice CRON ERROR")
-    return json_dump({'status':'error'}, 401, {'Content-type': 'text/plain'})
+    return (json_dump({'status':'error'}), 401, {'Content-type': 'text/plain'})
   else:
     logger.info("Weekly notice CRON finished")
-    return json_dump({'status':'ok'}, 200, {'Content-type': 'text/plain'})
+    return (json_dump({'status':'ok'}), 200, {'Content-type': 'text/plain'})
 
 # Meant for CRON job
 @blueprint.route('/v1/autoplot/pay', methods=['GET'])
@@ -976,7 +1024,7 @@ def api_toollog():
        result[t.tool_id]['tool_nickname'] = nicknames[t.tool_id]
     else:
        result[t.tool_id]['tool_name']
-  return json_dump(result,200, {'Content-type': 'text/plain'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 #####
 ##
@@ -1076,7 +1124,7 @@ def member_api_setaccess(email):
       if m.slack and slack != "":
         add_user_to_channel(slack,m.slack)
   
-  return (json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2))
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 # Query like: http://test:test@127.0.0.1:5000/api/v1/getaccess/myemail@makeitlabs.com?resource=resource-users
 @blueprint.route("/v1/getaccess/<string:email>", methods = ['GET'])
@@ -1094,7 +1142,7 @@ def member_api_getaccess(email):
   else:
     #print m
     result = {'status':'success','level':m[1]}
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 ## ORIGINAL Vending - draws charges DIRECTLY from Stripe
 ## DO NOT CHANGE!!
@@ -1108,7 +1156,7 @@ def vendig_api_charge(member,amount):
   m = m.one_or_none()
 
 
-  # REMOVE THESE TWO LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME
+  # REMOVE THESE TWO LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME - Must be commented out in production
   #result = {'status':'success','member':m.Member.member,'customer':m.customerid}
   #return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
 
@@ -1134,10 +1182,10 @@ def vendig_api_charge(member,amount):
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_SUCCESS.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
     except BaseException as e:
       result = {'status':'error','description':'Stripe Error'}
-      logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
+      logger.warning("Stripe 2  error for {0} {1}".format(m.Member.member,str(e)))
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message="${0:0.2f}".format(dollarAmt),member_id=m.Member.id,commit=0)
   db.session.commit()
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
 # Just query
@@ -1160,7 +1208,7 @@ def vendig_api_getBalance(member):
     if bal is None:
        bal = 0
     result = {'status':'success','balance':bal,"lastLog":lastVendLog}
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
   
@@ -1176,7 +1224,7 @@ def vendig_api_chargeAccount(member):
   if m is None:
     logger.error("Payment charge No Member")
     result = {'status':'error','description':'No Member??'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   vl = VendingLogs.query.filter(VendingLogs.member_id==m.Member.id).order_by(VendingLogs.id.desc()).limit(1).one_or_none()
   if vl is None:
@@ -1189,21 +1237,26 @@ def vendig_api_chargeAccount(member):
   if data is None:
     logger.error("Payment charge non JSON payload")
     result = {'status':'error','description':'Bad Request'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if 'amount' not in data or 'prevBalance' not in data or 'lastLog' not in data:
     logger.error("Payment charge request malformed fields")
     result = {'status':'error','description':'Bad Request'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if lastVendLog != data['lastLog']:
-    result = {'status':'error','description':'Please Try Again'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    result = {'status':'error','description':f"LastVendLog {lastVendLog} did not match {data['lastLog']}"}
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
-  if m.Member.balance != data['prevBalance']:
-    logger.error("Balance did not match previous")
-    result = {'status':'error','description':'Please try again'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  if (m.Member.balance is None):
+    if data['prevBalance'] != 0:
+      logger.error(f"NULL Balance did not match previous {data['prevBalance']}")
+      result = {'status':'error','description':f"NULL balance did not match previous {data['prevBalance']}"}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  elif (m.Member.balance != data['prevBalance']):
+      logger.error(f"XXX Balance {m.Member.balance} did not match previous {data['prevBalance']}")
+      result = {'status':'error','description': f"XXX Balance {m.Member.balance} did not match previous {data['prevBalance']}"}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
   # Amount in CENTS!
@@ -1241,13 +1294,14 @@ def vendig_api_chargeAccount(member):
     db.session.add(vl)
     db.session.commit()
     result = {'status':'success','member':m.Member.member,'customer':m.customerid}
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
 #  curl -H 'Content-Type: application/json'  -d '{"addAmount": 100, "totalCharge":300, "prevBalance":200, "serviceFee":30,"purchaseAmt":100, "newBalance":400}'
 @blueprint.route("/v2/vending/reupBalance/<string:member>", methods = ['POST'])
 @api_only
 def vendig_api_ReupBalance(member):
+  maxbalance = int(current_app.config['globalConfig'].Config.get('Stripe','MaxVendingBalance'))
   m = Member.query.filter(Member.member==member)
   m = m.join(Subscription,Subscription.member_id == Member.id)
   m = m.add_column(Subscription.customerid)
@@ -1257,7 +1311,7 @@ def vendig_api_ReupBalance(member):
   if m is None:
     logger.error("Payment reup No Member")
     result = {'status':'error','description':'No Member??'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
 
   vl = VendingLogs.query.filter(VendingLogs.member_id==m.Member.id).order_by(VendingLogs.id.desc()).limit(1).one_or_none()
@@ -1269,30 +1323,40 @@ def vendig_api_ReupBalance(member):
   data=request.get_json()
   if data is None:
     logger.error("Payment reup non JSON payload")
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   # We are going to REDUNDANTLY check all of the charge information approved by the user on the front-end
   for v in ('lastLog','addAmount','totalCharge','prevBalance','serviceFee','purchaseAmt','newBalance'):
     if v not in data:
       logger.error("Payment reup missing "+v)
-      return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if (data['lastLog'] != lastVendLog):
-    logger.error("Please Try Again")
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    logger.error(f"Lastlog {data['lastLog']} did not match {lastVendLog}")
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if (data['totalCharge'] != data['addAmount'] + data['serviceFee']):
     logger.error("Reup totalCharge was incorrect")
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   if (data['newBalance'] != data['prevBalance'] + data['addAmount'] - data['purchaseAmt']):
     logger.error("Reup newBalance was incorrect")
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
-  if m.Member.balance != data['prevBalance']:
-    logger.error("Balance did not match previous")
-    result = {'status':'error','description':'Please try again'}
-    return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  if (data['newBalance'] > maxbalance):
+    logger.error("Max balance exceded")
+    result = {'status':'error','description':'Max Balance Exceded'}
+    return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+  if (m.Member.balance is None):
+    if data['prevBalance'] != 0:
+      logger.error(f"ZZZ  Balance did not match previous {data['prevBalance']}")
+      result = {'status':'error','description': f"ZZZ  Balance did not match previous {data['prevBalance']}"}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  elif (m.Member.balance != data['prevBalance']):
+      logger.error(f"YYY Balance {m.Member.balance} did not match previous {data['prevBalance']}")
+      result = {'status':'error','description':'Balance Mismatch YYY'}
+      return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
 
   # Amount in CENTS!
   if not m:
@@ -1302,7 +1366,7 @@ def vendig_api_ReupBalance(member):
   else:
 
     """
-    # --------- REMOVE THESE LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME
+    # --------- REMOVE THESE LINES! THEY MAKE ALL PAYMENTS UNCONDITIONALLY WORK! BOMB TODO FIXME - Must be commented out in production
     result = {'status':'success','member':m.Member.member,'customer':m.customerid}
     authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message="${0:0.2f}".format(data['addAmount']/100.0),member_id=m.Member.id,commit=0)
     if m.Member.balance is None:
@@ -1314,15 +1378,19 @@ def vendig_api_ReupBalance(member):
     # --------- END REMOVE LINES
     """
     cid = m.customerid
-    cid = 'cus_MN5oo9gAnx3Vtn' # BOMB TODO FIXME!!!
+    #cid = 'cus_MN5oo9gAnx3Vtn' # BOMB TODO FIXME!!!  Must be commented out in production
 
 
     try:
       stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','VendingToken')
-      if 'product' in data:
-        productId== data['product']
+      if 'productCode' in data:
+        productId= data['productCode']
       else:
         productId = current_app.config['globalConfig'].Config.get('Stripe','VendingProduct')
+      if 'description' in data:
+        description = data['description']
+      else:
+        description = "Vending Payment"
       vendstr = "OldBal: ${0:0.2f} Add: ${1:0.2f} Purchase: ${2:0.2f} Fee: ${3:0.2f} NewBal: ${4:0.2f}".format(
             data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0)
 
@@ -1333,29 +1401,34 @@ Amount Added: ${1:0.2f}
 Service Fee: ${3:0.2f} 
 Total Charge: ${5:0.2f} 
 New Vending Balance: ${4:0.2f}""".format(
-            data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0,data['totalCharge'])
+            data['prevBalance']/100.0,data['addAmount']/100.0,data['purchaseAmt']/100.0,data['serviceFee']/100.0,data['newBalance']/100.0,data['totalCharge']/100.0)
 
       price = stripe.Price.create(
-          unit_amount=data['addAmount'],
-          currency='usd',
-          product=productId)
-      invoiceItem = stripe.InvoiceItem.create(customer=cid, price=price, description="Vending Payment")
+        unit_amount=data['addAmount'],
+        currency='usd',
+        product=productId)
 
       invoice = stripe.Invoice.create(
         customer=cid,
+        pending_invoice_items_behavior="exclude",
         description=invoicevendstr
         #collection_method="charge_automatically",
       )
 
+      invoiceItem = stripe.InvoiceItem.create(customer=cid, description=description,price=price,invoice=invoice.id)
+
       finalize=stripe.Invoice.finalize_invoice(invoice)
-      if (finalize['status'] != 'open'):
+      if (finalize['status'] == 'paid'):
+        logger.info("Stripe Vending PAID status is {1} productId {2} customerId {3}".format(m.Member.member,finalize['status'],productId,cid))
+      elif (finalize['status'] != 'open'):
         result = {'error':'success','description':"Stripe Error"}
-        logger.warning("Stripe fainalize error for {0} status is {1}".format(m.Member.member,finalize['status']))
+        logger.warning("Stripe Vending Finalize error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(m.Member.member,finalize['status'],productId,cid,invoice.id))
       else:
         pay = stripe.Invoice.pay(invoice)
         if (pay['status'] != 'paid'):
           result = {'error':'success','description':"Payment Declined"}
-          logger.warning("Stripe Payment error for {0} status is {1}".format(m.Member.member,pay['status']))
+          logger.warning("Stripe Vending Payment error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(m.Member.member,pay['status'],productId,cid,invoice.id))
+
       result = {'status':'success','member':m.Member.member,'customer':cid}
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message=vendstr,member_id=m.Member.id,commit=0)
       m.Member.balance = data['newBalance']
@@ -1373,7 +1446,125 @@ New Vending Balance: ${4:0.2f}""".format(
       db.session.add(vl)
     except BaseException as e:
       result = {'status':'error','description':'Payment Error'}
-      logger.warning("Stripe error for {0} {1}".format(m.Member.member,str(e)))
+      logger.warning("Stripe Vending 1 error for {0} {1}".format(m.Member.member,str(e)))
       authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_FAILED.id,message=vendstr,member_id=m.Member.id,commit=0)
     db.session.commit()
-  return json_dump(result, 200, {'Content-type': 'application/json', 'Content-Language': 'en'},indent=2)
+  return (json_dump(result,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
+@blueprint.route("/v2/autobill/<string:resource>", methods = ['GET'])
+@api_only
+def api_autobill(resource):
+    return autobill(resource)
+
+@blueprint.route('/v1/prostore/auto_process', methods=['GET', 'POST'])
+@api_only
+def api_v1_prostore_auto_process():
+    from authlibs.db_models import ProBin, Subscription, db, ProLocation, Member, Waiver
+    from authlibs.prostore.notices import sendnotices
+    from authlibs.accesslib import addQuickAccessQuery
+    from sqlalchemy import func
+    import datetime
+
+    result = {'processed': 0, 'errors': 0, 'actions': []}
+    now = datetime.datetime.utcnow()
+    
+    # Run the complex anomaly-detection query from the original notices GUI
+    bins_q = ProBin.query.filter(ProBin.member_id != None)
+    bins_q = bins_q.outerjoin(ProLocation).add_column(ProLocation.location)
+    bins_q = bins_q.outerjoin(Member).add_column(Member.member)
+
+    sq = db.session.query(Waiver.member_id, func.count(Waiver.member_id).label("waiverCount")).group_by(Waiver.member_id)
+    sq = sq.filter(Waiver.waivertype == Waiver.WAIVER_TYPE_PROSTORE).subquery()
+    
+    bins_q = bins_q.add_column(sq.c.waiverCount.label("waiverCount")).outerjoin(sq, (sq.c.member_id == Member.id))
+    bins_q = bins_q.outerjoin(Subscription, Subscription.member_id == Member.id)
+    bins_q = bins_q.add_columns(Subscription.rate_plan)
+    bins_q = addQuickAccessQuery(bins_q)
+    bins = ProBin.addBinStatusStr(bins_q).all()
+
+    for b in bins:
+        pb = b.ProBin
+        sub = Subscription.query.filter(Subscription.member_id == pb.member_id).one_or_none()
+        
+        # State machine logic
+        is_lapsed = sub is not None and sub.expires_date is not None and sub.expires_date < now
+        
+        if pb.status == ProBin.BINSTATUS_IN_USE and is_lapsed:
+            delta = now - sub.expires_date
+            if delta.days >= 85:
+                pb.status = ProBin.BINSTATUS_GRACE_PERIOD
+                pb.status_updated_at = now
+                result['actions'].append(f"Bin {pb.id} moved to Grace Period")
+                
+        elif pb.status == ProBin.BINSTATUS_GRACE_PERIOD and is_lapsed:
+            if pb.status_updated_at:
+                delta = now - pb.status_updated_at
+                if delta.days >= 85:
+                    pb.status = ProBin.BINSTATUS_FORFEITED
+                    pb.status_updated_at = now
+                    result['actions'].append(f"Bin {pb.id} moved to Forfeited")
+                    
+        elif pb.status == ProBin.BINSTATUS_GRACE_PERIOD and not is_lapsed:
+            pb.status = ProBin.BINSTATUS_IN_USE
+            pb.status_updated_at = now
+            result['actions'].append(f"Bin {pb.id} recovered to In-Use")
+
+        # Evaluate anomalies for notices exactly like the original GUI
+        rcmd = []
+        if b.waiverCount is None or b.waiverCount < 1: rcmd.append("NoWaiver")
+        if b.active != "Active": rcmd.append("Subscription")
+        if b.rate_plan not in ('pro', 'produo'): rcmd.append("NonPro")
+        
+        # Check Dups
+        for bbb in bins:
+            if b.location and bbb.location:
+                if (b.location != bbb.location) and (b.member == bbb.member):
+                    rcmd.append("Dup")
+                    
+        if pb.status == ProBin.BINSTATUS_GONE: rcmd.append("BinGone")
+        elif pb.status == ProBin.BINSTATUS_GRACE_PERIOD: rcmd.append("Grace")
+        elif pb.status == ProBin.BINSTATUS_FORFEITED: rcmd.append("Forefeit")
+        elif pb.status == ProBin.BINSTATUS_MOVED: rcmd.append("Moved")
+        elif pb.status == ProBin.BINSTATUS_DONATED: rcmd.append("Donated")
+        
+        if len(rcmd) > 0:
+            # We found an anomaly, fire off the combined email(s) immediately
+            err, debug = sendnotices(pb.id, " ".join(rcmd), debugOnly=False)
+            if err:
+                result['errors'] += 1
+            else:
+                result['processed'] += 1
+                result['actions'].append(f"Sent notices ({' '.join(rcmd)}) for bin {pb.id}")
+
+    db.session.commit()
+    return json_dump(result), 200, {'Content-type': 'application/json'}
+
+@blueprint.route('/v1/resources/<string:resource>/notices', methods=['GET', 'OPTIONS'])
+def get_resource_notices(resource):
+    if request.method == 'OPTIONS':
+        return "", 200, {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        }
+
+    from authlibs.db_models import ResourceNotice
+    r = Resource.query.filter(Resource.name == resource).one_or_none()
+    if not r:
+        r = Resource.query.filter(Resource.short == resource).one_or_none()
+    if not r:
+        return json_dump({'error': 'Resource not found'}), 404, {'Access-Control-Allow-Origin': '*', 'Content-type': 'application/json'}
+    
+    notices = ResourceNotice.query.filter((ResourceNotice.resource_id == r.id) & (ResourceNotice.active == True)).order_by(ResourceNotice.time_created.desc()).all()
+    
+    result = []
+    for n in notices:
+        result.append({
+            'id': n.id,
+            'title': n.title,
+            'message': n.message,
+            'time_created': n.time_created.isoformat() if n.time_created else None
+        })
+        
+    return json_dump(result), 200, {'Access-Control-Allow-Origin': '*', 'Content-type': 'application/json'}
+

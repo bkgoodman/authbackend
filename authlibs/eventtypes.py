@@ -126,8 +126,18 @@ class RATTBE_LOGEVENT_DOOR_CLOSED:
     slack_icon=':arrow_backward:'
     slack_color='#777777'
 
+class RATTBE_LOGEVENT_MEMBER_ENTRY_STORAGEPASS:
+    id=1029
+    desc='Temp Storage Pass Issued'
+    slack_icon=':white_check_mark:'
+    slack_color='#00aa00'
+
+class RATTBE_LOGEVENT_MEMBER_REACTIVATED:
+    id=1030
+    desc='Member reactivated'
+
 class RATTBE_LOGEVENT_MEMBER_LEASE_CHARGE:
-    id=1027
+    id=1100
     desc='Charge for Leased Space'
 
 class RATTBE_LOGEVENT_SYSTEM_OTHER:
@@ -278,6 +288,36 @@ class RATTBE_LOGEVENT_VENDING_ADDBALANCE:
     id=3021
     desc="Add Balance"
     slack_icon=":moneybag:"
+
+class RATTBE_LOGEVENT_PURCHASABLE_PURCHASE:
+    id=3030
+    desc="Item Purchase"
+    slack_icon=":moneybag:"
+
+class RATTBE_LOGEVENT_INVENTORY_RESTOCK:
+    id=3040
+    desc="Inventory Restock"
+    slack_icon=":package:"
+
+class RATTBE_LOGEVENT_INVENTORY_PULL:
+    id=3041
+    desc="Inventory Pull"
+    slack_icon=":inbox_tray:"
+
+class RATTBE_LOGEVENT_INVENTORY_ADJUST:
+    id=3042
+    desc="Inventory Adjustment"
+    slack_icon=":pencil:"
+
+class RATTBE_LOGEVENT_RESOURCE_USE_BILLED:
+    id=3031
+    desc="Usage Charged"
+    slack_icon=":moneybag:"
+
+class RATTBE_LOGEVENT_RESOURCE_BILL_FAILED:
+    id=3032
+    desc="Usage Billing Failed"
+    slack_icon=":bangbang:"
     
 class RATTBE_LOGEVENT_RESOURCE_ACCESS_GRANTED:
     id=4000
