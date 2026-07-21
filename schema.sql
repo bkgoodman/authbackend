@@ -300,3 +300,26 @@ CREATE TABLE purchasable (
         resource_id INTEGER,
 	PRIMARY KEY (id),
         FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE);
+
+CREATE TABLE acknowledgements (
+        id INTEGER NOT NULL PRIMARY KEY,
+        resource_id INTEGER NOT NULL,
+        title VARCHAR(150),
+        message TEXT,
+        time_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by INTEGER NOT NULL,
+        enforce_on DATETIME,
+        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE,
+        FOREIGN KEY(created_by) REFERENCES members (id) ON DELETE CASCADE
+);
+
+CREATE TABLE acknowledgement_users (
+        id INTEGER NOT NULL PRIMARY KEY,
+        acknowledgement_id INTEGER NOT NULL,
+        member_id INTEGER NOT NULL,
+        token VARCHAR(100) UNIQUE NOT NULL,
+        time_sent DATETIME DEFAULT CURRENT_TIMESTAMP,
+        time_acknowledged DATETIME,
+        FOREIGN KEY(acknowledgement_id) REFERENCES acknowledgements (id) ON DELETE CASCADE,
+        FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE
+);

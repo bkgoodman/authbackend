@@ -1429,6 +1429,130 @@ def delete_notice(resource, notice_id):
         
     return redirect(url_for('resources.resource_show', resource=r.name))
 
+@blueprint.route('/<string:resource>/acknowledgements', methods=['GET', 'POST'])
+@login_required
+def resource_acknowledgements(resource):
+    r = Resource.query.filter(Resource.name == resource).one_or_none()
+    if not r:
+        flash("Resource not found")
+        return redirect(url_for('resources.resources'))
+    if accesslib.user_privs_on_resource(member=current_user, resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Permission denied", "warning")
+        return redirect(url_for('resources.resources'))
+        
+    from authlibs.db_models import Acknowledgement, AcknowledgementUser
+    import uuid
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'create':
+            title = request.form.get('title')
+            message = request.form.get('message')
+            enforce_days = request.form.get('enforce_days')
+            
+            ack = Acknowledgement(
+                resource_id=r.id,
+                title=title,
+                message=message,
+                created_by=current_user.id
+            )
+            if enforce_days and enforce_days.strip().isdigit():
+                ack.enforce_on = datetime.datetime.now() + datetime.timedelta(days=int(enforce_days))
+                
+            db.session.add(ack)
+            db.session.commit()
+            authutil.kick_backend()
+            flash("Acknowledgement created successfully", "success")
+            
+        elif action == 'send':
+            ack_id = request.form.get('ack_id')
+            ack = Acknowledgement.query.filter((Acknowledgement.id == ack_id) & (Acknowledgement.resource_id == r.id)).one_or_none()
+            if not ack:
+                flash("Acknowledgement not found", "warning")
+            else:
+                authusers = db.session.query(AccessByMember.member_id).filter(AccessByMember.resource_id == r.id).all()
+                member_ids = [u[0] for u in authusers]
+                
+                existing = db.session.query(AcknowledgementUser.member_id).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
+                existing_ids = set([e[0] for e in existing])
+                
+                send_count = 0
+                for mid in member_ids:
+                    if mid not in existing_ids:
+                        token = str(uuid.uuid4())
+                        au = AcknowledgementUser(
+                            acknowledgement_id=ack.id,
+                            member_id=mid,
+                            token=token
+                        )
+                        db.session.add(au)
+                        
+                        m = Member.query.filter(Member.id == mid).one()
+                        link = url_for('api.api_acknowledge', token=token, _external=True)
+                        email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
+                        genericEmailSender("info@makeitlabs.com", m.email, f"Notice for {r.name}", email_body)
+                        send_count += 1
+                        
+                db.session.commit()
+                authutil.kick_backend()
+                flash(f"Sent to {send_count} users.", "success")
+                
+        elif action == 'delete':
+            ack_id = request.form.get('ack_id')
+            ack = Acknowledgement.query.filter((Acknowledgement.id == ack_id) & (Acknowledgement.resource_id == r.id)).one_or_none()
+            if ack:
+                db.session.delete(ack)
+                db.session.commit()
+                authutil.kick_backend()
+                flash("Deleted acknowledgement", "success")
+
+    acks = Acknowledgement.query.filter(Acknowledgement.resource_id == r.id).order_by(Acknowledgement.time_created.desc()).all()
+    return render_template('resource_acknowledgements.html', resource=r, acks=acks)
+
+@blueprint.route('/<string:resource>/acknowledgements/<int:ack_id>', methods=['GET', 'POST'])
+@login_required
+def resource_acknowledgement_detail(resource, ack_id):
+    r = Resource.query.filter(Resource.name == resource).one_or_none()
+    if not r:
+        flash("Resource not found")
+        return redirect(url_for('resources.resources'))
+    if accesslib.user_privs_on_resource(member=current_user, resource=r) < AccessByMember.LEVEL_ARM:
+        flash("Permission denied", "warning")
+        return redirect(url_for('resources.resources'))
+
+    from authlibs.db_models import Acknowledgement, AcknowledgementUser
+    import uuid
+    ack = Acknowledgement.query.filter((Acknowledgement.id == ack_id) & (Acknowledgement.resource_id == r.id)).one_or_none()
+    
+    if not ack:
+        flash("Acknowledgement not found")
+        return redirect(url_for('resources.resource_acknowledgements', resource=resource))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        member_id = request.form.get('member_id')
+        au = AcknowledgementUser.query.filter((AcknowledgementUser.acknowledgement_id == ack.id) & (AcknowledgementUser.member_id == member_id)).one_or_none()
+        
+        if not au:
+            flash("User record not found", "warning")
+        elif action == 'resend':
+            m = Member.query.filter(Member.id == member_id).one()
+            link = url_for('api.api_acknowledge', token=au.token, _external=True)
+            email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
+            genericEmailSender("info@makeitlabs.com", m.email, f"Notice for {r.name}", email_body)
+            flash("Resent email.", "success")
+        elif action == 'manual_ack':
+            au.time_acknowledged = datetime.datetime.now()
+            db.session.commit()
+            authutil.kick_backend()
+            flash("Manually acknowledged.", "success")
+            
+    users = db.session.query(AcknowledgementUser, Member).join(Member).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
+    
+    return render_template('resource_acknowledgement_detail.html', resource=r, ack=ack, users=users)
+
+
 def register_pages(app):
   graph.register_pages(app)
   app.register_blueprint(blueprint)

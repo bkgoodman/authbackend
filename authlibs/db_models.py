@@ -239,6 +239,27 @@ class ResourceNotice(db.Model):
     created_by = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'))
     active = db.Column(db.Boolean(), default=True)
 
+class Acknowledgement(db.Model):
+    __tablename__ = 'acknowledgements'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    resource_id = db.Column(db.Integer(), db.ForeignKey('resources.id', ondelete='CASCADE'), nullable=False)
+    title = db.Column(db.String(150))
+    message = db.Column(db.Text())
+    time_created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    created_by = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
+    enforce_on = db.Column(db.DateTime(timezone=True))
+
+class AcknowledgementUser(db.Model):
+    __tablename__ = 'acknowledgement_users'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    acknowledgement_id = db.Column(db.Integer(), db.ForeignKey('acknowledgements.id', ondelete='CASCADE'), nullable=False)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
+    token = db.Column(db.String(100), unique=True, nullable=False)
+    time_sent = db.Column(db.DateTime(timezone=True), server_default=db.func.now())
+    time_acknowledged = db.Column(db.DateTime(timezone=True))
+
 class Training(db.Model):
     __tablename__ = 'training'
     __bind_key__ = 'main'

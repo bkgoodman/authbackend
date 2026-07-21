@@ -21,6 +21,7 @@ import datetime
 import hashlib
 import binascii
 
+from authlibs.db_models import Acknowledgement, AcknowledgementUser
 
 # You must call this modules "register_pages" with main app's "create_rotues"
 blueprint = Blueprint("api", __name__, template_folder='templates', static_folder="static",url_prefix="/api")
@@ -795,9 +796,24 @@ def api_v1_show_resource_acl(id):
 		# Note: Returns all so resource can know who tried to access it and failed, w/o further lookup
 		digest = hashlib.sha224()
 		output = accesslib.getAccessControlList(rid)
-		digest.update(output.encode("utf-8"))
 		hashstr=binascii.hexlify(digest.digest())
 		return output, 200, {'X-Hash-SHA224':hashstr,'Content-Type': 'text/plain', 'Content-Language': 'en'}
+
+@blueprint.route('/acknowledge/<string:token>', methods=['GET', 'POST'])
+def api_acknowledge(token):
+    au = AcknowledgementUser.query.filter(AcknowledgementUser.token == token).one_or_none()
+    if not au:
+        return json_dump({'result': 'failure', 'reason': 'Invalid token'}), 404, {'Content-Type': 'application/json'}
+    
+    if au.time_acknowledged is None:
+        au.time_acknowledged = datetime.datetime.now()
+        db.session.commit()
+        authutil.kick_backend()
+
+    if request.method == 'GET':
+        return render_template('acknowledge_success.html', au=au)
+    return json_dump({'result': 'success', 'reason': 'Acknowledged'}), 200, {'Content-Type': 'application/json'}
+
 
 @blueprint.route('/v1/resources/<string:id>/endorsementAcl/<string:endorsement>', methods=['GET'])
 @api_only
