@@ -1497,7 +1497,7 @@ def resource_acknowledgements(resource):
                     m = Member.query.filter(Member.id == mid).one()
                     link = url_for('api.api_acknowledge', token=au.token, _external=True)
                     email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
-                    genericEmailSender("info@makeitlabs.com", m.email, f"Notice for {r.name}", email_body)
+                    genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
                     send_count += 1
                         
                 db.session.commit()
@@ -1546,7 +1546,7 @@ def resource_acknowledgement_detail(resource, ack_id):
             m = Member.query.filter(Member.id == member_id).one()
             link = url_for('api.api_acknowledge', token=au.token, _external=True)
             email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
-            genericEmailSender("info@makeitlabs.com", m.email, f"Notice for {r.name}", email_body)
+            genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
             flash("Resent email.", "success")
         elif action == 'manual_ack':
             au.time_acknowledged = datetime.datetime.now()
