@@ -14,7 +14,10 @@
         </div>
     </div>
 
-    <h4>User Status</h4>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h4>User Status</h4>
+        <span class="badge badge-info" style="font-size: 1.1em;">{{ ack_count }} of {{ total_count }} acknowledgements received</span>
+    </div>
     <table class="table table-striped table-hover">
         <thead>
             <tr>
