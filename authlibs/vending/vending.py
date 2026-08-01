@@ -66,8 +66,14 @@ def vendingUser(id):
     utc = dateutil.tz.gettz('UTC')
     now = datetime.now()
     dbq = db.session.query(VendingLogs).filter(VendingLogs.member_id == mid).order_by(VendingLogs.time_logged.desc())
+    db_logs = dbq.all()
+    doneby_ids = set(l.doneby for l in db_logs if l.doneby)
+    members = {}
+    if doneby_ids:
+        for m2 in Member.query.filter(Member.id.in_(doneby_ids)).all():
+            members[m2.id] = {'first': m2.firstname, 'last': m2.lastname, 'member': m2.member}
     logs = []
-    for l in dbq.all():
+    for l in db_logs:
         r={}
         r['datetime']=l.time_logged.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
 
@@ -110,7 +116,7 @@ def vendingUser(id):
       balance = "$0.00"
     else:
       balance = "${0:0.2f}".format(float(m.balance)/100.0)
-    return render_template('vending.html',logs=logs,meta=meta,currentBalance=balance,username=username)
+    return render_template('vending.html',logs=logs,meta=meta,currentBalance=balance,username=username,member_id=m.member)
 
 
 @blueprint.route('/summary', methods=['GET'])
@@ -134,6 +140,50 @@ def summary():
             })
     total = "${0:0.2f}".format(float(total)/100.0)
     return render_template('summary.html',balances=balances,total=total)
+
+@blueprint.route('/user/<string:id>/manual_credit', methods=['POST'])
+@login_required
+@roles_required(['Admin','Finance'])
+def manual_credit(id):
+    if not current_user.privs('Finance'):
+       flash("You cannot do that",'warning')
+       return redirect(url_for('vending.vendingUser',id=id))
+
+    m = Member.query.filter(Member.member == id).one_or_none()
+    if (m is None):
+       flash("Member does not exist",'warning')
+       return redirect(url_for('index'))
+
+    amount_str = request.form.get('amount', '0')
+    try:
+        amount_cents = int(float(amount_str) * 100)
+    except ValueError:
+        flash("Invalid amount",'warning')
+        return redirect(url_for('vending.vendingUser',id=id))
+
+    comment = request.form.get('comment', 'Manual Credit')
+
+    if m.balance is None:
+        old_balance = 0
+        m.balance = amount_cents
+    else:
+        old_balance = m.balance
+        m.balance += amount_cents
+
+    vl = VendingLogs(
+        member_id=m.id,
+        doneby=current_user.id,
+        oldBalance=old_balance,
+        addAmount=amount_cents,
+        totalCharge=0,
+        newBalance=m.balance,
+        comment=comment
+    )
+    db.session.add(vl)
+    db.session.commit()
+
+    flash("Added ${0:0.2f} manual credit to {1}'s account.".format(amount_cents/100.0, m.member), "success")
+    return redirect(url_for('vending.vendingUser',id=id))
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
