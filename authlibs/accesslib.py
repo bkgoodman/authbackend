@@ -13,7 +13,7 @@ from datetime import timedelta,datetime
 #from flask.ext.login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_login import LoginManager, UserMixin, login_required,  current_user, login_user, logout_user
 from flask_user import current_user, login_required, roles_required, UserManager, UserMixin, current_app
-from .db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey, Node, NodeConfig, KVopt, Tool 
+from .db_models import Member, db, Resource, Subscription, Waiver, AccessByMember,MemberTag, Role, UserRoles, Logs, ApiKey, Node, NodeConfig, KVopt, Tool, Acknowledgement, AcknowledgementUser
 from functools import wraps
 import json
 from authlibs import eventtypes
@@ -58,6 +58,7 @@ def accessQueryToDict(y):
             'membership':x[15],
             'expires_date':x[16],
             'endorsements':x[17],
+            'ack_lockout':x[18],
             'last_accessed':"" # We may never want to report this for many reasons
             }
 
@@ -119,6 +120,9 @@ def determineAccess(u,resource_text,resource_rec=None):
             allowed = 'false'
         elif u['lockout_reason'] and u['lockout_reason'].strip() != "":
             warning = u['lockout_reason']
+            allowed = 'false'
+        elif u.get('ack_lockout'):
+            warning = "Missing acknowledgement: " + u['ack_lockout']
             allowed = 'false'
         elif u['allowed'] == 'denied':
                 warning = c['resource']
@@ -285,6 +289,25 @@ def access_query(resource_id,member_id=None,tags=True):
     q = q.add_column(Subscription.expires_date)
     # BKG DEBUG ITEMS
     q = q.add_column(AccessByMember.permissions)
+
+    if resource_id:
+        ack_sq = db.session.query(Acknowledgement.title).join(AcknowledgementUser).filter(
+            AcknowledgementUser.member_id == Member.id,
+            Acknowledgement.resource_id == resource_id,
+            AcknowledgementUser.time_acknowledged == None,
+            Acknowledgement.enforce_on != None,
+            Acknowledgement.enforce_on <= db.func.DateTime('now')
+        ).limit(1).correlate(Member).as_scalar()
+    else:
+        ack_sq = db.session.query(Acknowledgement.title).join(AcknowledgementUser).filter(
+            AcknowledgementUser.member_id == Member.id,
+            Acknowledgement.resource_id == AccessByMember.resource_id,
+            AcknowledgementUser.time_acknowledged == None,
+            Acknowledgement.enforce_on != None,
+            Acknowledgement.enforce_on <= db.func.DateTime('now')
+        ).limit(1).correlate(Member, AccessByMember).as_scalar()
+        
+    q = q.add_column(ack_sq.label('ack_lockout'))
 
     if (tags):
         #print ("JOIN TWO")
