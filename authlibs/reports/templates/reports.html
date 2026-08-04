@@ -27,7 +27,12 @@
 			<tr>
 				<td>New Member Surveys</td>
 				<td>Visualization of member interests and discovery methods</td>
-				<td><button onClick="runreport('surveys')" class="button btn btn-primary">Report</button></td>
+				<td>
+					<div style="display: flex; align-items: center; gap: 10px;">
+						<input type="date" id="survey_date_since" class="form-control" style="width: auto;" title="Include surveys since this date (leave blank for all)">
+						<button onClick="runreport('surveys', document.getElementById('survey_date_since').value)" class="button btn btn-primary">Report</button>
+					</div>
+				</td>
 			</tr>
 			<tr>
 				<td>New Member Report</td>
@@ -124,9 +129,13 @@
 				document.getElementById("reporttext").innerText = text;
 			}
 		}
-		function runreport(report) {
+		function runreport(report, since_date='') {
 			document.getElementById("spinner").style.display = "inline-block";
-			fetch("{{ url_for('reports.runreport',report='') }}" + report)
+			let url = "{{ url_for('reports.runreport',report='') }}" + report;
+			if (since_date) {
+				url += "?since=" + encodeURIComponent(since_date);
+			}
+			fetch(url)
 				.then(response => response.json())
 				.then(data => myDisplay(data.text))
 				.catch(error => myDisplay('Error:', error));
