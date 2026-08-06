@@ -1431,35 +1431,42 @@ New Vending Balance: ${4:0.2f}""".format(
         #collection_method="charge_automatically",
       )
 
-      invoiceItem = stripe.InvoiceItem.create(customer=cid, description=description,price=price,invoice=invoice.id)
+      try:
+        invoiceItem = stripe.InvoiceItem.create(customer=cid, description=description,price=price,invoice=invoice.id)
 
-      finalize=stripe.Invoice.finalize_invoice(invoice)
-      if (finalize['status'] == 'paid'):
-        logger.info("Stripe Vending PAID status is {1} productId {2} customerId {3}".format(m.Member.member,finalize['status'],productId,cid))
-      elif (finalize['status'] != 'open'):
-        result = {'error':'success','description':"Stripe Error"}
-        logger.warning("Stripe Vending Finalize error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(m.Member.member,finalize['status'],productId,cid,invoice.id))
-      else:
-        pay = stripe.Invoice.pay(invoice)
-        if (pay['status'] != 'paid'):
-          result = {'error':'success','description':"Payment Declined"}
-          logger.warning("Stripe Vending Payment error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(m.Member.member,pay['status'],productId,cid,invoice.id))
+        finalize=stripe.Invoice.finalize_invoice(invoice)
+        if (finalize['status'] == 'paid'):
+          logger.info("Stripe Vending PAID status is {1} productId {2} customerId {3}".format(m.Member.member,finalize['status'],productId,cid))
+        elif (finalize['status'] != 'open'):
+          logger.warning("Stripe Vending Finalize error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(m.Member.member,finalize['status'],productId,cid,invoice.id))
+          raise Exception("Stripe Error: Invoice not open")
+        else:
+          pay = stripe.Invoice.pay(invoice)
+          if (pay['status'] != 'paid'):
+            logger.warning("Stripe Vending Payment error for {0} status is {1} productId {2} customerId {3} Invoice {4}".format(m.Member.member,pay['status'],productId,cid,invoice.id))
+            raise Exception("Payment Declined")
 
-      result = {'status':'success','member':m.Member.member,'customer':cid}
-      authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message=vendstr,member_id=m.Member.id,commit=0)
-      m.Member.balance = data['newBalance']
-      if "comment" not in data: data["comment"]="Vending Purchase"
-      vl = VendingLogs(member_id=m.Member.id,
-        invoice=invoice.id,
-        product=productId,
-        oldBalance=data['prevBalance'],
-        addAmount=data['addAmount'],
-        purchaseAmount=data['purchaseAmt'],
-        totalCharge=data['totalCharge'],
-        newBalance=data['newBalance'],
-        surcharge=data['serviceFee'],
-        comment=data["comment"])
-      db.session.add(vl)
+        result = {'status':'success','member':m.Member.member,'customer':cid}
+        authutil.log(eventtypes.RATTBE_LOGEVENT_VENDING_ADDBALANCE.id,message=vendstr,member_id=m.Member.id,commit=0)
+        m.Member.balance = data['newBalance']
+        if "comment" not in data: data["comment"]="Vending Purchase"
+        vl = VendingLogs(member_id=m.Member.id,
+          invoice=invoice.id,
+          product=productId,
+          oldBalance=data['prevBalance'],
+          addAmount=data['addAmount'],
+          purchaseAmount=data['purchaseAmt'],
+          totalCharge=data['totalCharge'],
+          newBalance=data['newBalance'],
+          surcharge=data['serviceFee'],
+          comment=data["comment"])
+        db.session.add(vl)
+      except BaseException as inner_e:
+        try:
+          stripe.Invoice.void_invoice(invoice.id)
+        except BaseException:
+          pass
+        raise inner_e
     except BaseException as e:
       result = {'status':'error','description':'Payment Error'}
       logger.warning("Stripe Vending 1 error for {0} {1}".format(m.Member.member,str(e)))
