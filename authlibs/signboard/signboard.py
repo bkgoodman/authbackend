@@ -611,18 +611,21 @@ def social_events_generate():
             
     indices.sort() # keep chronological order
     
+    import textwrap
+    
     for idx in indices:
         title = request.form.get(f'title_{idx}', '')
         
-        # Split title roughly in half if > 30 chars
         title1 = title
         title2 = ""
         if len(title) > 30:
-            words = title.split(' ')
-            if len(words) > 1:
-                mid = len(words) // 2
-                title1 = " ".join(words[:mid])
-                title2 = " ".join(words[mid:])
+            wrapped = textwrap.wrap(title, width=32)
+            if len(wrapped) > 0:
+                title1 = wrapped[0]
+            if len(wrapped) > 1:
+                title2 = wrapped[1]
+                if len(wrapped) > 2:
+                    title2 = title2[:-3] + "..."
             
         events.append({
             'date_abbr': request.form.get(f'date_abbr_{idx}', ''),
