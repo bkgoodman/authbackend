@@ -172,7 +172,7 @@ def utctolocal(dt, endofdate=False):
             return datetime.datetime.combine(dt, datetime.time(0, 0, 0, tzinfo=to_zone))
     return dt
 
-def get_calendar_events():
+def get_calendar_events(days=14):
     """Get events from Google Calendar"""
     # Calendar URLs from pubcal.py
     PUBLIC_URL="https://calendar.google.com/calendar/ical/makeitlabs.com_mpfejifn6j4f5klmu1oubknb34%40group.calendar.google.com/private-01f894c0d4256616b9da5022bfeede0c/basic.ics"
@@ -184,7 +184,7 @@ def get_calendar_events():
         g.close()
 
         now = datetime.datetime.now().replace(tzinfo=tz.gettz('America/New York'))
-        cutoff = now + datetime.timedelta(days=14)
+        cutoff = now + datetime.timedelta(days=days)
 
         # Use recurring_ical_events to expand recurring events
         recurring_events = recurring_ical_events.of(cal).between(now, cutoff)
@@ -256,7 +256,7 @@ def get_calendar_events():
     
     return events
 
-def get_eventbrite_events():
+def get_eventbrite_events(days=14):
     """Get events from Eventbrite API"""
     events = []
     try:
@@ -267,7 +267,7 @@ def get_eventbrite_events():
         if not org_id or not token:
             return events
             
-        window = datetime.datetime.now() + datetime.timedelta(days=14)
+        window = datetime.datetime.now() + datetime.timedelta(days=days)
         r = requests.get(f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&expand=ticket_availability&token={token}")
         
         if r.status_code >= 200 and r.status_code <= 299:
@@ -364,6 +364,34 @@ def do_signboard(debug=False):
     
     html = render_template('welcome.html', signs=go)
     return html
+
+@blueprint.route('/events_text')
+def events_text():
+    """Return a simple text list of events for the upcoming week"""
+    cal_events = get_calendar_events(days=7)
+    eb_events = get_eventbrite_events(days=7)
+    
+    all_events = cal_events + eb_events
+    
+    lines = []
+    lines.append("EVENTS FOR THIS WEEK:")
+    lines.append("=====================")
+    
+    for e in all_events:
+        title = e.get('what', '').strip()
+        when = e.get('when', '').strip()
+        detail = e.get('detail', '').strip()
+        
+        lines.append(f"Title: {title}")
+        if detail:
+            # Truncate to first line
+            lines.append(f"Detail: {detail.split(chr(10))[0]}")
+        lines.append(f"When: {when}")
+        lines.append("")
+        
+    response = make_response("\n".join(lines))
+    response.mimetype = 'text/plain'
+    return response
 
 def ai_curate_events(all_events, debug=False):
     """Use Google AI to curate and prioritize events"""
