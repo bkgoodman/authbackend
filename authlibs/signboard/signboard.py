@@ -560,7 +560,11 @@ def social_events():
     # Sort by start_dt if possible
     def sort_key(e):
         dt = e.get('start_dt')
-        return dt if dt else datetime.datetime.max.replace(tzinfo=tz.gettz('UTC'))
+        if not dt:
+            return datetime.datetime.max.replace(tzinfo=tz.gettz('UTC'))
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=tz.gettz('America/New York'))
+        return dt
         
     all_events.sort(key=sort_key)
     
