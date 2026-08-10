@@ -1,0 +1,20 @@
+{% extends "layout_bootstrap.html" %}
+{% block body %}
+<div class="container mt-4 mb-5">
+    <h2>Your Event Image is Ready</h2>
+    <p>This image is generated as an SVG, which scales perfectly. To use it on Facebook or Instagram:</p>
+    <ul>
+        <li>Take a screenshot of the image below using your OS screenshot tool, OR</li>
+        <li>Right-click the image and select "Save As" (or similar), and convert the SVG to a PNG or JPG if needed.</li>
+    </ul>
+    
+    <div class="mb-4">
+        <a href="{{ url_for('signs.social_events') }}" class="btn btn-primary">Back to Edit</a>
+    </div>
+
+    <!-- Container that matches the aspect ratio or just centers it -->
+    <div class="d-flex justify-content-center" style="background-color: #f8f9fa; padding: 20px; border-radius: 10px; border: 1px solid #ccc;">
+        {{ svg | safe }}
+    </div>
+</div>
+{% endblock %}

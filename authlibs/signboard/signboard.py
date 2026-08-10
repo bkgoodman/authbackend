@@ -546,5 +546,89 @@ def dict_to_sign(event_dict):
 def _get_signs():
     return  Sign.query.all()
 
+@blueprint.route('/social_events', methods=['GET'])
+def social_events():
+    """Render a form to select and edit events for social media"""
+    cal_events = get_calendar_events(days=7)
+    eb_events = get_eventbrite_events(days=7)
+    all_events = cal_events + eb_events
+    
+    # Sort by start_dt if possible
+    def sort_key(e):
+        dt = e.get('start_dt')
+        return dt if dt else datetime.datetime.max.replace(tzinfo=tz.gettz('UTC'))
+        
+    all_events.sort(key=sort_key)
+    
+    form_events = []
+    for i, e in enumerate(all_events):
+        dt = e.get('start_dt')
+        if dt:
+            date_abbr = dt.strftime("%a").upper()
+            date_day = dt.strftime("%d")
+            date_month = dt.strftime("%b").upper()
+            
+            if 'end_dt' in e and e['end_dt'] and e['end_dt'] != dt:
+                time_str = f"{dt.strftime('%-I:%M %p')} - {e['end_dt'].strftime('%-I:%M %p')}"
+            else:
+                time_str = dt.strftime("%-I:%M %p")
+        else:
+            date_abbr = "TBA"
+            date_day = "??"
+            date_month = "TBA"
+            time_str = e.get('when', '')
+
+        form_events.append({
+            'id': i,
+            'date_abbr': date_abbr,
+            'date_day': date_day,
+            'date_month': date_month,
+            'title': e.get('what', ''),
+            'time': time_str
+        })
+        
+    return render_template('social_events_form.html', events=form_events)
+
+@blueprint.route('/social_events/generate', methods=['POST'])
+def social_events_generate():
+    """Process form and render SVG inside an HTML wrapper"""
+    events = []
+    
+    # Find all checked indices
+    indices = []
+    for key in request.form.keys():
+        if key.startswith('include_'):
+            idx = key.split('_')[1]
+            indices.append(int(idx))
+            
+    indices.sort() # keep chronological order
+    
+    for idx in indices:
+        title = request.form.get(f'title_{idx}', '')
+        
+        # Split title roughly in half if > 30 chars
+        title1 = title
+        title2 = ""
+        if len(title) > 30:
+            words = title.split(' ')
+            if len(words) > 1:
+                mid = len(words) // 2
+                title1 = " ".join(words[:mid])
+                title2 = " ".join(words[mid:])
+            
+        events.append({
+            'date_abbr': request.form.get(f'date_abbr_{idx}', ''),
+            'date_day': request.form.get(f'date_day_{idx}', ''),
+            'date_month': request.form.get(f'date_month_{idx}', ''),
+            'title1': title1,
+            'title2': title2,
+            'time': request.form.get(f'time_{idx}', '')
+        })
+        
+    date_range = request.form.get('date_range', '')
+    
+    svg = render_template('social_events_svg.xml', events=events, date_range=date_range)
+    return render_template('social_events_result.html', svg=svg)
+
 def register_pages(app):
 	app.register_blueprint(blueprint)
