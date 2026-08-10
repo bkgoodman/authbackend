@@ -213,6 +213,12 @@ def get_raw_menu():
                     'alt':"Welcome sign messages"
             },
             {
+                    'privs':'Useredit',
+                    'url':url_for('signs.social_events'),
+                    'title':"Social Events Image",
+                    'alt':"Generate event graphics for social media"
+            },
+            {
                     'url':url_for('memberAudio.audio'),
                     'title':"Entrance Audio",
                     'img':url_for("static",filename="audioIcon.png"),
