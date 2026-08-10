@@ -12,16 +12,14 @@
 
 <svg width="1080" height="{{ svg_height }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 {{ svg_height }}">
   <!-- Background -->
-  <rect width="100%" height="100%" fill="#1B323D" />
+  <rect width="100%" height="100%" fill="#182A3A" />
 
   <!-- Header -->
-  <!-- MakeIt Labs Logo -->
-  <image x="40" y="40" width="300" height="120" preserveAspectRatio="xMidYMid meet" href="{{ url_for('static', filename='MakeIt Labs Logo 2016.svg', _external=True) }}" />
+  <!-- MakeIt Labs Logo (centered, correct 5.6:1 aspect ratio) -->
+  <image x="260" y="40" width="560" height="100" preserveAspectRatio="xMidYMid meet" href="{{ url_for('static', filename='MakeIt Labs Logo 2016.svg', _external=True) }}" />
   
-  <text x="360" y="90" fill="white" font-size="64" font-family="sans-serif" font-weight="bold">This week at</text>
-  <text x="360" y="160" fill="white" font-size="72" font-family="sans-serif" font-weight="bold">{{ date_range }}</text>
-  
-  <text x="540" y="230" fill="white" font-size="28" font-family="sans-serif" font-weight="bold" text-anchor="middle">Events are for MakeIt Labs members only unless otherwise noted</text>
+  <text x="540" y="190" fill="white" font-size="56" font-family="sans-serif" font-weight="bold" text-anchor="middle">This week: {{ date_range }}</text>
+  <text x="540" y="240" fill="#A0B0C0" font-size="28" font-family="sans-serif" font-weight="bold" text-anchor="middle">Events are for MakeIt Labs members only unless otherwise noted</text>
 
   <!-- Events -->
   {% for e in events %}
@@ -32,13 +30,13 @@
     
     <g class="event-card">
       <!-- Orange border -->
-      <rect x="{{ x }}" y="{{ y }}" width="500" height="{{ card_height }}" rx="20" fill="none" stroke="#E67E50" stroke-width="4" />
+      <rect x="{{ x }}" y="{{ y }}" width="500" height="{{ card_height }}" rx="15" fill="none" stroke="#F58220" stroke-width="3" />
       
       <!-- Date Box (White background, orange text) -->
-      <path d="M {{ x+20 }} {{ y }} L {{ x+110 }} {{ y }} L {{ x+110 }} {{ y+card_height }} L {{ x+20 }} {{ y+card_height }} A 20 20 0 0 1 {{ x }} {{ y+card_height-20 }} L {{ x }} {{ y+20 }} A 20 20 0 0 1 {{ x+20 }} {{ y }} Z" fill="white" />
-      <text x="{{ x+55 }}" y="{{ y+40 }}" fill="#E67E50" font-size="28" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_abbr }}</text>
-      <text x="{{ x+55 }}" y="{{ y+95 }}" fill="#E67E50" font-size="56" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_day }}</text>
-      <text x="{{ x+55 }}" y="{{ y+125 }}" fill="#E67E50" font-size="24" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_month }}</text>
+      <path d="M {{ x+20 }} {{ y }} L {{ x+110 }} {{ y }} L {{ x+110 }} {{ y+card_height }} L {{ x+20 }} {{ y+card_height }} A 15 15 0 0 1 {{ x }} {{ y+card_height-15 }} L {{ x }} {{ y+15 }} A 15 15 0 0 1 {{ x+20 }} {{ y }} Z" fill="white" />
+      <text x="{{ x+55 }}" y="{{ y+40 }}" fill="#F58220" font-size="28" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_abbr }}</text>
+      <text x="{{ x+55 }}" y="{{ y+95 }}" fill="#F58220" font-size="56" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_day }}</text>
+      <text x="{{ x+55 }}" y="{{ y+125 }}" fill="#F58220" font-size="24" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_month }}</text>
       
       <!-- Details Box -->
       {% if e.title2 %}
@@ -53,6 +51,6 @@
   {% endfor %}
 
   <!-- Footer -->
-  <rect x="40" y="{{ footer_y }}" width="1000" height="{{ footer_height }}" rx="45" fill="#E67E50" />
-  <text x="540" y="{{ footer_y + 62 }}" fill="white" font-size="52" font-family="sans-serif" font-weight="bold" text-anchor="middle">makeitlabs.com/events</text>
+  <line x1="100" y1="{{ footer_y }}" x2="980" y2="{{ footer_y }}" stroke="#F58220" stroke-width="4" />
+  <text x="540" y="{{ footer_y + 55 }}" fill="#F58220" font-size="42" font-family="sans-serif" font-weight="bold" text-anchor="middle">makeitlabs.com</text>
 </svg>
