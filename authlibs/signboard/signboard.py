@@ -246,6 +246,8 @@ def get_calendar_events(days=14):
             events.append({
                 'what': summary,
                 'when': when,
+                'start_dt': calstart,
+                'end_dt': calend,
                 'where': device,
                 'detail': description if description else "",
                 'source': 'calendar',
@@ -283,6 +285,8 @@ def get_eventbrite_events(days=14):
                     events.append({
                         'what': n,
                         'when': ds,
+                        'start_dt': d,
+                        'end_dt': None,
                         'detail': desc,
                         'url': url,
                         'source': 'eventbrite',

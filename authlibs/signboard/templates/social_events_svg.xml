@@ -16,7 +16,7 @@
 
   <!-- Header -->
   <!-- MakeIt Labs Logo -->
-  <image x="40" y="40" width="300" height="150" href="{{ url_for('static', filename='MakeIt Labs Logo 2016.svg', _external=True) }}" />
+  <image x="40" y="40" width="300" height="120" preserveAspectRatio="xMidYMid meet" href="{{ url_for('static', filename='MakeIt Labs Logo 2016.svg', _external=True) }}" />
   
   <text x="360" y="90" fill="white" font-size="64" font-family="sans-serif" font-weight="bold">This week at</text>
   <text x="360" y="160" fill="white" font-size="72" font-family="sans-serif" font-weight="bold">{{ date_range }}</text>
