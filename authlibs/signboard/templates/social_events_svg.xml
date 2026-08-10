@@ -34,11 +34,11 @@
     {% set y = header_height + row * row_height %}
     
     <g class="event-card">
-      <!-- Orange border -->
-      <rect x="{{ x }}" y="{{ y }}" width="500" height="{{ card_height }}" rx="12" fill="none" stroke="#F58220" stroke-width="3" />
-      
-      <!-- Date Box (White background, orange text) -->
+      <!-- Date Box (White background) -->
       <path d="M {{ x+15 }} {{ y }} L {{ x+100 }} {{ y }} L {{ x+100 }} {{ y+card_height }} L {{ x+15 }} {{ y+card_height }} A 12 12 0 0 1 {{ x }} {{ y+card_height-12 }} L {{ x }} {{ y+12 }} A 12 12 0 0 1 {{ x+15 }} {{ y }} Z" fill="white" />
+      
+      <!-- Orange border (drawn on top) -->
+      <rect x="{{ x }}" y="{{ y }}" width="500" height="{{ card_height }}" rx="12" fill="none" stroke="#F58220" stroke-width="3" />
       <text x="{{ x+50 }}" y="{{ y+35 }}" fill="#F58220" font-size="22" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_abbr }}</text>
       <text x="{{ x+50 }}" y="{{ y+75 }}" fill="#F58220" font-size="42" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_day }}</text>
       <text x="{{ x+50 }}" y="{{ y+100 }}" fill="#F58220" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_month }}</text>
