@@ -9,7 +9,12 @@
 {% set footer_margin = 20 %}
 {% set footer_height = 60 %}
 {% set footer_y = header_height + (total_rows * row_height) + footer_margin %}
+{% set target_height = 1187 %} <!-- 1080 * (744/677) -->
 {% set svg_height = footer_y + footer_height + 40 %}
+{% if svg_height < target_height %}
+  {% set footer_y = target_height - footer_height - 40 %}
+  {% set svg_height = target_height %}
+{% endif %}
 
 <svg width="1080" height="{{ svg_height }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 {{ svg_height }}">
   <!-- Background -->
