@@ -1,14 +1,15 @@
+{% set max_events = 14 %}
+{% if events|length > max_events %}
+  {% set events = events[:max_events] %}
+{% endif %}
 {% set total_rows = (events|length + 1) // 2 %}
-{% set header_height = 260 %}
-{% set row_height = 160 %}
-{% set card_height = 140 %}
+{% set header_height = 180 %}
+{% set row_height = 125 %}
+{% set card_height = 110 %}
 {% set footer_margin = 20 %}
-{% set footer_height = 90 %}
+{% set footer_height = 60 %}
 {% set footer_y = header_height + (total_rows * row_height) + footer_margin %}
 {% set svg_height = footer_y + footer_height + 40 %}
-{% if svg_height < 1350 %}
-  {% set svg_height = 1350 %}
-{% endif %}
 
 <svg width="1080" height="{{ svg_height }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 {{ svg_height }}">
   <!-- Background -->
@@ -16,10 +17,9 @@
 
   <!-- Header -->
   <!-- MakeIt Labs Logo (centered, correct 5.6:1 aspect ratio) -->
-  <image x="260" y="40" width="560" height="100" preserveAspectRatio="xMidYMid meet" href="{{ url_for('static', filename='MakeIt Labs Logo 2016.svg', _external=True) }}" />
+  <image x="260" y="30" width="560" height="90" preserveAspectRatio="xMidYMid meet" href="{{ url_for('static', filename='MakeIt Labs Logo 2016.svg', _external=True) }}" />
   
-  <text x="540" y="190" fill="white" font-size="56" font-family="sans-serif" font-weight="bold" text-anchor="middle">This week: {{ date_range }}</text>
-  <text x="540" y="240" fill="#A0B0C0" font-size="28" font-family="sans-serif" font-weight="bold" text-anchor="middle">Events are for MakeIt Labs members only unless otherwise noted</text>
+  <text x="540" y="165" fill="white" font-size="44" font-family="sans-serif" font-weight="bold" text-anchor="middle">This week: {{ date_range }}</text>
 
   <!-- Events -->
   {% for e in events %}
@@ -30,27 +30,27 @@
     
     <g class="event-card">
       <!-- Orange border -->
-      <rect x="{{ x }}" y="{{ y }}" width="500" height="{{ card_height }}" rx="15" fill="none" stroke="#F58220" stroke-width="3" />
+      <rect x="{{ x }}" y="{{ y }}" width="500" height="{{ card_height }}" rx="12" fill="none" stroke="#F58220" stroke-width="3" />
       
       <!-- Date Box (White background, orange text) -->
-      <path d="M {{ x+20 }} {{ y }} L {{ x+110 }} {{ y }} L {{ x+110 }} {{ y+card_height }} L {{ x+20 }} {{ y+card_height }} A 15 15 0 0 1 {{ x }} {{ y+card_height-15 }} L {{ x }} {{ y+15 }} A 15 15 0 0 1 {{ x+20 }} {{ y }} Z" fill="white" />
-      <text x="{{ x+55 }}" y="{{ y+40 }}" fill="#F58220" font-size="28" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_abbr }}</text>
-      <text x="{{ x+55 }}" y="{{ y+95 }}" fill="#F58220" font-size="56" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_day }}</text>
-      <text x="{{ x+55 }}" y="{{ y+125 }}" fill="#F58220" font-size="24" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_month }}</text>
+      <path d="M {{ x+15 }} {{ y }} L {{ x+100 }} {{ y }} L {{ x+100 }} {{ y+card_height }} L {{ x+15 }} {{ y+card_height }} A 12 12 0 0 1 {{ x }} {{ y+card_height-12 }} L {{ x }} {{ y+12 }} A 12 12 0 0 1 {{ x+15 }} {{ y }} Z" fill="white" />
+      <text x="{{ x+50 }}" y="{{ y+35 }}" fill="#F58220" font-size="22" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_abbr }}</text>
+      <text x="{{ x+50 }}" y="{{ y+75 }}" fill="#F58220" font-size="42" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_day }}</text>
+      <text x="{{ x+50 }}" y="{{ y+100 }}" fill="#F58220" font-size="20" font-family="sans-serif" font-weight="bold" text-anchor="middle">{{ e.date_month }}</text>
       
       <!-- Details Box -->
       {% if e.title2 %}
-        <text x="{{ x+130 }}" y="{{ y+45 }}" fill="white" font-size="26" font-family="sans-serif" font-weight="bold">{{ e.title1 }}</text>
-        <text x="{{ x+130 }}" y="{{ y+75 }}" fill="white" font-size="26" font-family="sans-serif" font-weight="bold">{{ e.title2 }}</text>
-        <text x="{{ x+130 }}" y="{{ y+115 }}" fill="#88D1D1" font-size="24" font-family="sans-serif" font-weight="bold">{{ e.time }}</text>
+        <text x="{{ x+115 }}" y="{{ y+40 }}" fill="white" font-size="20" font-family="sans-serif" font-weight="bold">{{ e.title1 }}</text>
+        <text x="{{ x+115 }}" y="{{ y+65 }}" fill="white" font-size="20" font-family="sans-serif" font-weight="bold">{{ e.title2 }}</text>
+        <text x="{{ x+115 }}" y="{{ y+95 }}" fill="#88D1D1" font-size="18" font-family="sans-serif" font-weight="bold">{{ e.time }}</text>
       {% else %}
-        <text x="{{ x+130 }}" y="{{ y+60 }}" fill="white" font-size="26" font-family="sans-serif" font-weight="bold">{{ e.title1 }}</text>
-        <text x="{{ x+130 }}" y="{{ y+105 }}" fill="#88D1D1" font-size="24" font-family="sans-serif" font-weight="bold">{{ e.time }}</text>
+        <text x="{{ x+115 }}" y="{{ y+50 }}" fill="white" font-size="22" font-family="sans-serif" font-weight="bold">{{ e.title1 }}</text>
+        <text x="{{ x+115 }}" y="{{ y+85 }}" fill="#88D1D1" font-size="18" font-family="sans-serif" font-weight="bold">{{ e.time }}</text>
       {% endif %}
     </g>
   {% endfor %}
 
   <!-- Footer -->
   <line x1="100" y1="{{ footer_y }}" x2="980" y2="{{ footer_y }}" stroke="#F58220" stroke-width="4" />
-  <text x="540" y="{{ footer_y + 55 }}" fill="#F58220" font-size="42" font-family="sans-serif" font-weight="bold" text-anchor="middle">makeitlabs.com</text>
+  <text x="540" y="{{ footer_y + 45 }}" fill="#F58220" font-size="36" font-family="sans-serif" font-weight="bold" text-anchor="middle">makeitlabs.com</text>
 </svg>
