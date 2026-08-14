@@ -101,18 +101,18 @@
 		border-radius: 24px;
 	}
 
-	/* Log row shading */
-	.log-today td {
-		background-color: #f2fff2 !important; /* Very subtle green for today */
+	/* Log row shading - Today is slightly more intense */
+	tr.log-today:nth-child(even) td {
+		background-color: #f0f8f0 !important; /* Slightly darker than white */
 	}
-	.log-day-0 td {
-		background-color: #ffffff !important; 
+	tr.log-today:nth-child(odd) td {
+		background-color: #c8ffc8 !important; /* Darker green than the usual #e0ffe0 */
 	}
-	.log-day-1 td {
-		background-color: #f7f7f7 !important; /* Subtle gray for alternate days */
+	tr.log-today:hover td {
+		background-color: #ffff80 !important; 
 	}
 	.day-boundary td {
-		border-top: 2px solid #ddd !important;
+		border-top: 2px solid #bbb !important; /* Thinner subtle separator for older days */
 	}
 	.today-boundary td {
 		border-top: 2px solid #82c91e !important; /* Clear boundary for end of today */
@@ -281,7 +281,7 @@
           {% set day_parity.value = 1 - day_parity.value %}
       {% endif %}
 
-	  <tr class="{{ boundary_class }} {% if l.is_today %}log-today{% else %}log-day-{{ day_parity.value }}{% endif %}">
+	  <tr class="{{ boundary_class }} {% if l.is_today %}log-today{% endif %}">
 		<td>{{ l.when }}</td>
 		<td>{{ l.ago }} ago</td>
 		<td>
