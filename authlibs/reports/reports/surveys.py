@@ -19,10 +19,24 @@ if not os.path.exists(survey_file):
     print("HTML:<div style='padding:20px; font-size:18px;'>No survey data found. File not found: survey.txt</div>")
     exit(0)
 
+since_date_str = os.environ.get('REPORT_SINCE', '')
+
 with open(survey_file, "r") as f:
     for line in f:
         # Extract predefined tokens
         tokens = line.split()
+        if not tokens:
+            continue
+            
+        timestamp_str = tokens[0].rstrip(":")
+        if since_date_str:
+            try:
+                # Compare as strings since ISO formats match alphabetically
+                if timestamp_str < since_date_str:
+                    continue
+            except:
+                pass
+
         for t in tokens:
             if t.startswith('where_') and not t.startswith('other_'):
                 key = t[6:]

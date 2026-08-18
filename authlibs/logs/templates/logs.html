@@ -100,6 +100,23 @@
 	.slider.round {
 		border-radius: 24px;
 	}
+
+	/* Log row shading - Today is slightly more intense */
+	tr.log-today:nth-child(even) td {
+		background-color: #f0f8f0 !important; /* Slightly darker than white */
+	}
+	tr.log-today:nth-child(odd) td {
+		background-color: #c8ffc8 !important; /* Darker green than the usual #e0ffe0 */
+	}
+	tr.log-today:hover td {
+		background-color: #ffff80 !important; 
+	}
+	.day-boundary td {
+		border-top: 2px solid #bbb !important; /* Thinner subtle separator for older days */
+	}
+	.today-boundary td {
+		border-top: 2px solid #82c91e !important; /* Clear boundary for end of today */
+	}
 	</style>
 
 	<script type="text/javascript">
@@ -247,8 +264,24 @@
         <th>Message</th>
 				</tr>
       </thead>
+      {% set current_date = namespace(value='') %}
+      {% set day_parity = namespace(value=0) %}
       {% for l in logs %}
-	  <tr>
+      
+      {% set boundary_class = "" %}
+      {% if l.date_str != current_date.value %}
+          {% if current_date.value != '' %}
+              {% if current_date.value == meta.today_str %}
+                  {% set boundary_class = "today-boundary" %}
+              {% else %}
+                  {% set boundary_class = "day-boundary" %}
+              {% endif %}
+          {% endif %}
+          {% set current_date.value = l.date_str %}
+          {% set day_parity.value = 1 - day_parity.value %}
+      {% endif %}
+
+	  <tr class="{{ boundary_class }} {% if l.is_today %}log-today{% endif %}">
 		<td>{{ l.when }}</td>
 		<td>{{ l.ago }} ago</td>
 		<td>

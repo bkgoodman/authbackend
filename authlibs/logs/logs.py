@@ -225,6 +225,8 @@ def logs():
         for l in dbq.all():
             r={}
             r['datetime']=l.time_logged.replace(tzinfo=utc).astimezone(eastern).replace(tzinfo=None)
+            r['date_str'] = r['datetime'].strftime('%Y-%m-%d')
+            r['is_today'] = (r['datetime'].date() == now.date())
 
             (r['when'],r['ago'],r['othertime'])=ago.ago(r['datetime'],now)
 
@@ -380,7 +382,8 @@ def logs():
             'count':count,
             'csvurl':csvurl,
             'displayoffset':offset+1,
-            'lastoffset':lo
+            'lastoffset':lo,
+            'today_str':now.strftime('%Y-%m-%d')
     }
     if current_user.privs('Useredit','Finance','RATT'):
         meta['nomembersearch']=True

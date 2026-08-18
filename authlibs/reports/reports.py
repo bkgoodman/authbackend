@@ -269,11 +269,17 @@ def runreport(report):
     report = report.replace("/","")
     report = report.replace(".","")
     try:
+        since_date = request.args.get('since', '')
         res = {
                 "status": "ok",
                 "text":f"This is a run of report {report}"
                 }
-        f = subprocess.Popen(["./"+report+".py"],cwd="authlibs/reports/reports/",stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        
+        env = os.environ.copy()
+        if since_date:
+            env['REPORT_SINCE'] = since_date
+            
+        f = subprocess.Popen(["./"+report+".py"],cwd="authlibs/reports/reports/",stdout=subprocess.PIPE,stderr=subprocess.PIPE, env=env)
         txt = f.stdout.read().decode("utf-8")
         txt += f.stderr.read().decode("utf-8")
         result = f.wait()

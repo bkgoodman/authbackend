@@ -99,6 +99,11 @@ def orientation():
             member = Member.query.filter(Member.id == log.member_id).one_or_none()
             if not member:
                 continue
+            
+            # Skip mistaken/void records if an access reason is provided
+            if member.access_reason and member.access_reason.strip() != "":
+                continue
+                
             if not member.access_enabled:
                 filtered_entries.append((log, member))
                 continue
@@ -124,6 +129,11 @@ def orientation():
             member = Member.query.filter(Member.id == log.member_id).one_or_none()
             if not member:
                 continue
+            
+            # Skip mistaken/void records if an access reason is provided
+            if member.access_reason and member.access_reason.strip() != "":
+                continue
+                
             filtered_entries.append((log, member))
 
     count = len(filtered_entries)

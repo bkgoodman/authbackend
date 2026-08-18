@@ -172,7 +172,7 @@ def utctolocal(dt, endofdate=False):
             return datetime.datetime.combine(dt, datetime.time(0, 0, 0, tzinfo=to_zone))
     return dt
 
-def get_calendar_events():
+def get_calendar_events(days=14):
     """Get events from Google Calendar"""
     # Calendar URLs from pubcal.py
     PUBLIC_URL="https://calendar.google.com/calendar/ical/makeitlabs.com_mpfejifn6j4f5klmu1oubknb34%40group.calendar.google.com/private-01f894c0d4256616b9da5022bfeede0c/basic.ics"
@@ -184,7 +184,7 @@ def get_calendar_events():
         g.close()
 
         now = datetime.datetime.now().replace(tzinfo=tz.gettz('America/New York'))
-        cutoff = now + datetime.timedelta(days=14)
+        cutoff = now + datetime.timedelta(days=days)
 
         # Use recurring_ical_events to expand recurring events
         recurring_events = recurring_ical_events.of(cal).between(now, cutoff)
@@ -246,6 +246,8 @@ def get_calendar_events():
             events.append({
                 'what': summary,
                 'when': when,
+                'start_dt': calstart,
+                'end_dt': calend,
                 'where': device,
                 'detail': description if description else "",
                 'source': 'calendar',
@@ -256,7 +258,7 @@ def get_calendar_events():
     
     return events
 
-def get_eventbrite_events():
+def get_eventbrite_events(days=14):
     """Get events from Eventbrite API"""
     events = []
     try:
@@ -267,7 +269,7 @@ def get_eventbrite_events():
         if not org_id or not token:
             return events
             
-        window = datetime.datetime.now() + datetime.timedelta(days=14)
+        window = datetime.datetime.now() + datetime.timedelta(days=days)
         r = requests.get(f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&expand=ticket_availability&token={token}")
         
         if r.status_code >= 200 and r.status_code <= 299:
@@ -283,6 +285,8 @@ def get_eventbrite_events():
                     events.append({
                         'what': n,
                         'when': ds,
+                        'start_dt': d,
+                        'end_dt': None,
                         'detail': desc,
                         'url': url,
                         'source': 'eventbrite',
@@ -364,6 +368,34 @@ def do_signboard(debug=False):
     
     html = render_template('welcome.html', signs=go)
     return html
+
+@blueprint.route('/events_text')
+def events_text():
+    """Return a simple text list of events for the upcoming week"""
+    cal_events = get_calendar_events(days=7)
+    eb_events = get_eventbrite_events(days=7)
+    
+    all_events = cal_events + eb_events
+    
+    lines = []
+    lines.append("EVENTS FOR THIS WEEK:")
+    lines.append("=====================")
+    
+    for e in all_events:
+        title = e.get('what', '').strip()
+        when = e.get('when', '').strip()
+        detail = e.get('detail', '').strip()
+        
+        lines.append(f"Title: {title}")
+        if detail:
+            # Truncate to first line
+            lines.append(f"Detail: {detail.split(chr(10))[0]}")
+        lines.append(f"When: {when}")
+        lines.append("")
+        
+    response = make_response("\n".join(lines))
+    response.mimetype = 'text/plain'
+    return response
 
 def ai_curate_events(all_events, debug=False):
     """Use Google AI to curate and prioritize events"""
@@ -517,6 +549,97 @@ def dict_to_sign(event_dict):
 
 def _get_signs():
     return  Sign.query.all()
+
+@blueprint.route('/social_events', methods=['GET'])
+def social_events():
+    """Render a form to select and edit events for social media"""
+    cal_events = get_calendar_events(days=7)
+    eb_events = get_eventbrite_events(days=7)
+    all_events = cal_events + eb_events
+    
+    # Sort by start_dt if possible
+    def sort_key(e):
+        dt = e.get('start_dt')
+        if not dt:
+            return datetime.datetime.max.replace(tzinfo=tz.gettz('UTC'))
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=tz.gettz('America/New York'))
+        return dt
+        
+    all_events.sort(key=sort_key)
+    
+    form_events = []
+    for i, e in enumerate(all_events):
+        dt = e.get('start_dt')
+        if dt:
+            date_abbr = dt.strftime("%a").upper()
+            date_day = dt.strftime("%d")
+            date_month = dt.strftime("%b").upper()
+            
+            if 'end_dt' in e and e['end_dt'] and e['end_dt'] != dt:
+                time_str = f"{dt.strftime('%-I:%M %p')} - {e['end_dt'].strftime('%-I:%M %p')}"
+            else:
+                time_str = dt.strftime("%-I:%M %p")
+        else:
+            date_abbr = "TBA"
+            date_day = "??"
+            date_month = "TBA"
+            time_str = e.get('when', '')
+
+        form_events.append({
+            'id': i,
+            'date_abbr': date_abbr,
+            'date_day': date_day,
+            'date_month': date_month,
+            'title': e.get('what', ''),
+            'time': time_str
+        })
+        
+    return render_template('social_events_form.html', events=form_events)
+
+@blueprint.route('/social_events/generate', methods=['POST'])
+def social_events_generate():
+    """Process form and render SVG inside an HTML wrapper"""
+    events = []
+    
+    # Find all checked indices
+    indices = []
+    for key in request.form.keys():
+        if key.startswith('include_'):
+            idx = key.split('_')[1]
+            indices.append(int(idx))
+            
+    indices.sort() # keep chronological order
+    
+    import textwrap
+    
+    for idx in indices:
+        title = request.form.get(f'title_{idx}', '')
+        
+        title1 = title
+        title2 = ""
+        if len(title) > 30:
+            wrapped = textwrap.wrap(title, width=32)
+            if len(wrapped) > 0:
+                title1 = wrapped[0]
+            if len(wrapped) > 1:
+                title2 = wrapped[1]
+                if len(wrapped) > 2:
+                    title2 = title2[:-3] + "..."
+            
+        events.append({
+            'date_abbr': request.form.get(f'date_abbr_{idx}', ''),
+            'date_day': request.form.get(f'date_day_{idx}', ''),
+            'date_month': request.form.get(f'date_month_{idx}', ''),
+            'title1': title1,
+            'title2': title2,
+            'time': request.form.get(f'time_{idx}', '')
+        })
+        
+    date_range = request.form.get('date_range', '')
+    
+    svg = render_template('social_events_svg.xml', events=events, date_range=date_range)
+    return render_template('social_events_result.html', svg=svg)
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
