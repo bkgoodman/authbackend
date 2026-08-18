@@ -60,6 +60,20 @@ def addMember(sub,plantype,firstname,lastname,email):
     mm.time_created = created
     mm.time_updated = updated
     mm.email_confirmed_at = datetime.now()
+
+    grp = None
+    if hasattr(sub, 'metadata') and sub.metadata and 'group' in sub.metadata and sub.metadata['group']:
+        grp = sub.metadata['group'].strip()
+    elif isinstance(sub, dict) and 'metadata' in sub and sub['metadata'] and 'group' in sub['metadata'] and sub['metadata']['group']:
+        grp = sub['metadata']['group'].strip()
+    elif isinstance(sub, dict) and 'group' in sub and sub['group']:
+        grp = str(sub['group']).strip()
+    if grp == "": grp = None
+
+    if grp:
+        s.group = grp
+        mm.group = grp
+
     db.session.add(mm)
     db.session.flush() # BKG UNIQUE CONTRAINTS FAILED if duplicate member name!
 
@@ -113,6 +127,20 @@ def linkExistingMember(sub, plantype, firstname, lastname, email):
     # 'Grace Period', 'Recent Expire') managed by the Stripe sync process, not a
     # flag we should set manually here.
     mm.time_updated = updated
+
+    grp = None
+    if hasattr(sub, 'metadata') and sub.metadata and 'group' in sub.metadata and sub.metadata['group']:
+        grp = sub.metadata['group'].strip()
+    elif isinstance(sub, dict) and 'metadata' in sub and sub['metadata'] and 'group' in sub['metadata'] and sub['metadata']['group']:
+        grp = sub['metadata']['group'].strip()
+    elif isinstance(sub, dict) and 'group' in sub and sub['group']:
+        grp = str(sub['group']).strip()
+    if grp == "": grp = None
+
+    if grp:
+        s.group = grp
+        if not mm.group or mm.group.strip() == '':
+            mm.group = grp
 
     db.session.add(Logs(member_id=mm.id,
                         event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_REACTIVATED.id))

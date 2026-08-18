@@ -344,7 +344,7 @@ def member_add():
                         
     member = {}
     mandatory_fields = ['firstname','lastname','memberid','plan','payment']
-    optional_fields = ['alt_email','phone','dob','nickname', 'plates']
+    optional_fields = ['alt_email','phone','dob','nickname', 'plates', 'group']
     for f in mandatory_fields:
         member[f] = ''
         if f in request.form:
@@ -505,6 +505,8 @@ def member_edit(id):
         m.plates= f['input_plates'].strip()
         m.slack= f['input_slack'].strip()
         m.memberFolder= stripNone(f['input_memberFolder'])
+        if 'input_group' in f:
+          m.group = stripNone(f['input_group'])
         m.alt_email= f['input_alt_email'].strip()
         m.email= f['input_email'].strip()
         if 'input_access_enabled' in f:
@@ -1339,13 +1341,19 @@ def _createMember(m):
     if members:
         return {'status': 'error','message':'That User ID already exists'}
     else:
-        sqlstr = """insert into members (member,firstname,lastname,phone,dob,plan,nickname,access_enabled,active)
-                    VALUES ('%s','%s','%s','%s','','%s',0,0)
-                 """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['dob'],m['nickname'])
+        group_val = m.get('group')
+        if group_val:
+            sqlstr = """insert into members (member,firstname,lastname,phone,dob,plan,nickname,access_enabled,active,"group")
+                        VALUES ('%s','%s','%s','%s','%s','','%s',0,0,'%s')
+                     """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['dob'],m['nickname'],group_val)
+        else:
+            sqlstr = """insert into members (member,firstname,lastname,phone,dob,plan,nickname,access_enabled,active)
+                        VALUES ('%s','%s','%s','%s','','%s',0,0)
+                     """ % (m['memberid'],m['firstname'],m['lastname'],m['phone'],m['dob'],m['nickname'])
         execute_db(sqlstr)
         get_db().commit()
-    return {'status':'success','message':'Member %s was created' % m['memberid']}
     authutil.kick_backend()
+    return {'status':'success','message':'Member %s was created' % m['memberid']}
 
 def getDoorAccess(id):
   r = db.session.query(Resource.id).filter(Resource.name == "frontdoor").one_or_none()

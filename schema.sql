@@ -43,7 +43,7 @@ CREATE TABLE members (
         warning_level INTEGER,
         email_confirmed_at DATETIME,
         membership VARCHAR(50),
-        password VARCHAR(255), dob DATETIME, memberFolder VARCHAR(255),
+        password VARCHAR(255), dob DATETIME, memberFolder VARCHAR(255), "group" VARCHAR(50),
         PRIMARY KEY (id),
         UNIQUE (member),
         UNIQUE (membership)
@@ -87,7 +87,7 @@ CREATE TABLE subscriptions (
         checked_date DATETIME,
         active INTEGER,
         membership VARCHAR(50) NOT NULL,
-        member_id INTEGER, rate_plan VARCHAR(50),
+        member_id INTEGER, rate_plan VARCHAR(50), "group" VARCHAR(50),
         PRIMARY KEY (id),
         UNIQUE (membership),
         FOREIGN KEY(member_id) REFERENCES members (id)

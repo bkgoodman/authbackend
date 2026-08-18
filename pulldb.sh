@@ -77,6 +77,14 @@ sqlite3 makeit.db '
 ALTER TABLE prostorebins ADD COLUMN status_updated_at DATETIME;
 '
 
+sqlite3 makeit.db '
+ALTER TABLE members ADD COLUMN "group" VARCHAR(50);
+'
+
+sqlite3 makeit.db '
+ALTER TABLE subscriptions ADD COLUMN "group" VARCHAR(50);
+'
+
 #sqlite3 makeit.db '
 #ALTER TABLE nodes ADD COLUMN always_on BOOLEAN DEFAULT 0;
 #'
