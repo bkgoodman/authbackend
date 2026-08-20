@@ -16,9 +16,16 @@ def ubersearch(searchstr,only=None,membertypes=None):
           for r in mq.all():
             (x,s) = r
             if not membertypes or s in membertypes:
+                    is_inactive = ((s == "No Subscription") or (s == "Expired"))
+                    has_group = bool(x.group and x.group.strip())
+                    grp = x.group.strip() if has_group else ""
+                    if is_inactive:
+                      in_text = f"Inactive ({grp})" if has_group else "Inactive"
+                    else:
+                      in_text = grp if has_group else ""
                     result.append({
-                      'title':"%s %s" % (x.firstname,x.lastname),
-                      'in':"Inactive Member" if ((s == "No Subscription") or  (s == "Expired")) else "Member",
+                      'title':"%s %s" % (x.firstname or "", x.lastname or "").strip(),
+                      'in': in_text,
                       'id':x.id,
                       'member':x.member,
                       'url':url_for("members.member_show",id=x.member)

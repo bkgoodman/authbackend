@@ -42,7 +42,11 @@ function layout_search_keypress(){
 				el.setAttribute("href",data[x]['url'])
 				console.log(data[x]['title'],data[x]['url']);
 				el.className="dropdown-item content layout_search_item nav-item nav-link";
-				el.innerHTML = data[x]['title']+"<br /><small href=\""+data[x]['url']+"\">"+data[x]['in']+"</small>";
+				if (data[x]['in']) {
+					el.innerHTML = data[x]['title']+"<br /><small href=\""+data[x]['url']+"\">"+data[x]['in']+"</small>";
+				} else {
+					el.innerHTML = data[x]['title'];
+				}
 				lst.appendChild(el);
 			}
 			console.log("---");
