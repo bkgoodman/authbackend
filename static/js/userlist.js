@@ -113,6 +113,7 @@ function queryMembers(searchstr) {
 								"<td>"+data[x]['firstname']+"</td>"+
 								"<td>"+data[x]['lastname']+"</td>"+
 								"<td>"+data[x]['email']+"</td>"+
+								"<td>"+(data[x]['group'] || '')+"</td>"+
 								"<td>"+data[x]['active']+"</td>"+
 								"<td>";
 							el.innerHTML += "<a href=\""+MEMBER_URL+encodeURIComponent(data[x]['member'])+"\">"+

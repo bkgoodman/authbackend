@@ -69,7 +69,8 @@ def searchMembers(searchstr):
   q = q.filter(Member.firstname.ilike(sstr) | 
       (Member.lastname.ilike(sstr)) | 
       (Member.alt_email.ilike(sstr)) | 
-      (Member.email.ilike(sstr)))
+      (Member.email.ilike(sstr)) |
+      (Member.group.ilike(sstr)))
   return q.all()
 
 
