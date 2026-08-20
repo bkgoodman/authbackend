@@ -40,6 +40,14 @@ def syncWithSubscriptions(isTest=False):
   logger.debug("Create new Accounts")
   createMissingMemberAccounts(added,isTest,True)
 
+  ''' Sync group field for existing linked members if group is empty/null '''
+  linked_subs = Subscription.query.filter(Subscription.member_id != None).filter(Subscription.group != None).all()
+  for ls in linked_subs:
+    if ls.group and ls.group.strip() != "":
+      m_rec = Member.query.filter(Member.id == ls.member_id).one_or_none()
+      if m_rec and (not m_rec.group or m_rec.group.strip() == ""):
+        m_rec.group = ls.group.strip()
+
   # Canary test 
 
   if current_app.config['globalConfig'].Config.has_option('Payments','Canary'):
@@ -73,6 +81,8 @@ def matchMissingMembers(missing):
         mm = Member.query.filter(Member.membership == s.membership).one_or_none()
         if mm:
                 logger.debug("MEMBERSHIP MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+                if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
+                  mm.group = s.group.strip()
                 # If we had already done a email/name match (below) - invalidate it so we dont get dupes
                 ss= Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
                 if (ss):
@@ -87,6 +97,8 @@ def matchMissingMembers(missing):
                     mm = q.one_or_none()
                     if mm:
                         logger.debug("email/name MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
+                        if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
+                          mm.group = s.group.strip()
                         # Avoid DUPLICATE match if MEMBERSHIP MATCH already done (above)
                         ss = Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
                         if ss and ss.active=="true":
@@ -198,6 +210,8 @@ def addMissingMembers(missing):
             mm.time_created = p.created_date
             mm.time_updated = p.created_date
             mm.email_confirmed_at = datetime.now()
+            if getattr(p, 'group', None) and p.group:
+                mm.group = p.group.strip()
             db.session.add(mm)
             db.session.flush()
             s = Subscription.query.filter(Subscription.email==p.email).filter(Subscription.name==p.name).one()
