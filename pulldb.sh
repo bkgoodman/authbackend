@@ -73,33 +73,33 @@ scp -i ~bkg/.ssh/id_rsa bkg@auth:/var/www/authbackend/log.db .
 #ALTER TABLE tools ADD COLUMN remotable BOOLEAN;
 #'
 
-sqlite3 makeit.db '
-ALTER TABLE prostorebins ADD COLUMN status_updated_at DATETIME;
-'
+#sqlite3 makeit.db '
+#ALTER TABLE prostorebins ADD COLUMN status_updated_at DATETIME;
+#'
 
-sqlite3 makeit.db '
-CREATE TABLE IF NOT EXISTS acknowledgements (
-        id INTEGER NOT NULL PRIMARY KEY,
-        resource_id INTEGER NOT NULL,
-        title VARCHAR(150),
-        message TEXT,
-        time_created DATETIME DEFAULT CURRENT_TIMESTAMP,
-        created_by INTEGER NOT NULL,
-        enforce_on DATETIME,
-        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE,
-        FOREIGN KEY(created_by) REFERENCES members (id) ON DELETE CASCADE
-);
-CREATE TABLE IF NOT EXISTS acknowledgement_users (
-        id INTEGER NOT NULL PRIMARY KEY,
-        acknowledgement_id INTEGER NOT NULL,
-        member_id INTEGER NOT NULL,
-        token VARCHAR(100) UNIQUE NOT NULL,
-        time_sent DATETIME DEFAULT CURRENT_TIMESTAMP,
-        time_acknowledged DATETIME,
-        FOREIGN KEY(acknowledgement_id) REFERENCES acknowledgements (id) ON DELETE CASCADE,
-        FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE
-);
-'
+#sqlite3 makeit.db '
+#CREATE TABLE IF NOT EXISTS acknowledgements (
+#        id INTEGER NOT NULL PRIMARY KEY,
+#        resource_id INTEGER NOT NULL,
+#        title VARCHAR(150),
+#        message TEXT,
+#        time_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+#        created_by INTEGER NOT NULL,
+#        enforce_on DATETIME,
+#        FOREIGN KEY(resource_id) REFERENCES resources (id) ON DELETE CASCADE,
+#        FOREIGN KEY(created_by) REFERENCES members (id) ON DELETE CASCADE
+#);
+#CREATE TABLE IF NOT EXISTS acknowledgement_users (
+#        id INTEGER NOT NULL PRIMARY KEY,
+#        acknowledgement_id INTEGER NOT NULL,
+#        member_id INTEGER NOT NULL,
+#        token VARCHAR(100) UNIQUE NOT NULL,
+#        time_sent DATETIME DEFAULT CURRENT_TIMESTAMP,
+#        time_acknowledged DATETIME,
+#        FOREIGN KEY(acknowledgement_id) REFERENCES acknowledgements (id) ON DELETE CASCADE,
+#        FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE
+#);
+#'
 
 sqlite3 makeit.db '
 ALTER TABLE members ADD COLUMN "group" VARCHAR(50);
