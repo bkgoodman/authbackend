@@ -13,8 +13,11 @@ def ubersearch(searchstr,only=None,membertypes=None):
           mq = addQuickAccessQuery(mq)
 
           mq = mq.outerjoin(Subscription,Subscription.member_id == Member.id)
+          seen_members = set()
           for r in mq.all():
             (x,s) = r
+            if x.id in seen_members: continue
+            seen_members.add(x.id)
             if not membertypes or s in membertypes:
                     is_inactive = ((s == "No Subscription") or (s == "Expired"))
                     has_group = bool(x.group and x.group.strip())
