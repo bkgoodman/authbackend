@@ -172,7 +172,7 @@ def utctolocal(dt, endofdate=False):
             return datetime.datetime.combine(dt, datetime.time(0, 0, 0, tzinfo=to_zone))
     return dt
 
-def get_calendar_events(days=14):
+def get_calendar_events(days=14, start_date=None):
     """Get events from Google Calendar"""
     # Calendar URLs from pubcal.py
     PUBLIC_URL="https://calendar.google.com/calendar/ical/makeitlabs.com_mpfejifn6j4f5klmu1oubknb34%40group.calendar.google.com/private-01f894c0d4256616b9da5022bfeede0c/basic.ics"
@@ -183,18 +183,31 @@ def get_calendar_events(days=14):
         cal = icalendar.Calendar.from_ical(g.text)
         g.close()
 
-        now = datetime.datetime.now().replace(tzinfo=tz.gettz('America/New York'))
-        cutoff = now + datetime.timedelta(days=days)
+        ny_tz = tz.gettz('America/New York')
+        if start_date:
+            if isinstance(start_date, datetime.datetime):
+                start_dt = start_date if start_date.tzinfo else start_date.replace(tzinfo=ny_tz)
+            elif isinstance(start_date, datetime.date):
+                start_dt = datetime.datetime.combine(start_date, datetime.time(0, 0, 0, tzinfo=ny_tz))
+            elif isinstance(start_date, str):
+                parsed = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+                start_dt = parsed.replace(tzinfo=ny_tz)
+            else:
+                start_dt = datetime.datetime.now().replace(tzinfo=ny_tz)
+        else:
+            start_dt = datetime.datetime.now().replace(tzinfo=ny_tz)
+
+        cutoff = start_dt + datetime.timedelta(days=days)
 
         # Use recurring_ical_events to expand recurring events
-        recurring_events = recurring_ical_events.of(cal).between(now, cutoff)
+        recurring_events = recurring_ical_events.of(cal).between(start_dt, cutoff)
 
         for component in recurring_events:
             calstart = utctolocal(component['DTSTART'].dt)
             calend = utctolocal(component.get('DTEND', component['DTSTART']).dt, endofdate=True)
 
             # Format date string
-            diff_days = (calstart.date() - now.date()).days
+            diff_days = (calstart.date() - start_dt.date()).days
             if diff_days == 0:
                 daystr = "Today"
             elif diff_days == 1:
@@ -258,7 +271,7 @@ def get_calendar_events(days=14):
     
     return events
 
-def get_eventbrite_events(days=14):
+def get_eventbrite_events(days=14, start_date=None):
     """Get events from Eventbrite API"""
     events = []
     try:
@@ -269,7 +282,21 @@ def get_eventbrite_events(days=14):
         if not org_id or not token:
             return events
             
-        window = datetime.datetime.now() + datetime.timedelta(days=days)
+        ny_tz = tz.gettz('America/New York')
+        if start_date:
+            if isinstance(start_date, datetime.datetime):
+                start_dt = start_date if start_date.tzinfo else start_date.replace(tzinfo=ny_tz)
+            elif isinstance(start_date, datetime.date):
+                start_dt = datetime.datetime.combine(start_date, datetime.time(0, 0, 0, tzinfo=ny_tz))
+            elif isinstance(start_date, str):
+                parsed = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+                start_dt = parsed.replace(tzinfo=ny_tz)
+            else:
+                start_dt = datetime.datetime.now().replace(tzinfo=ny_tz)
+        else:
+            start_dt = datetime.datetime.now().replace(tzinfo=ny_tz)
+
+        cutoff = start_dt + datetime.timedelta(days=days)
         r = requests.get(f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&expand=ticket_availability&token={token}")
         
         if r.status_code >= 200 and r.status_code <= 299:
@@ -279,8 +306,8 @@ def get_eventbrite_events(days=14):
                 desc = x['description']['text'].replace("\"","'")[:200]  # Truncate
                 url = x['url']
                 t = x['start']['local']
-                d = datetime.datetime.strptime(t, "%Y-%m-%dT%H:%M:%S")
-                if d < window:
+                d = datetime.datetime.strptime(t, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=ny_tz)
+                if start_dt <= d < cutoff:
                     ds = d.strftime("%A, %B %d, %I:%M %p")
                     events.append({
                         'what': n,
@@ -307,14 +334,13 @@ def do_signboard(debug=False):
     now = datetime.datetime.now()
     for s in local_signs:
         if s.start < now < s.end:
-            match s.priority:
-                case 0:  # Always
+            if s.priority == 0:  # Always
+                primary.append(s)
+            elif s.priority == 1:  # If nothing else
+                secondary.append(s)
+            elif s.priority == 2:  # Debug/Test only
+                if debug:
                     primary.append(s)
-                case 1:  # If nothing else
-                    secondary.append(s)
-                case 2:  # Debug/Test only
-                    if debug:
-                        primary.append(s)
         elif now > s.end and s.retain == 0:
             db.session.delete(s)
     
@@ -553,8 +579,22 @@ def _get_signs():
 @blueprint.route('/social_events', methods=['GET'])
 def social_events():
     """Render a form to select and edit events for social media"""
-    cal_events = get_calendar_events(days=7)
-    eb_events = get_eventbrite_events(days=7)
+    start_date_str = request.args.get('start_date', '').strip()
+    ny_tz = tz.gettz('America/New York')
+    now = datetime.datetime.now().replace(tzinfo=ny_tz)
+    
+    if start_date_str:
+        try:
+            start_dt = datetime.datetime.strptime(start_date_str, "%Y-%m-%d").replace(tzinfo=ny_tz)
+        except ValueError:
+            start_dt = now
+            start_date_str = now.strftime("%Y-%m-%d")
+    else:
+        start_dt = now
+        start_date_str = now.strftime("%Y-%m-%d")
+
+    cal_events = get_calendar_events(days=7, start_date=start_dt)
+    eb_events = get_eventbrite_events(days=7, start_date=start_dt)
     all_events = cal_events + eb_events
     
     # Sort by start_dt if possible
@@ -573,7 +613,7 @@ def social_events():
         dt = e.get('start_dt')
         if dt:
             date_abbr = dt.strftime("%a").upper()
-            date_day = dt.strftime("%d")
+            date_day = str(dt.day)
             date_month = dt.strftime("%b").upper()
             
             if 'end_dt' in e and e['end_dt'] and e['end_dt'] != dt:
@@ -595,7 +635,17 @@ def social_events():
             'time': time_str
         })
         
-    return render_template('social_events_form.html', events=form_events)
+    # Calculate default date_range string for the header
+    end_dt = start_dt + datetime.timedelta(days=6)
+    if start_dt.month == end_dt.month:
+        default_date_range = f"{start_dt.strftime('%B')} {start_dt.day}-{end_dt.day}"
+    else:
+        default_date_range = f"{start_dt.strftime('%B')} {start_dt.day} - {end_dt.strftime('%B')} {end_dt.day}"
+
+    return render_template('social_events_form.html', 
+                           events=form_events, 
+                           start_date=start_date_str,
+                           default_date_range=default_date_range)
 
 @blueprint.route('/social_events/generate', methods=['POST'])
 def social_events_generate():
