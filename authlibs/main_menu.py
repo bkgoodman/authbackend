@@ -220,9 +220,10 @@ def get_raw_menu():
             },
             {
                     'url':url_for('memberAudio.audio'),
-                    'title':"Entrance Audio",
-                    'img':url_for("static",filename="audioIcon.png"),
-                    'alt':"Entrance Audio Music"
+                    'title':"Member Info",
+                    'img':url_for("static",filename="member_info.png"),
+                    'alt':"Member Profile & Settings",
+                    'importance':1180
             },
             {
                     'url':url_for('vending.vending'),

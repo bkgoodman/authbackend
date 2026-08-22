@@ -4,14 +4,20 @@
 {% endblock %}
 {% block body %}
 <div class="container my-4">
-  <h2>Member Settings & Audio for {{ member.firstname }} {{ member.lastname }}</h2>
+  <h2>Member Info & Settings</h2>
 
   <div class="card mb-4 mt-3">
-    <div class="card-header font-weight-bold">
-      Member Info
+    <div class="card-header font-weight-bold bg-light">
+      Member Details
     </div>
     <div class="card-body">
       <form method="post" action="{{ url_for("memberAudio.setNickname") }}">
+        <div class="form-group row">
+          <label for="member_name" class="col-sm-3 col-form-label"><strong>Name:</strong></label>
+          <div class="col-sm-9">
+            <input type="text" readonly class="form-control-plaintext" id="member_name" value="{{ member.firstname }} {{ member.lastname }} ({{ member.member }})">
+          </div>
+        </div>
         <div class="form-group row">
           <label for="nickname" class="col-sm-3 col-form-label"><strong>Nickname:</strong></label>
           <div class="col-sm-9">
@@ -42,29 +48,42 @@
     </div>
   </div>
 
-  <div class="card mb-4">
-    <div class="card-header font-weight-bold">
-      Entrance Audio
+  <div class="card mb-4 {% if not is_pro %}border-secondary bg-light{% endif %}">
+    <div class="card-header font-weight-bold d-flex justify-content-between align-items-center">
+      <span>Entrance Audio</span>
+      {% if is_pro %}
+        <span class="badge badge-success">Pro Active</span>
+      {% else %}
+        <span class="badge badge-secondary">Pro Only</span>
+      {% endif %}
     </div>
     <div class="card-body">
-      {% if hascurrent %}
-      <h4>Current Audio</h4>
-      <div class="mb-3">
-        <audio controls>
-          <source src="{{ url_for("memberAudio.getAudio") }}" />
-        </audio>
-      </div>
-      <p><a class="btn btn-sm btn-outline-danger" href="{{ url_for("memberAudio.deleteAudio") }}">Delete Current Audio</a></p>
+      {% if not is_pro %}
+        <div class="alert alert-info" role="alert">
+          <strong>Pro Perk:</strong> Custom entrance audio playback is only available to <strong>Pro Members</strong>. Upgrade your membership plan to unlock custom door greeting audio!
+        </div>
       {% endif %}
 
-      <p>Upload a file for your member entrance audio. 7 seconds maximum. A number of audio and video file formats are supported. (Try one - it'll tell you if it worked). Clips will be truncated to 7 seconds. Be advised: Vulgar, offensive or inappropriate audio may lead to removal or revocation of Entry Audio privileges.</p>
-      <form method="post" enctype="multipart/form-data" action="{{ url_for("memberAudio.upload_file") }}">
-        <input type="hidden" name="folder" value="{{ folder }}">
-        <div class="form-group">
-          <input type="file" name="file" class="form-control-file mb-2">
-          <button type="submit" class="btn btn-secondary">Upload Audio</button>
+      <div {% if not is_pro %}style="opacity: 0.5;"{% endif %}>
+        {% if is_pro and hascurrent %}
+        <h4>Current Audio</h4>
+        <div class="mb-3">
+          <audio controls>
+            <source src="{{ url_for("memberAudio.getAudio") }}" />
+          </audio>
         </div>
-      </form>
+        <p><a class="btn btn-sm btn-outline-danger" href="{{ url_for("memberAudio.deleteAudio") }}">Delete Current Audio</a></p>
+        {% endif %}
+
+        <p>Upload a file for your member entrance audio. 7 seconds maximum. A number of audio and video file formats are supported. (Try one - it'll tell you if it worked). Clips will be truncated to 7 seconds. Be advised: Vulgar, offensive or inappropriate audio may lead to removal or revocation of Entry Audio privileges.</p>
+        <form method="post" enctype="multipart/form-data" action="{{ url_for("memberAudio.upload_file") }}">
+          <input type="hidden" name="folder" value="{{ folder }}">
+          <div class="form-group">
+            <input type="file" name="file" class="form-control-file mb-2" {% if not is_pro %}disabled{% endif %}>
+            <button type="submit" class="btn btn-secondary" {% if not is_pro %}disabled{% endif %}>Upload Audio</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
