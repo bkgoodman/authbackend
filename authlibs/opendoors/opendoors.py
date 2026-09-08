@@ -120,7 +120,7 @@ def open(tool):
             flash("Must be on member network Wi-Fi","danger")
             return redirect(url_for('opendoors.opendoors'))
 
-    privs = accesslib.user_privs_on_resource(member=current_user,resource=r)
+    privs = accesslib.user_privs_on_resource(member=current_user,resource=r[0])
     readonly=False
     if privs < AccessByMember.LEVEL_USER:
         flash("You don't have access to this door")
