@@ -35,7 +35,7 @@ blueprint = Blueprint("reports", __name__, template_folder='templates', static_f
 # ------------------------------------------------------------
 
 @blueprint.route('/oldreports', methods=['GET'])
-@roles_required(['Admin','Finance'])
+@roles_required(['Admin','Finance','Useredit'])
 @login_required
 def oldreports():
     """(Controller) Display some pre-defined report options"""
@@ -43,21 +43,21 @@ def oldreports():
     return render_template('oldreports.html',stats=stats)
 
 @blueprint.route('/', methods=['GET'])
-@roles_required(['Admin','Finance'])
+@roles_required(['Admin','Finance','Useredit'])
 @login_required
 def reports():
     """(Controller) Display some pre-defined report options"""
     return render_template('reports.html')
 
 @blueprint.route('/bigbrain', methods=['GET'])
-@roles_required(['Admin','Finance'])
+@roles_required(['Admin','Finance','Useredit'])
 @login_required
 def bigbrain_page():
     """(Controller) Display BigBrain AI query interface"""
     return render_template('ai_query.html')
 
 @blueprint.route('/bigbrain', methods=['POST'])
-@roles_required(['Admin','Finance'])
+@roles_required(['Admin','Finance','Useredit'])
 @login_required
 def bigbrain():
     """(Controller) Process BigBrain AI database query"""
@@ -264,7 +264,7 @@ def blacklist():
 
 @blueprint.route('/runreport/<string:report>', methods=['GET'])
 @login_required
-@roles_required(['Admin','Finance'])
+@roles_required(['Admin','Finance','Useredit'])
 def runreport(report):
     report = report.replace("/","")
     report = report.replace(".","")

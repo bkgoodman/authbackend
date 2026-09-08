@@ -220,9 +220,10 @@ def get_raw_menu():
             },
             {
                     'url':url_for('memberAudio.audio'),
-                    'title':"Entrance Audio",
-                    'img':url_for("static",filename="audioIcon.png"),
-                    'alt':"Entrance Audio Music"
+                    'title':"Member Info",
+                    'img':url_for("static",filename="member_info.png"),
+                    'alt':"Member Profile & Settings",
+                    'importance':1180
             },
             {
                     'url':url_for('vending.vending'),
@@ -237,8 +238,12 @@ def get_raw_menu():
                     'alt':"Purchase Consumables"
             },
             {
+                    'privs':['Finance','Useredit'],
                     'url':url_for('reports.reports'),
-                    'title':"Reports"
+                    'img':url_for("static",filename="data.png"),
+                    'alt':"View Reports",
+                    'title':"Reports",
+                    'importance':1150
             }
     ]
 
@@ -252,8 +257,12 @@ def main_menu():
     allow = False
     if 'checkfunc' in m and m['checkfunc'](current_user):
       allow = True
-    if 'privs' in m and  current_user.privs(m['privs']):
-      allow = True
+    if 'privs' in m:
+      if isinstance(m['privs'], (list, tuple)):
+        if current_user.privs(*m['privs']):
+          allow = True
+      elif current_user.privs(m['privs']):
+        allow = True
     if 'privs' not in m and 'checkfunc' not in m:
       allow = True
     if allow:
@@ -267,8 +276,12 @@ def index_page():
     if 'importance' not in m: m['importance']="zzz"
     if 'checkfunc' in m and m['checkfunc'](current_user):
       allow = True
-    elif 'privs' in m and current_user.privs(m['privs']):
-      allow = True
+    elif 'privs' in m:
+      if isinstance(m['privs'], (list, tuple)):
+        if current_user.privs(*m['privs']):
+          allow = True
+      elif current_user.privs(m['privs']):
+        allow = True
     if 'privs' not in m and 'checkfunc' not in m:
       allow = True
     if allow:

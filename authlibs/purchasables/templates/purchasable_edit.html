@@ -29,7 +29,13 @@
   <a href="{{ url_for('inventory.store', purchasable_id=purchasable.id) }}" class="btn btn-info mb-3">
     <i class="fa fa-shopping-cart"></i> Store / Inventory Page
   </a>
+  <br/>
   {% endif %}
+  
+  <a href="{{ url_for('purchasables.quick', purchasable=purchasable.id) }}" class="btn btn-success mb-3">
+    <i class="fa fa-bolt"></i> Quick Pay URL
+  </a>
+  <br/>
 
   <!-- Button trigger for "Delete" modal -->
   <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteModal">

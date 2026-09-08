@@ -70,6 +70,7 @@ class Member(db.Model,UserMixin):
     plates = db.Column(db.String(50)) # License Plates
     membership = db.Column(db.String(50),nullable=True,unique=True)
     memberFolder = db.Column(db.String(255))
+    group = db.Column(db.String(50))
 
     password = db.Column(db.String(255),nullable=True)
     roles= db.relationship('Role', secondary = 'userroles')
@@ -310,6 +311,7 @@ class Subscription(db.Model):
     active = db.Column(db.Integer())
     membership = db.Column(db.String(50),nullable=False,unique=True)
     member_id = db.Column(db.Integer(), db.ForeignKey('members.id'))
+    group = db.Column(db.String(50))
 
 # Pro Storage Bin
 class ProBin(db.Model):

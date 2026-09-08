@@ -23,3 +23,10 @@ Inventory is a bit of a mess. There are two different inventory systems. One is 
 # Database Updates
 
 If you need to update the database schema, updates should be captured in the pulldb.sh file. This file will be used by _user_ to update database and schema for testing, and this is the primary way to specify how schema changes are to be made for production.
+
+# Reports
+authlibs/reports/reports.py allows a bunch of misc reports to be generated. Note that the actual *list* and definitions of reports is in templates/reports.html, and each report has a separate .py file in the reports directory.
+
+These reports were intented to be simple free-standing text reports. The main report GUI will wrap these in `<pre>` and `</pre>` tags to render within the web site properly. We have since tried to add better visual formatting to these reports allowing ones in HTML. This means that any such report must start with a `</pre>` and end with a `<pre>` to work within the tags that the GUI framework will wrap them in, to allow such formatting.
+
+We have also started to add some optional parameters to reports, making things such as date pickers available in the GUI list, which can be passed to the report script as a parameter. Adding these kind of parameters in GUI should be concidered when adding new reports.
