@@ -1421,5 +1421,95 @@ def webhook():
     return json_dump({'success':True},indent=2), 200, {'Content-type': 'application/json'}
 
 
+@blueprint.route('/<string:id>/subscription/cancel', methods=['POST'])
+@login_required
+@roles_required(['Admin','Finance'])
+def member_cancel_subscription(id):
+    mid = safestr(id)
+    member = Member.query.filter(Member.id == mid).one_or_none()
+    if not member:
+        flash("Member not found", "warning")
+        return redirect(url_for('members.members'))
+    
+    sub = Subscription.query.filter(Subscription.member_id == member.id).one_or_none()
+    if not sub or not sub.subid:
+        flash("Subscription not found", "warning")
+        return redirect(url_for('members.member_show', id=member.member))
+        
+    try:
+        stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+        stripe.Subscription.delete(sub.subid)
+        
+        # Log and update backend
+        authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_ACCESS_DISABLED.id, message="Subscription canceled manually via UI", member_id=member.id, doneby=current_user.id, commit=0)
+        
+        # Set to inactive
+        sub.active = 0
+        db.session.commit()
+        authutil.kick_backend()
+        
+        flash("Subscription canceled successfully", "success")
+    except BaseException as e:
+        flash(f"Error canceling subscription in Stripe: {e}", "danger")
+        
+    return redirect(url_for('members.member_show', id=member.member))
+
+@blueprint.route('/<string:id>/subscription/reactivate', methods=['POST'])
+@login_required
+@roles_required(['Admin','Finance'])
+def member_reactivate_subscription(id):
+    from authlibs.signup.update import fixMemberSubscription
+    mid = safestr(id)
+    member = Member.query.filter(Member.id == mid).one_or_none()
+    if not member:
+        flash("Member not found", "warning")
+        return redirect(url_for('members.members'))
+    
+    sub = Subscription.query.filter(Subscription.member_id == member.id).one_or_none()
+    if not sub or not sub.customerid:
+        flash("Subscription not found", "warning")
+        return redirect(url_for('members.member_show', id=member.member))
+        
+    try:
+        stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
+        
+        # Find the most recent ended subscription
+        ss = stripe.Subscription.list(customer=sub.customerid, status="ended")
+        recent = None
+        mostrecent = None
+        for s in ss['data']:
+            if s.ended_at is not None and (recent is None or s.ended_at > recent):
+                recent = s.ended_at
+                mostrecent = s
+            if s.canceled_at is not None and (recent is None or s.canceled_at > recent):
+                recent = s.canceled_at
+                mostrecent = s
+                
+        if mostrecent is None:
+            flash("Could not find a previous subscription to reactivate.", "danger")
+            return redirect(url_for('members.member_show', id=member.member))
+            
+        newsub = stripe.Subscription.create(
+            customer=sub.customerid,
+            metadata=mostrecent.get('metadata', {}),
+            description="Membership renewal",
+            collection_method="charge_automatically",
+            items=[
+                {
+                    "price": mostrecent.plan.id,
+                }
+            ],
+        )
+        
+        # Update local database
+        fixMemberSubscription(newsub)
+        flash("Subscription successfully reactivated", "success")
+        
+    except BaseException as e:
+        flash(f"Error reactivating subscription: {e}", "danger")
+        
+    return redirect(url_for('members.member_show', id=member.member))
+
+
 def register_pages(app):
   app.register_blueprint(blueprint)
