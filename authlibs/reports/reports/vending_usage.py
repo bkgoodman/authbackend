@@ -14,6 +14,7 @@ Output: HTML table via the HTML: prefix convention.
 
 import sqlite3
 import sys
+import os
 from datetime import datetime
 from collections import defaultdict
 from html import escape
@@ -100,6 +101,13 @@ def main():
             'total_added': (total_added or 0) / 100.0
         }
 
+    since_date_str = os.environ.get('REPORT_SINCE', '')
+    if since_date_str:
+        bottom_tables_since = since_date_str
+    else:
+        # Default to 3 months ago for the bottom tables
+        bottom_tables_since = get_month_range(3)[0] + "-01"
+
     # Top products (all time within window)
     cursor.execute("""
         SELECT
@@ -110,11 +118,11 @@ def main():
         WHERE purchaseAmount > 0
           AND product IS NOT NULL
           AND product != ''
-          AND strftime('%Y-%m', time_logged) >= ?
+          AND strftime('%Y-%m-%d', time_logged) >= ?
         GROUP BY product
         ORDER BY cnt DESC
         LIMIT 15
-    """, (months[0],))
+    """, (bottom_tables_since,))
     top_products = cursor.fetchall()
 
     # Top members by spend
@@ -126,11 +134,11 @@ def main():
         FROM vendinglog v
         LEFT JOIN makeit.members m ON v.member_id = m.id
         WHERE v.purchaseAmount > 0
-          AND strftime('%Y-%m', v.time_logged) >= ?
+          AND strftime('%Y-%m-%d', v.time_logged) >= ?
         GROUP BY v.member_id
         ORDER BY total DESC
         LIMIT 15
-    """, (months[0],))
+    """, (bottom_tables_since,))
     top_members = cursor.fetchall()
 
     conn.close()
@@ -194,6 +202,7 @@ def main():
         html += "<div style='display: flex; flex-wrap: wrap; gap: 40px;'>"
         html += "<div>"
         html += "<h3 style='border-bottom: 1px solid #ccc; padding-bottom: 5px;'>Top Products</h3>"
+        html += f"<p style='color: #888; font-size: 12px; margin-top: -5px;'>Since {bottom_tables_since}</p>"
         html += "<table style='border-collapse: collapse; font-size: 14px; margin-bottom: 30px;'>"
         html += "<thead><tr style='background-color: #198754; color: white;'>"
         html += "<th style='padding: 8px 12px; text-align: left;'>Product</th>"
@@ -215,6 +224,7 @@ def main():
         if top_members:
             html += "<div>"
             html += "<h3 style='border-bottom: 1px solid #ccc; padding-bottom: 5px;'>Top Members by Spend</h3>"
+            html += f"<p style='color: #888; font-size: 12px; margin-top: -5px;'>Since {bottom_tables_since}</p>"
             html += "<table style='border-collapse: collapse; font-size: 14px; margin-bottom: 30px;'>"
             html += "<thead><tr style='background-color: #6f42c1; color: white;'>"
             html += "<th style='padding: 8px 12px; text-align: left;'>Member</th>"

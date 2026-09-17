@@ -98,12 +98,22 @@
 			<tr>
 				<td>Vending Usage</td>
 				<td>Monthly vending purchases, charges, and top products (24 months)</td>
-				<td><button onClick="runreport('vending_usage')" class="button btn btn-primary">Report</button></td>
+				<td>
+					<div style="display: flex; align-items: center; gap: 10px;">
+						<input type="date" id="vending_date_since" class="form-control" style="width: auto;" title="Include bottom tables since this date (leave blank for past 3 months)">
+						<button onClick="runreport('vending_usage', document.getElementById('vending_date_since').value)" class="button btn btn-primary">Report</button>
+					</div>
+				</td>
 			</tr>
 			<tr>
 				<td>Door / Facility Usage</td>
 				<td>Monthly unique members, total entries, heaviest users, and most consistent visitors (24 months)</td>
-				<td><button onClick="runreport('door_usage')" class="button btn btn-primary">Report</button></td>
+				<td>
+					<div style="display: flex; align-items: center; gap: 10px;">
+						<input type="date" id="door_date_since" class="form-control" style="width: auto;" title="Include bottom tables since this date (leave blank for past 3 months)">
+						<button onClick="runreport('door_usage', document.getElementById('door_date_since').value)" class="button btn btn-primary">Report</button>
+					</div>
+				</td>
 			</tr>
 		</table>
 	</div>

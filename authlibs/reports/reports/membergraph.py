@@ -138,8 +138,38 @@ if __name__ == "__main__":
             #if t == "99% off in perpetuity pro":
             #    print (f"99pro: {s['metadata']['names']} {s['id']} {subcount}")
 
-    #print (f"Subcount {subcount}")
-    print (date_array)
-    #print (mtypes)
+    print("HTML:\n</pre>")
+    print("<div style='font-family: Arial, sans-serif; padding: 20px; background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>")
+    print("<h2 style='color: #333; margin-top: 0;'>Membership Graph (Past 180 Days)</h2>")
+    
+    # Generate SVG chart
+    max_val = max(date_array) if date_array else 1
+    svg_height = 300
+    svg_width = 800
+    bar_width = svg_width / 180.0
+    
+    html = f"<svg width='{svg_width}' height='{svg_height}' style='border-bottom: 1px solid #ccc; margin-top: 20px;'>"
+    for i, count in enumerate(date_array):
+        bar_height = (count / max_val) * (svg_height - 40) if max_val > 0 else 0
+        x = i * bar_width
+        y = svg_height - 20 - bar_height
+        html += f"<rect x='{x}' y='{y}' width='{bar_width - 0.5}' height='{bar_height}' fill='#0d6efd'><title>Day {-179 + i}: {count} members</title></rect>"
+    
+    # Add labels
+    html += f"<text x='0' y='{svg_height - 5}' font-size='12px' fill='#666'>180 Days Ago</text>"
+    html += f"<text x='{svg_width}' y='{svg_height - 5}' font-size='12px' fill='#666' text-anchor='end'>Today</text>"
+    html += "</svg>"
+    
+    # Add a summary table
+    html += "<table class='table table-striped mt-4'>"
+    html += "<tr><th>Timeframe</th><th>Member Count</th></tr>"
+    html += f"<tr><td>Today</td><td>{date_array[-1]}</td></tr>"
+    html += f"<tr><td>30 Days Ago</td><td>{date_array[-31]}</td></tr>"
+    html += f"<tr><td>90 Days Ago</td><td>{date_array[-91]}</td></tr>"
+    html += f"<tr><td>180 Days Ago</td><td>{date_array[0]}</td></tr>"
+    html += "</table>"
+    
+    print(html)
+    print("</div>\n<pre>")
     sys.exit(0)
 

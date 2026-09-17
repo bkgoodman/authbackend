@@ -13,6 +13,7 @@ Output: HTML table via the HTML: prefix convention.
 
 import sqlite3
 import sys
+import os
 from datetime import datetime
 from html import escape
 
@@ -74,6 +75,13 @@ def main():
             'unique_members': unique_members or 0
         }
 
+    since_date_str = os.environ.get('REPORT_SINCE', '')
+    if since_date_str:
+        bottom_tables_since = since_date_str
+    else:
+        # Default to 3 months ago for the bottom tables
+        bottom_tables_since = get_month_range(3)[0] + "-01"
+
     # Top 25 members by total entries in the window
     cursor.execute("""
         SELECT
@@ -84,11 +92,11 @@ def main():
         LEFT JOIN makeit.members m ON l.member_id = m.id
         WHERE l.event_type = ?
           AND l.member_id > 0
-          AND strftime('%Y-%m', l.time_logged) >= ?
+          AND strftime('%Y-%m-%d', l.time_logged) >= ?
         GROUP BY l.member_id
         ORDER BY cnt DESC
         LIMIT 25
-    """, (EVENT_ENTRY_ALLOWED, months[0]))
+    """, (EVENT_ENTRY_ALLOWED, bottom_tables_since))
     top_members = cursor.fetchall()
 
     # Per-member unique days per month (top 25 by avg unique days/month)
@@ -103,12 +111,12 @@ def main():
         LEFT JOIN makeit.members m ON l.member_id = m.id
         WHERE l.event_type = ?
           AND l.member_id > 0
-          AND strftime('%Y-%m', l.time_logged) >= ?
+          AND strftime('%Y-%m-%d', l.time_logged) >= ?
         GROUP BY l.member_id
         HAVING active_months >= 3
         ORDER BY avg_days_per_month DESC
         LIMIT 25
-    """, (EVENT_ENTRY_ALLOWED, months[0]))
+    """, (EVENT_ENTRY_ALLOWED, bottom_tables_since))
     top_by_days = cursor.fetchall()
 
     conn.close()
@@ -156,7 +164,8 @@ def main():
     # --- Top Members by Total Visits ---
     if top_members:
         html += "<div>"
-        html += "<h3 style='border-bottom: 1px solid #ccc; padding-bottom: 5px;'>Top 25 Members by Visits</h3>"
+        html += f"<h3 style='border-bottom: 1px solid #ccc; padding-bottom: 5px;'>Top 25 Members by Visits</h3>"
+        html += f"<p style='color: #888; font-size: 12px; margin-top: -5px;'>Since {bottom_tables_since}</p>"
         html += "<table style='border-collapse: collapse; font-size: 14px; margin-bottom: 30px;'>"
         html += "<thead><tr style='background-color: #198754; color: white;'>"
         html += "<th style='padding: 8px 12px; text-align: left;'>Member</th>"
@@ -178,7 +187,7 @@ def main():
     if top_by_days:
         html += "<div>"
         html += "<h3 style='border-bottom: 1px solid #ccc; padding-bottom: 5px;'>Most Consistent Members (Avg Days/Month)</h3>"
-        html += "<p style='color: #888; font-size: 12px; margin-top: -5px;'>Members active at least 3 months</p>"
+        html += f"<p style='color: #888; font-size: 12px; margin-top: -5px;'>Since {bottom_tables_since}. Active at least 3 months.</p>"
         html += "<table style='border-collapse: collapse; font-size: 14px; margin-bottom: 30px;'>"
         html += "<thead><tr style='background-color: #6f42c1; color: white;'>"
         html += "<th style='padding: 8px 12px; text-align: left;'>Member</th>"
