@@ -30,6 +30,7 @@ def sync_events():
             ny_tz = tz.gettz('America/New_York')
             
             for e in j.get('events', []):
+                print(f"SYNC_DEBUG: id={e.get('id')} name={e.get('name',{}).get('text','')} series_id={e.get('series_id')} is_series={e.get('is_series')} is_series_parent={e.get('is_series_parent')} start={e.get('start',{}).get('local')}")
                 parent_id = e.get('series_id')
                 if parent_id:
                     eventbrite_id = parent_id

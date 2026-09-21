@@ -6,6 +6,8 @@ This is a Pyhton3 w/ Flask application to do member and membership managment for
 
 You are not going to be able to run this. Too many dependencies on stuff that probably doesn't exist on this system. You can try a quick python unit test of something or compile, but don't try to "run" the whole pacakge or to install stuff required to get the full code up and running.
 
+Agent is NOT running on the actual production system. There is no database and no ini file with config.
+
 # Layout
 
 Most of the important code is in authlibs. Each directory in here is generally a high level UI category or functions (members, resources, nodes, waivers, etc). There is typically a single file in here that is a Flask blueprint that defines the web pages use for those, and static/ and template/ directories for Flask content.
