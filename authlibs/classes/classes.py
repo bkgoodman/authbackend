@@ -31,9 +31,36 @@ def admin():
                 flash("Instructor unassigned", "success")
         return redirect(url_for('classes.admin'))
 
+    from .eventbrite import get_event_capacities
+    capacities = get_event_capacities()
+    
     events = Event.query.order_by(Event.name).all()
-    members = Member.query.filter(Member.active == 'true').order_by(Member.member).all()
-    return render_template('class_admin.html', events=events, members=members)
+    
+    # Calculate event warnings
+    now = datetime.datetime.now()
+    event_warnings = {}
+    for ev in events:
+        upcoming_dates = [ed for ed in ev.dates if ed.time_start >= now]
+        if not upcoming_dates:
+            event_warnings[ev.id] = {"text": "No upcoming classes scheduled.", "level": "warning"}
+        else:
+            all_full = True
+            next_avail = None
+            for ed in upcoming_dates:
+                cap_info = capacities.get(ed.eventbrite_id, {})
+                # If we don't have capacity info or it's sold out, consider full
+                is_full = cap_info.get('is_sold_out', False)
+                if not is_full:
+                    all_full = False
+                    if not next_avail or ed.time_start < next_avail.time_start:
+                        next_avail = ed
+            
+            if all_full:
+                event_warnings[ev.id] = {"text": "ALL classes are FULL (Need to add more on calendar)", "level": "danger"}
+            elif next_avail:
+                event_warnings[ev.id] = {"text": f"Next available slot is in {next_avail.time_start.strftime('%B')}", "level": "success"}
+
+    return render_template('class_admin.html', events=events, capacities=capacities, event_warnings=event_warnings)
 
 @classes_bp.route('/my_classes')
 @login_required
