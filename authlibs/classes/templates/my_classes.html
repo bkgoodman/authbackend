@@ -59,7 +59,7 @@
                                                 <div class="text-right">
                                                     {% set cap = capacities.get(ed.eventbrite_id) %}
                                                     {% if cap %}
-                                                        {% if cap.is_sold_out %}
+                                                        {% if cap.is_sold_out or (cap.capacity > 0 and cap.sold >= cap.capacity) %}
                                                             {% if cap.capacity > 0 %}
                                                                 <span class="badge badge-danger mr-3" style="font-size: 1em;">SOLD OUT ({{ cap.sold }}/{{ cap.capacity }})</span>
                                                             {% else %}
@@ -126,7 +126,7 @@ function loadAttendees(eventbriteId) {
     
     $('#rosterModal').modal('show');
     
-    var baseUrl = "{{ url_for('classes.get_event_attendees', eventbrite_id='PLACEHOLDER') }}".replace('PLACEHOLDER', eventbriteId);
+    var baseUrl = "event/" + encodeURIComponent(eventbriteId) + "/attendees";
     fetch(baseUrl)
         .then(response => {
             if (!response.ok) {
