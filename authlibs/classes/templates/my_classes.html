@@ -60,12 +60,18 @@
                                                     {% set cap = capacities.get(ed.eventbrite_id) %}
                                                     {% if cap %}
                                                         {% if cap.is_sold_out %}
-                                                            <span class="badge badge-danger mr-3" style="font-size: 1em;">FULL ({{ cap.sold }}/{{ cap.capacity }})</span>
+                                                            {% if cap.capacity > 0 %}
+                                                                <span class="badge badge-danger mr-3" style="font-size: 1em;">SOLD OUT ({{ cap.sold }}/{{ cap.capacity }})</span>
+                                                            {% else %}
+                                                                <span class="badge badge-danger mr-3" style="font-size: 1em;">SOLD OUT</span>
+                                                            {% endif %}
                                                         {% else %}
-                                                            <span class="badge badge-success mr-3" style="font-size: 1em;">{{ cap.sold }} / {{ cap.capacity }} Seats</span>
+                                                            {% if cap.capacity > 0 %}
+                                                                <span class="badge badge-success mr-3" style="font-size: 1em;">{{ cap.sold }} / {{ cap.capacity }} Seats</span>
+                                                            {% else %}
+                                                                <span class="badge badge-success mr-3" style="font-size: 1em;">Available</span>
+                                                            {% endif %}
                                                         {% endif %}
-                                                    {% else %}
-                                                        <span class="badge badge-secondary mr-3" style="font-size: 1em;">Status Unknown</span>
                                                     {% endif %}
 
                                                     <button type="button" class="btn btn-sm btn-primary" onclick="loadAttendees('{{ ed.eventbrite_id }}')">
