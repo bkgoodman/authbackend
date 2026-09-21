@@ -115,10 +115,12 @@ def get_event_capacities():
             for e in j.get('events', []):
                 # Every item is an instance with ticket_availability
                 ta = e.get('ticket_availability', {})
+                if not capacities:  # Log the first one for debugging
+                    print(f"CAPACITY_DEBUG: event_id={e['id']} ticket_availability={ta}")
                 capacities[e['id']] = {
                     'is_sold_out': ta.get('is_sold_out', False),
-                    'capacity': ta.get('maximum_quantity', 0),
-                    'sold': ta.get('quantity_sold', 0)
+                    'capacity': ta.get('minimum_quantity', 0) or ta.get('maximum_quantity', 0),
+                    'sold': ta.get('quantity_sold', 0) or ta.get('quantity_total', 0)
                 }
 
             pagination = j.get('pagination', {})
@@ -150,6 +152,8 @@ def get_attendees(eventbrite_id):
                     'name': profile.get('name', 'Unknown'),
                     'email': profile.get('email', 'Unknown')
                 })
+        else:
+            print(f"ATTENDEES_DEBUG: status={r.status_code} body={r.text[:500]}")
     except Exception as e:
         print(f"Error fetching attendees: {e}")
     return attendees
