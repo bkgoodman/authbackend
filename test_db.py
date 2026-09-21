@@ -1,6 +1,6 @@
-from authlibs import init_app
+from authlibs import create_app
 from authlibs.db_models import Event, EventDate
-app = init_app()
+app = create_app()
 with app.app_context():
     events = Event.query.all()
     for e in events:
