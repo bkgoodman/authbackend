@@ -159,6 +159,26 @@ def get_event_capacities():
         
     return capacities
 
+import re
+
+def clean_str(val):
+    if val is None:
+        return ''
+    if isinstance(val, bytes):
+        try:
+            val = val.decode('utf-8', errors='ignore')
+        except Exception:
+            val = str(val)
+    else:
+        val = str(val)
+    
+    val = val.strip()
+    val = re.sub(r"\bb'([^']*)'", r"\1", val)
+    val = re.sub(r'\bb"([^"]*)"', r"\1", val)
+    if (val.startswith("b'") and val.endswith("'")) or (val.startswith('b"') and val.endswith('"')):
+        val = val[2:-1].strip()
+    return val
+
 def get_attendees(eventbrite_id):
     org_id, token = get_eventbrite_creds()
     if not token:
@@ -178,14 +198,22 @@ def get_attendees(eventbrite_id):
                 if a.get('cancelled') or a.get('status') == 'attending_cancelled':
                     continue
                 profile = a.get('profile', {})
-                name = profile.get('name')
-                if not name:
-                    first = profile.get('first_name', '')
-                    last = profile.get('last_name', '')
-                    name = f"{first} {last}".strip() or 'Unknown'
+                first = clean_str(profile.get('first_name'))
+                last = clean_str(profile.get('last_name'))
+                name = clean_str(profile.get('name'))
+                
+                if first or last:
+                    full_name = f"{first} {last}".strip()
+                elif name:
+                    full_name = name
+                else:
+                    full_name = 'Unknown'
+
+                email = clean_str(profile.get('email')) or 'Unknown'
+
                 attendees.append({
-                    'name': name,
-                    'email': profile.get('email', 'Unknown')
+                    'name': full_name,
+                    'email': email
                 })
             pagination = data.get('pagination', {})
             has_more = pagination.get('has_more_items', False)
