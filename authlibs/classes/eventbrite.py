@@ -84,7 +84,7 @@ def sync_events():
                         db.session.commit()
                         
                         d_pagination = dates_data.get('pagination', {})
-                        dates_has_more = d_pagination.get('has_more', False)
+                        dates_has_more = d_pagination.get('has_more_items', False)
                         if dates_has_more:
                             page = d_pagination.get('page_number', 1)
                             if e.get('is_series'):
@@ -96,10 +96,12 @@ def sync_events():
 
             # Pagination for main events loop
             pagination = j.get('pagination', {})
-            has_more = pagination.get('has_more', False)
+            has_more = pagination.get('has_more_items', False)
             if has_more:
                 page = pagination.get('page_number', 1)
                 url = f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&token={token}&page={page+1}"
+            else:
+                url = None
 
     except Exception as ex:
         return False, str(ex)
@@ -152,7 +154,7 @@ def get_event_capacities():
                                     'sold': i_ta.get('quantity_sold', 0)
                                 }
                             d_pag = dates_data.get('pagination', {})
-                            if d_pag.get('has_more'):
+                            if d_pag.get('has_more_items'):
                                 dates_url = f"https://www.eventbriteapi.com/v3/series/{e['id']}/events/?expand=ticket_availability&status=live&token={token}&page={d_pag.get('page_number', 1)+1}"
                             else:
                                 dates_has_more = False
@@ -160,10 +162,12 @@ def get_event_capacities():
                             dates_has_more = False
 
             pagination = j.get('pagination', {})
-            has_more = pagination.get('has_more', False)
+            has_more = pagination.get('has_more_items', False)
             if has_more:
                 page = pagination.get('page_number', 1)
                 url = f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&expand=ticket_availability&token={token}&page={page+1}"
+            else:
+                url = None
     except Exception as ex:
         print(f"Error fetching capacities: {ex}")
         
