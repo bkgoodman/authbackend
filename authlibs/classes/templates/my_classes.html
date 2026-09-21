@@ -121,7 +121,12 @@ function loadAttendees(eventbriteId) {
     $('#rosterModal').modal('show');
     
     fetch('/classes/event/' + eventbriteId + '/attendees')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
             document.getElementById('rosterLoading').style.display = 'none';
             document.getElementById('rosterContent').style.display = 'block';
@@ -141,7 +146,7 @@ function loadAttendees(eventbriteId) {
         .catch(err => {
             document.getElementById('rosterLoading').style.display = 'none';
             document.getElementById('rosterContent').style.display = 'block';
-            document.getElementById('rosterList').innerHTML = '<li class="list-group-item text-danger">Failed to load attendees.</li>';
+            document.getElementById('rosterList').innerHTML = '<li class="list-group-item text-danger">Failed to load attendees: ' + err.message + '</li>';
         });
 }
 </script>
