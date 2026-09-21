@@ -28,6 +28,9 @@ def sync_events():
             ny_tz = tz.gettz('America/New_York')
             
             for e in j.get('events', []):
+                if 'series_id' in e:
+                    continue # Skip instances; we fetch them when processing the parent series
+                
                 eventbrite_id = e['id']
                 name = e.get('name', {}).get('text', 'Unknown')
                 description = e.get('description', {}).get('text', '')[:2000] if e.get('description') else ''
@@ -194,6 +197,10 @@ def notify_instructors():
     cutoff = now + datetime.timedelta(hours=48)
     
     upcoming_dates = EventDate.query.filter(EventDate.time_start > now, EventDate.time_start <= cutoff).all()
+    if not upcoming_dates:
+        return
+        
+    capacities = get_event_capacities()
     
     for ed in upcoming_dates:
         event = ed.event
@@ -202,6 +209,14 @@ def notify_instructors():
             continue
             
         attendees = get_attendees(ed.eventbrite_id)
+        cap_info = capacities.get(ed.eventbrite_id, {})
+        
+        status_str = "Status Unknown"
+        if cap_info:
+            if cap_info.get('is_sold_out'):
+                status_str = f"FULL ({cap_info.get('sold', 0)} / {cap_info.get('capacity', 0)} Sold)"
+            else:
+                status_str = f"{cap_info.get('sold', 0)} / {cap_info.get('capacity', 0)} Sold"
         
         for instructor in instructors:
             member = instructor.member
@@ -211,7 +226,8 @@ def notify_instructors():
             body = f"Hello {member.firstname},\n\n"
             body += f"You are scheduled to instruct the following class within the next two days:\n"
             body += f"Class: {event.name}\n"
-            body += f"Date/Time: {ed.time_start.strftime('%Y-%m-%d %I:%M %p')}\n\n"
+            body += f"Date/Time: {ed.time_start.strftime('%Y-%m-%d %I:%M %p')}\n"
+            body += f"Capacity: {status_str}\n\n"
             
             if attendees:
                 body += f"Registered Students ({len(attendees)}):\n"

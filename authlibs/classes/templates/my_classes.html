@@ -16,6 +16,17 @@
                             <div>
                                 <h5 class="mb-1">{{ date_instance.event.name }}</h5>
                                 <small class="text-muted">{{ date_instance.time_start.strftime('%A, %B %d, %Y at %I:%M %p') }}</small>
+                                
+                                {% set cap = capacities.get(date_instance.eventbrite_id) %}
+                                {% if cap %}
+                                    <br>
+                                    {% if cap.is_sold_out %}
+                                        <span class="badge bg-danger">FULL ({{ cap.sold }}/{{ cap.capacity }})</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ cap.sold }} / {{ cap.capacity }} Sold</span>
+                                    {% endif %}
+                                {% endif %}
+                                
                             </div>
                             <span class="badge bg-primary rounded-pill">View Roster</span>
                         </button>
