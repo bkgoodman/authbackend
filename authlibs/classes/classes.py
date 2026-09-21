@@ -18,11 +18,16 @@ def admin():
         member_id = request.form.get('member_id')
         
         if action == 'assign':
-            if not EventInstructor.query.filter_by(event_id=event_id, member_id=member_id).first():
-                ei = EventInstructor(event_id=event_id, member_id=member_id)
-                db.session.add(ei)
-                db.session.commit()
-                flash("Instructor assigned", "success")
+            # userlist.js returns the string 'member' field (e.g. jdoe) instead of integer ID
+            m = Member.query.filter_by(member=member_id).first()
+            if m:
+                if not EventInstructor.query.filter_by(event_id=event_id, member_id=m.id).first():
+                    ei = EventInstructor(event_id=event_id, member_id=m.id)
+                    db.session.add(ei)
+                    db.session.commit()
+                    flash("Instructor assigned", "success")
+            else:
+                flash("Member not found", "danger")
         elif action == 'unassign':
             ei = EventInstructor.query.filter_by(event_id=event_id, member_id=member_id).first()
             if ei:
@@ -41,15 +46,33 @@ def my_classes():
     event_ids = [ei.event_id for ei in instructor_links]
     
     now = datetime.datetime.now()
-    upcoming_dates = EventDate.query.filter(
-        EventDate.event_id.in_(event_ids),
-        EventDate.time_start >= now
-    ).order_by(EventDate.time_start).all() if event_ids else []
+    my_events = Event.query.filter(Event.id.in_(event_ids)).order_by(Event.name).all() if event_ids else []
     
     from .eventbrite import get_event_capacities
     capacities = get_event_capacities()
     
-    return render_template('my_classes.html', upcoming_dates=upcoming_dates, capacities=capacities)
+    event_warnings = {}
+    for ev in my_events:
+        upcoming_dates = [ed for ed in ev.dates if ed.time_start >= now]
+        if not upcoming_dates:
+            event_warnings[ev.id] = {"text": "No upcoming classes scheduled.", "level": "secondary"}
+        else:
+            all_full = True
+            next_avail = None
+            for ed in upcoming_dates:
+                cap_info = capacities.get(ed.eventbrite_id, {})
+                is_full = cap_info.get('is_sold_out', False)
+                if not is_full:
+                    all_full = False
+                    if not next_avail or ed.time_start < next_avail.time_start:
+                        next_avail = ed
+            
+            if all_full:
+                event_warnings[ev.id] = {"text": "All upcoming dates for this class are SOLD OUT", "level": "danger"}
+            elif next_avail:
+                event_warnings[ev.id] = {"text": f"Next available seat is on {next_avail.time_start.strftime('%b %d')}", "level": "success"}
+
+    return render_template('my_classes.html', events=my_events, capacities=capacities, event_warnings=event_warnings, now=now)
 
 @classes_bp.route('/event/<eventbrite_id>/attendees')
 @login_required

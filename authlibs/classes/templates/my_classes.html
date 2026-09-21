@@ -2,34 +2,84 @@
 
 {% block body %}
 <div class="container mt-4">
-    <h2>My Upcoming Classes</h2>
-    <p class="text-muted">You are scheduled to instruct the following classes. Click a class to view registered attendees.</p>
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <h2>My Classes Dashboard</h2>
+            <p class="text-muted">Manage the classes you are assigned to instruct.</p>
+        </div>
+    </div>
 
     <div class="card">
         <div class="card-body">
-            {% if not upcoming_dates %}
-                <p>No upcoming classes found.</p>
+            {% if not events %}
+                <p>You are not currently assigned as an instructor for any active classes.</p>
             {% else %}
-                <div class="list-group">
-                    {% for date_instance in upcoming_dates %}
-                        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="loadAttendees('{{ date_instance.eventbrite_id }}')">
-                            <div>
-                                <h5 class="mb-1">{{ date_instance.event.name }}</h5>
-                                <small class="text-muted">{{ date_instance.time_start.strftime('%A, %B %d, %Y at %I:%M %p') }}</small>
+                <div class="accordion" id="myClassesAccordion">
+                    {% for event in events %}
+                    <div class="card mb-3">
+                        <div class="card-header" id="heading-{{ event.id }}">
+                            <h5 class="mb-0">
+                                <button class="btn btn-link text-left" type="button" data-toggle="collapse" data-target="#collapse-{{ event.id }}" aria-expanded="true" aria-controls="collapse-{{ event.id }}">
+                                    <strong>{{ event.name }}</strong>
+                                </button>
+                            </h5>
+                        </div>
+
+                        <div id="collapse-{{ event.id }}" class="collapse show" aria-labelledby="heading-{{ event.id }}" data-parent="#myClassesAccordion">
+                            <div class="card-body">
                                 
-                                {% set cap = capacities.get(date_instance.eventbrite_id) %}
-                                {% if cap %}
-                                    <br>
-                                    {% if cap.is_sold_out %}
-                                        <span class="badge badge-danger">FULL ({{ cap.sold }}/{{ cap.capacity }})</span>
-                                    {% else %}
-                                        <span class="badge badge-success">{{ cap.sold }} / {{ cap.capacity }} Sold</span>
-                                    {% endif %}
+                                {% if event.id in event_warnings %}
+                                    {% set warn = event_warnings[event.id] %}
+                                    <div class="alert alert-{{ warn.level }} py-2" role="alert">
+                                        {{ warn.text }}
+                                    </div>
                                 {% endif %}
-                                
+
+                                <p>{{ event.description }}</p>
+
+                                <h5>Upcoming Dates</h5>
+                                {% set upcoming = [] %}
+                                {% for ed in event.dates|sort(attribute='time_start') %}
+                                    {% if ed.time_start >= now %}
+                                        {% set _ = upcoming.append(ed) %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if upcoming|length == 0 %}
+                                    <p class="text-muted">No upcoming dates scheduled.</p>
+                                {% else %}
+                                    <ul class="list-group mb-3">
+                                        {% for ed in upcoming %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <span style="font-size: 1.1em;">{{ ed.time_start.strftime('%A, %B %d, %Y') }}</span><br>
+                                                    <small class="text-muted">{{ ed.time_start.strftime('%I:%M %p') }} - {{ ed.time_end.strftime('%I:%M %p') }}</small>
+                                                </div>
+                                                
+                                                <div class="text-right">
+                                                    {% set cap = capacities.get(ed.eventbrite_id) %}
+                                                    {% if cap %}
+                                                        {% if cap.is_sold_out %}
+                                                            <span class="badge badge-danger mr-3" style="font-size: 1em;">FULL ({{ cap.sold }}/{{ cap.capacity }})</span>
+                                                        {% else %}
+                                                            <span class="badge badge-success mr-3" style="font-size: 1em;">{{ cap.sold }} / {{ cap.capacity }} Seats</span>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="badge badge-secondary mr-3" style="font-size: 1em;">Status Unknown</span>
+                                                    {% endif %}
+
+                                                    <button type="button" class="btn btn-sm btn-primary" onclick="loadAttendees('{{ ed.eventbrite_id }}')">
+                                                        View Roster
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+
                             </div>
-                            <span class="badge badge-primary badge-pill">View Roster</span>
-                        </button>
+                        </div>
+                    </div>
                     {% endfor %}
                 </div>
             {% endif %}
@@ -54,13 +104,9 @@
             </div>
             <p class="mt-2">Fetching attendees from Eventbrite...</p>
         </div>
-        <div id="rosterContent" style="display: none;">
-            <p id="rosterCount" class="fw-bold mb-3"></p>
-            <ul id="rosterList" class="list-group"></ul>
+        <div id="rosterContent" style="display:none;">
+            <ul class="list-group" id="rosterList"></ul>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -77,25 +123,25 @@ function loadAttendees(eventbriteId) {
     fetch('/classes/event/' + eventbriteId + '/attendees')
         .then(response => response.json())
         .then(data => {
+            document.getElementById('rosterLoading').style.display = 'none';
+            document.getElementById('rosterContent').style.display = 'block';
+            
             const list = document.getElementById('rosterList');
             if(data.attendees && data.attendees.length > 0) {
-                document.getElementById('rosterCount').innerText = `${data.attendees.length} Students Registered:`;
                 data.attendees.forEach(a => {
                     const li = document.createElement('li');
                     li.className = 'list-group-item';
-                    li.innerHTML = `<strong>${a.name}</strong> <br><small class="text-muted">${a.email}</small>`;
+                    li.innerHTML = `<strong>${a.name}</strong><br><small class="text-muted">${a.email}</small>`;
                     list.appendChild(li);
                 });
             } else {
-                document.getElementById('rosterCount').innerText = "No students registered yet.";
+                list.innerHTML = '<li class="list-group-item text-muted">No attendees registered yet.</li>';
             }
-            document.getElementById('rosterLoading').style.display = 'none';
-            document.getElementById('rosterContent').style.display = 'block';
         })
         .catch(err => {
             document.getElementById('rosterLoading').style.display = 'none';
             document.getElementById('rosterContent').style.display = 'block';
-            document.getElementById('rosterCount').innerText = "Error loading roster.";
+            document.getElementById('rosterList').innerHTML = '<li class="list-group-item text-danger">Failed to load attendees.</li>';
         });
 }
 </script>
