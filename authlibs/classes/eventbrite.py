@@ -93,7 +93,7 @@ def get_event_capacities():
     """
     Returns a dictionary of EventDate eventbrite_ids to their ticket availability status
     {
-       '1234567': {'is_sold_out': True, 'capacity': 10, 'sold': 10}
+       '1234567': {'is_sold_out': True, 'has_available': False, 'capacity': 10, 'sold': 8}
     }
     """
     org_id, token = get_eventbrite_creds()
@@ -113,14 +113,12 @@ def get_event_capacities():
                 
             j = r.json()
             for e in j.get('events', []):
-                # Every item is an instance with ticket_availability
                 ta = e.get('ticket_availability', {})
-                if not capacities:  # Log the first one for debugging
-                    print(f"CAPACITY_DEBUG: event_id={e['id']} ticket_availability={ta}")
                 capacities[e['id']] = {
                     'is_sold_out': ta.get('is_sold_out', False),
-                    'capacity': ta.get('minimum_quantity', 0) or ta.get('maximum_quantity', 0),
-                    'sold': ta.get('quantity_sold', 0) or ta.get('quantity_total', 0)
+                    'has_available': ta.get('has_available_tickets', True),
+                    'capacity': 0,
+                    'sold': 0
                 }
 
             pagination = j.get('pagination', {})
@@ -130,6 +128,23 @@ def get_event_capacities():
                 url = f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&expand=ticket_availability&token={token}&page={page+1}"
             else:
                 url = None
+                
+        # Now fetch actual capacity numbers from ticket_classes for each event
+        for event_id in list(capacities.keys()):
+            try:
+                tc_r = requests.get(f"https://www.eventbriteapi.com/v3/events/{event_id}/ticket_classes/?token={token}")
+                if tc_r.status_code == 200:
+                    tc_data = tc_r.json()
+                    total_capacity = 0
+                    total_sold = 0
+                    for tc in tc_data.get('ticket_classes', []):
+                        total_capacity += tc.get('quantity_total', 0) or 0
+                        total_sold += tc.get('quantity_sold', 0) or 0
+                    capacities[event_id]['capacity'] = total_capacity
+                    capacities[event_id]['sold'] = total_sold
+            except Exception:
+                pass  # Keep the boolean-only data if ticket_classes fails
+                
     except Exception as ex:
         print(f"Error fetching capacities: {ex}")
         
