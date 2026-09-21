@@ -117,7 +117,7 @@ def get_event_capacities():
                 capacities[e['id']] = {
                     'is_sold_out': ta.get('is_sold_out', False),
                     'has_available': ta.get('has_available_tickets', True),
-                    'capacity': 0,
+                    'capacity': e.get('capacity', 0) or 0,
                     'sold': 0
                 }
 
@@ -135,12 +135,21 @@ def get_event_capacities():
                 tc_r = requests.get(f"https://www.eventbriteapi.com/v3/events/{event_id}/ticket_classes/?token={token}")
                 if tc_r.status_code == 200:
                     tc_data = tc_r.json()
-                    total_capacity = 0
+                    tc_capacity = 0
                     total_sold = 0
                     for tc in tc_data.get('ticket_classes', []):
-                        total_capacity += tc.get('quantity_total', 0) or 0
+                        tc_capacity += tc.get('quantity_total', 0) or 0
                         total_sold += tc.get('quantity_sold', 0) or 0
-                    capacities[event_id]['capacity'] = total_capacity
+                    
+                    event_cap = capacities[event_id]['capacity']
+                    if event_cap > 0 and tc_capacity > 0:
+                        final_cap = min(event_cap, tc_capacity)
+                    elif event_cap > 0:
+                        final_cap = event_cap
+                    else:
+                        final_cap = tc_capacity
+
+                    capacities[event_id]['capacity'] = final_cap
                     capacities[event_id]['sold'] = total_sold
             except Exception:
                 pass  # Keep the boolean-only data if ticket_classes fails
@@ -158,17 +167,33 @@ def get_attendees(eventbrite_id):
     url = f"https://www.eventbriteapi.com/v3/events/{eventbrite_id}/attendees/?token={token}"
     attendees = []
     try:
-        r = requests.get(url)
-        if r.status_code == 200:
+        has_more = True
+        while has_more and url:
+            r = requests.get(url)
+            if r.status_code != 200:
+                print(f"ATTENDEES_DEBUG: status={r.status_code} body={r.text[:500]}")
+                break
             data = r.json()
             for a in data.get('attendees', []):
+                if a.get('cancelled') or a.get('status') == 'attending_cancelled':
+                    continue
                 profile = a.get('profile', {})
+                name = profile.get('name')
+                if not name:
+                    first = profile.get('first_name', '')
+                    last = profile.get('last_name', '')
+                    name = f"{first} {last}".strip() or 'Unknown'
                 attendees.append({
-                    'name': profile.get('name', 'Unknown'),
+                    'name': name,
                     'email': profile.get('email', 'Unknown')
                 })
-        else:
-            print(f"ATTENDEES_DEBUG: status={r.status_code} body={r.text[:500]}")
+            pagination = data.get('pagination', {})
+            has_more = pagination.get('has_more_items', False)
+            if has_more:
+                page = pagination.get('page_number', 1)
+                url = f"https://www.eventbriteapi.com/v3/events/{eventbrite_id}/attendees/?token={token}&page={page+1}"
+            else:
+                url = None
     except Exception as e:
         print(f"Error fetching attendees: {e}")
     return attendees
@@ -195,10 +220,19 @@ def notify_instructors():
         
         status_str = "Status Unknown"
         if cap_info:
-            if cap_info.get('is_sold_out'):
-                status_str = f"FULL ({cap_info.get('sold', 0)} / {cap_info.get('capacity', 0)} Sold)"
+            sold = cap_info.get('sold', 0)
+            cap = cap_info.get('capacity', 0)
+            is_sold_out = cap_info.get('is_sold_out') or (cap > 0 and sold >= cap)
+            if is_sold_out:
+                if cap > 0:
+                    status_str = f"SOLD OUT ({sold} / {cap} Sold)"
+                else:
+                    status_str = "SOLD OUT"
             else:
-                status_str = f"{cap_info.get('sold', 0)} / {cap_info.get('capacity', 0)} Sold"
+                if cap > 0:
+                    status_str = f"{sold} / {cap} Sold"
+                else:
+                    status_str = "Available"
         
         for instructor in instructors:
             member = instructor.member
@@ -224,3 +258,4 @@ def notify_instructors():
                 genericEmailSender("info@makeitlabs.com", member.email, subject, body)
             except Exception as e:
                 print(f"Error sending email to {member.email}: {e}")
+
