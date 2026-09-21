@@ -187,3 +187,32 @@ sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,
 sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,time_reported,idleSecs,activeSecs,enabledSecs) VALUES (13,36,5024,"2024-01-09 01:00:00","2023-08-09 01:00:00",3600,1800,3600);'
 sqlite3 log.db 'insert into usagelog (member_id,resource_id,tool_id,time_logged,time_reported,idleSecs,activeSecs,enabledSecs) VALUES (13,36,5024,"2024-01-10 01:00:00","2023-08-10 01:00:00",3600,1800,3600);'
 
+###
+### Class Administration Schema
+###
+sqlite3 makeit.db '
+CREATE TABLE IF NOT EXISTS events (
+    id INTEGER NOT NULL PRIMARY KEY,
+    eventbrite_id VARCHAR(50) UNIQUE,
+    name VARCHAR(200),
+    description TEXT,
+    url VARCHAR(255),
+    status VARCHAR(50)
+);
+CREATE TABLE IF NOT EXISTS event_dates (
+    id INTEGER NOT NULL PRIMARY KEY,
+    event_id INTEGER NOT NULL,
+    eventbrite_id VARCHAR(50) UNIQUE,
+    time_start DATETIME,
+    time_end DATETIME,
+    FOREIGN KEY(event_id) REFERENCES events (id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS event_instructors (
+    id INTEGER NOT NULL PRIMARY KEY,
+    event_id INTEGER NOT NULL,
+    member_id INTEGER NOT NULL,
+    FOREIGN KEY(event_id) REFERENCES events (id) ON DELETE CASCADE,
+    FOREIGN KEY(member_id) REFERENCES members (id) ON DELETE CASCADE
+);
+INSERT INTO roles (name) SELECT "Classes" WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name="Classes");
+'

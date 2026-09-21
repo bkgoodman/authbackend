@@ -244,6 +244,19 @@ def get_raw_menu():
                     'alt':"View Reports",
                     'title':"Reports",
                     'importance':1150
+            },
+            {
+                    'url':url_for('classes.my_classes'),
+                    'title':"My Classes",
+                    'alt':"View your upcoming classes",
+                    'importance':1210
+            },
+            {
+                    'privs':['Admin','Classes'],
+                    'url':url_for('classes.admin'),
+                    'title':"Class Administration",
+                    'alt':"Administer Classes and Instructors",
+                    'importance':2010
             }
     ]
 
