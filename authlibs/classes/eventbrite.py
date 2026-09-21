@@ -28,6 +28,9 @@ def sync_events():
             ny_tz = tz.gettz('America/New_York')
             
             for e in j.get('events', []):
+                if 'series_id' in e:
+                    continue # Skip instances; we fetch them when processing the parent series
+                    
                 eventbrite_id = e['id']
                 
                 name = e.get('name', {}).get('text', 'Unknown')
