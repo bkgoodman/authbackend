@@ -17,6 +17,8 @@ def sync_events():
     
     # Fetch live events
     url = f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&token={token}"
+    processed_series = set()
+    
     try:
         has_more = True
         while has_more and url:
@@ -28,33 +30,68 @@ def sync_events():
             ny_tz = tz.gettz('America/New_York')
             
             for e in j.get('events', []):
-                # We use the instance's series_id to group them under the parent Event
                 parent_id = e.get('series_id')
                 if parent_id:
                     eventbrite_id = parent_id
+                    is_series = True
                 else:
                     eventbrite_id = e['id']
+                    is_series = e.get('is_series', False)
                 
                 name = e.get('name', {}).get('text', 'Unknown')
                 description = e.get('description', {}).get('text', '')[:2000] if e.get('description') else ''
-                url = e.get('url', '')
+                url_str = e.get('url', '')
                 status = e.get('status', 'live')
                 
                 # Create or update the parent Event
                 event = Event.query.filter_by(eventbrite_id=eventbrite_id).first()
                 if not event:
-                    event = Event(eventbrite_id=eventbrite_id, name=name, description=description, url=url, status=status)
+                    event = Event(eventbrite_id=eventbrite_id, name=name, description=description, url=url_str, status=status)
                     db.session.add(event)
                     db.session.commit()
                 else:
                     event.name = name
                     event.description = description
-                    event.url = url
+                    event.url = url_str
                     event.status = status
                     db.session.commit()
 
-                # If this is not a generic series parent object, it has a date we should record
-                if not e.get('is_series'):
+                if is_series:
+                    if eventbrite_id not in processed_series:
+                        processed_series.add(eventbrite_id)
+                        dates_url = f"https://www.eventbriteapi.com/v3/series/{eventbrite_id}/events/?status=live&token={token}"
+                        dates_has_more = True
+                        while dates_has_more and dates_url:
+                            dates_r = requests.get(dates_url)
+                            if dates_r.status_code == 200:
+                                dates_data = dates_r.json()
+                                instances = dates_data.get('events', [])
+                                for instance in instances:
+                                    inst_id = instance['id']
+                                    time_start_str = instance.get('start', {}).get('local')
+                                    time_end_str = instance.get('end', {}).get('local')
+                                    if time_start_str and time_end_str:
+                                        time_start = datetime.datetime.strptime(time_start_str, "%Y-%m-%dT%H:%M:%S")
+                                        time_end = datetime.datetime.strptime(time_end_str, "%Y-%m-%dT%H:%M:%S")
+                                        ed = EventDate.query.filter_by(eventbrite_id=inst_id).first()
+                                        if not ed:
+                                            ed = EventDate(event_id=event.id, eventbrite_id=inst_id, time_start=time_start, time_end=time_end)
+                                            db.session.add(ed)
+                                        else:
+                                            ed.time_start = time_start
+                                            ed.time_end = time_end
+                                            ed.event_id = event.id
+                                db.session.commit()
+                                
+                                d_pag = dates_data.get('pagination', {})
+                                if d_pag.get('has_more_items'):
+                                    page = d_pag.get('page_number', 1)
+                                    dates_url = f"https://www.eventbriteapi.com/v3/series/{eventbrite_id}/events/?status=live&token={token}&page={page+1}"
+                                else:
+                                    dates_has_more = False
+                            else:
+                                dates_has_more = False
+                else:
                     inst_id = e['id']
                     time_start_str = e.get('start', {}).get('local')
                     time_end_str = e.get('end', {}).get('local')
@@ -99,19 +136,48 @@ def get_event_capacities():
         return {}
         
     capacities = {}
-    url = f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&expand=ticket_availability&token={token}"
-    
     try:
+        url = f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&expand=ticket_availability&token={token}"
+        processed_series = set()
+        
         has_more = True
         while has_more and url:
             r = requests.get(url)
             if r.status_code != 200:
-                break
+                print(f"Error fetching capacities: {r.status_code} {r.text}")
+                return capacities
                 
             j = r.json()
             for e in j.get('events', []):
-                # For all instances (which are what's returned in the live feed), grab the ticket availability directly
-                if not e.get('is_series'):
+                parent_id = e.get('series_id')
+                is_series = True if parent_id else e.get('is_series', False)
+                eventbrite_id = parent_id if parent_id else e['id']
+                
+                if is_series:
+                    if eventbrite_id not in processed_series:
+                        processed_series.add(eventbrite_id)
+                        dates_url = f"https://www.eventbriteapi.com/v3/series/{eventbrite_id}/events/?expand=ticket_availability&status=live&token={token}"
+                        dates_has_more = True
+                        while dates_has_more and dates_url:
+                            dates_r = requests.get(dates_url)
+                            if dates_r.status_code == 200:
+                                dates_data = dates_r.json()
+                                for inst in dates_data.get('events', []):
+                                    i_ta = inst.get('ticket_availability', {})
+                                    capacities[inst['id']] = {
+                                        'is_sold_out': i_ta.get('is_sold_out', False),
+                                        'capacity': i_ta.get('maximum_quantity', 0),
+                                        'sold': i_ta.get('quantity_sold', 0)
+                                    }
+                                d_pag = dates_data.get('pagination', {})
+                                if d_pag.get('has_more_items'):
+                                    page = d_pag.get('page_number', 1)
+                                    dates_url = f"https://www.eventbriteapi.com/v3/series/{eventbrite_id}/events/?expand=ticket_availability&status=live&token={token}&page={page+1}"
+                                else:
+                                    dates_has_more = False
+                            else:
+                                dates_has_more = False
+                else:
                     ta = e.get('ticket_availability', {})
                     capacities[e['id']] = {
                         'is_sold_out': ta.get('is_sold_out', False),
