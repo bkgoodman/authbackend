@@ -94,6 +94,7 @@ from authlibs.signup import signup
 from authlibs.signup import update as membershipupdate
 from authlibs.signup import gift as giftmembership 
 from authlibs.printerstatus import printerstatus
+from authlibs.classes import classes
 
     
 
@@ -633,6 +634,7 @@ with app.app_context():
     purchasables.register_pages(app)
     inventory.register_pages(app)
     printerstatus.register_pages(app)
+    classes.register_pages(app)
     slackutils.create_routes(app)
     g.main_menu = main_menu
     app.config['main_menu'] = main_menu

@@ -14,7 +14,7 @@ except:
 	from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMixin
 
 
-defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore','LeaseMgr',"Facilities","Signpost"]
+defined_roles=['Admin','RATT','Finance','Useredit','HeadRM','ProStore','LeaseMgr',"Facilities","Signpost","Classes"]
 
 db = SQLAlchemy()
 
@@ -661,3 +661,34 @@ class OAuth(OAuthConsumerMixin, db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey(Member.id))
     user = db.relationship(Member)
     pass
+
+class Event(db.Model):
+    __tablename__ = 'events'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    eventbrite_id = db.Column(db.String(50), unique=True)
+    name = db.Column(db.String(200))
+    description = db.Column(db.Text())
+    url = db.Column(db.String(255))
+    status = db.Column(db.String(50))
+
+class EventDate(db.Model):
+    __tablename__ = 'event_dates'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    event_id = db.Column(db.Integer(), db.ForeignKey('events.id', ondelete='CASCADE'), nullable=False)
+    eventbrite_id = db.Column(db.String(50), unique=True)
+    time_start = db.Column(db.DateTime())
+    time_end = db.Column(db.DateTime())
+    
+    event = db.relationship('Event', backref=db.backref('dates', lazy='dynamic', cascade='all, delete-orphan'))
+
+class EventInstructor(db.Model):
+    __tablename__ = 'event_instructors'
+    __bind_key__ = 'main'
+    id = db.Column(db.Integer(), primary_key=True)
+    event_id = db.Column(db.Integer(), db.ForeignKey('events.id', ondelete='CASCADE'), nullable=False)
+    member_id = db.Column(db.Integer(), db.ForeignKey('members.id', ondelete='CASCADE'), nullable=False)
+    
+    event = db.relationship('Event', backref=db.backref('instructors', lazy='dynamic', cascade='all, delete-orphan'))
+    member = db.relationship('Member')
