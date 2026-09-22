@@ -294,8 +294,18 @@ def notify_instructors():
                 
             body += "\nThank you!\nMakeIt Labs Automation"
             
-            try:
-                genericEmailSender("info@makeitlabs.com", member.email, subject, body)
-            except Exception as e:
-                print(f"Error sending email to {member.email}: {e}")
+            # Collect both primary email and alt_email
+            recipients = []
+            if member.email and member.email.strip():
+                recipients.append(member.email.strip())
+            if member.alt_email and member.alt_email.strip():
+                alt = member.alt_email.strip()
+                if alt.lower() not in [r.lower() for r in recipients]:
+                    recipients.append(alt)
+
+            for recipient in recipients:
+                try:
+                    genericEmailSender("info@makeitlabs.com", recipient, subject, body)
+                except Exception as e:
+                    print(f"Error sending email to {recipient}: {e}")
 
