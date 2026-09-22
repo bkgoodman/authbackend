@@ -227,8 +227,9 @@ def get_attendees(eventbrite_id):
     return attendees
 
 def notify_instructors():
-    # Find all EventDates starting in the next 48 hours
-    now = datetime.datetime.now()
+    # Find all EventDates starting in the next 48 hours using local US/Eastern timezone
+    ny_tz = tz.gettz('America/New_York')
+    now = datetime.datetime.now(tz=ny_tz).replace(tzinfo=None)
     cutoff = now + datetime.timedelta(hours=48)
     
     upcoming_dates = EventDate.query.filter(EventDate.time_start > now, EventDate.time_start <= cutoff).all()
@@ -262,15 +263,26 @@ def notify_instructors():
                 else:
                     status_str = "Available"
         
+        # Calculate dynamic date relative to local today
+        if ed.time_start.date() == now.date():
+            day_str = "TODAY"
+            when_str = "today"
+        elif ed.time_start.date() == (now + datetime.timedelta(days=1)).date():
+            day_str = "TOMORROW"
+            when_str = "tomorrow"
+        else:
+            day_str = f"on {ed.time_start.strftime('%A, %b %d')}"
+            when_str = f"on {ed.time_start.strftime('%A, %b %d')}"
+
         for instructor in instructors:
             member = instructor.member
             
             # Send email
-            subject = f"Upcoming Class: {event.name} TOMORROW"
+            subject = f"Upcoming Class: {event.name} {day_str}"
             body = f"Hello {member.firstname},\n\n"
-            body += f"You are scheduled to instruct the following class within the next two days:\n"
+            body += f"You are scheduled to instruct the following class {when_str}:\n\n"
             body += f"Class: {event.name}\n"
-            body += f"Date/Time: {ed.time_start.strftime('%Y-%m-%d %I:%M %p')}\n"
+            body += f"Date/Time: {ed.time_start.strftime('%A, %B %d, %Y at %I:%M %p')}\n"
             body += f"Capacity: {status_str}\n\n"
             
             if attendees:
@@ -282,8 +294,18 @@ def notify_instructors():
                 
             body += "\nThank you!\nMakeIt Labs Automation"
             
-            try:
-                genericEmailSender("info@makeitlabs.com", member.email, subject, body)
-            except Exception as e:
-                print(f"Error sending email to {member.email}: {e}")
+            # Collect both primary email and alt_email
+            recipients = []
+            if member.email and member.email.strip():
+                recipients.append(member.email.strip())
+            if member.alt_email and member.alt_email.strip():
+                alt = member.alt_email.strip()
+                if alt.lower() not in [r.lower() for r in recipients]:
+                    recipients.append(alt)
+
+            for recipient in recipients:
+                try:
+                    genericEmailSender("info@makeitlabs.com", recipient, subject, body)
+                except Exception as e:
+                    print(f"Error sending email to {recipient}: {e}")
 

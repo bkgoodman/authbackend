@@ -39,13 +39,16 @@ def admin():
     events = Event.query.order_by(Event.name).all()
     return render_template('class_admin.html', events=events)
 
+from dateutil import tz
+
 @classes_bp.route('/my_classes')
 @login_required
 def my_classes():
     instructor_links = EventInstructor.query.filter_by(member_id=current_user.id).all()
     event_ids = [ei.event_id for ei in instructor_links]
     
-    now = datetime.datetime.now()
+    ny_tz = tz.gettz('America/New_York')
+    now = datetime.datetime.now(tz=ny_tz).replace(tzinfo=None)
     my_events = Event.query.filter(Event.id.in_(event_ids)).order_by(Event.name).all() if event_ids else []
     
     from .eventbrite import get_event_capacities
