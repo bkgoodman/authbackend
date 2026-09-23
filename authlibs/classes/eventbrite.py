@@ -21,6 +21,8 @@ def sync_events():
     # Series parent objects are NOT returned by this endpoint.
     url = f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&token={token}"
     
+    active_inst_ids = set()
+
     try:
         has_more = True
         while has_more and url:
@@ -38,8 +40,8 @@ def sync_events():
                 else:
                     eventbrite_id = e['id']
                 
-                name = e.get('name', {}).get('text', 'Unknown')
-                description = e.get('description', {}).get('text', '')[:2000] if e.get('description') else ''
+                name = clean_str(e.get('name', {}).get('text', 'Unknown'))
+                description = clean_str(e.get('description', {}).get('text', '')[:2000]) if e.get('description') else ''
                 url_str = e.get('url', '')
                 status = e.get('status', 'live')
                 
@@ -58,6 +60,7 @@ def sync_events():
 
                 # Every item in the feed has a date — save it as an EventDate
                 inst_id = e['id']
+                active_inst_ids.add(inst_id)
                 time_start_str = e.get('start', {}).get('local')
                 time_end_str = e.get('end', {}).get('local')
                 
@@ -83,6 +86,13 @@ def sync_events():
                 url = f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&token={token}&page={page+1}"
             else:
                 url = None
+
+        # Clean up stale EventDate records that are no longer in Eventbrite's live feed
+        if active_inst_ids:
+            stale_dates = EventDate.query.filter(~EventDate.eventbrite_id.in_(active_inst_ids)).all()
+            for sd in stale_dates:
+                db.session.delete(sd)
+            db.session.commit()
 
     except Exception as ex:
         return False, str(ex)
@@ -240,13 +250,49 @@ def notify_instructors():
     
     for ed in upcoming_dates:
         event = ed.event
+        attendees = get_attendees(ed.eventbrite_id)
+        
+        # Calculate dynamic date relative to local today
+        if ed.time_start.date() == now.date():
+            day_str = "TODAY"
+            when_str = "today"
+        elif ed.time_start.date() == (now + datetime.timedelta(days=1)).date():
+            day_str = "TOMORROW"
+            when_str = "tomorrow"
+        else:
+            day_str = f"on {ed.time_start.strftime('%A, %b %d')}"
+            when_str = f"on {ed.time_start.strftime('%A, %b %d')}"
+
+        # 1. Send Individual Student Reminders
+        if attendees:
+            student_subject = f"Reminder: {event.name} {day_str}"
+            for student in attendees:
+                st_email = student.get('email')
+                st_name = student.get('name', 'Student')
+                if not st_email or st_email == 'Unknown':
+                    continue
+                
+                st_body = f"Hello {st_name},\n\n"
+                st_body += f"This is a reminder for your upcoming class at MakeIt Labs {when_str}:\n\n"
+                st_body += f"Class: {event.name}\n"
+                st_body += f"Date/Time: {ed.time_start.strftime('%A, %B %d, %Y at %I:%M %p')}\n"
+                if event.url:
+                    st_body += f"Event Link: {event.url}\n"
+                st_body += "\nLocation:\nMakeIt Labs\n24 Crown St, Nashua, NH 03060\n\n"
+                st_body += "We look forward to seeing you there!\n\n"
+                st_body += "Thank you,\nMakeIt Labs Automation"
+
+                try:
+                    genericEmailSender("info@makeitlabs.com", st_email, student_subject, st_body)
+                except Exception as e:
+                    print(f"Error sending student reminder to {st_email}: {e}")
+
+        # 2. Send Instructor Reminders (with roster & capacity)
         instructors = event.instructors.all()
         if not instructors:
             continue
-            
-        attendees = get_attendees(ed.eventbrite_id)
+
         cap_info = capacities.get(ed.eventbrite_id, {})
-        
         status_str = "Status Unknown"
         if cap_info:
             sold = cap_info.get('sold', 0)
@@ -262,22 +308,10 @@ def notify_instructors():
                     status_str = f"{sold} / {cap} Sold"
                 else:
                     status_str = "Available"
-        
-        # Calculate dynamic date relative to local today
-        if ed.time_start.date() == now.date():
-            day_str = "TODAY"
-            when_str = "today"
-        elif ed.time_start.date() == (now + datetime.timedelta(days=1)).date():
-            day_str = "TOMORROW"
-            when_str = "tomorrow"
-        else:
-            day_str = f"on {ed.time_start.strftime('%A, %b %d')}"
-            when_str = f"on {ed.time_start.strftime('%A, %b %d')}"
 
         for instructor in instructors:
             member = instructor.member
             
-            # Send email
             subject = f"Upcoming Class: {event.name} {day_str}"
             body = f"Hello {member.firstname},\n\n"
             body += f"You are scheduled to instruct the following class {when_str}:\n\n"
