@@ -239,7 +239,9 @@ def cli_updatepayments(cmd,**kwargs):
         #pinpay.chargeFee('5689127638925312','WorkspaceRental','Rental for June','Workspace','37.50','yes')
         #
         updatePaymentData()
-        membership.syncWithSubscriptions(True)
+        res = membership.syncWithSubscriptions_with_retry(True)
+        if res != 0:
+            logger.error("cli_updatepayments sync failed with status code %d" % res)
         #db.session.commit()
 
 

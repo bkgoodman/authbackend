@@ -12,10 +12,12 @@ from . import config
 import sys
 import argparse
 from .db_models import db, Subscription, Member, Blacklist, Logs
+from sqlalchemy.exc import OperationalError
 from authlibs.memberFolders.memberFolders import createMemberFolder
 import configparser
 from . import eventtypes
 from datetime import datetime
+import time
 from flask import current_app
 
 from .templateCommon import *
@@ -25,42 +27,57 @@ from . import accesslib
 
 def syncWithSubscriptions(isTest=False):
   '''Use the latest Subscription data to ensure Membership list is up to date'''
-  logger.debug("Get Missing Members")
-  missing = getMissingMembers()
+  try:
+    logger.debug("Get Missing Members")
+    missing = getMissingMembers()
 
-  ''' Try to match subscriptions to existing member records - TODO - "new/update" flag '''
-  logger.debug("match missing members")
-  newMembers = matchMissingMembers(missing)
+    ''' Try to match subscriptions to existing member records - TODO - "new/update" flag '''
+    logger.debug("match missing members")
+    newMembers = matchMissingMembers(missing)
 
-  ''' Create new member records for actual new members '''
-  logger.debug("ADDING MISSING MEMBERS")
-  added=addMissingMembers(newMembers)
+    ''' Create new member records for actual new members '''
+    logger.debug("ADDING MISSING MEMBERS")
+    added=addMissingMembers(newMembers)
 
-  ''' Create Google (someday Slack?) accounts for new members '''
-  logger.debug("Create new Accounts")
-  createMissingMemberAccounts(added,isTest,True)
+    ''' Create Google (someday Slack?) accounts for new members '''
+    logger.debug("Create new Accounts")
+    createMissingMemberAccounts(added,isTest,True)
 
-  ''' Sync group field for existing linked members if group is empty/null '''
-  linked_subs = Subscription.query.filter(Subscription.member_id != None).filter(Subscription.group != None).all()
-  for ls in linked_subs:
-    if ls.group and ls.group.strip() != "":
-      m_rec = Member.query.filter(Member.id == ls.member_id).one_or_none()
-      if m_rec and (not m_rec.group or m_rec.group.strip() == ""):
-        m_rec.group = ls.group.strip()
+    ''' Sync group field for existing linked members if group is empty/null '''
+    linked_subs = Subscription.query.filter(Subscription.member_id != None).filter(Subscription.group != None).all()
+    for ls in linked_subs:
+      if ls.group and ls.group.strip() != "":
+        m_rec = Member.query.filter(Member.id == ls.member_id).one_or_none()
+        if m_rec and (not m_rec.group or m_rec.group.strip() == ""):
+          m_rec.group = ls.group.strip()
 
-  # Canary test 
+    # Canary test 
 
-  if current_app.config['globalConfig'].Config.has_option('Payments','Canary'):
-    canary = current_app.config['globalConfig'].Config.get('Payments','Canary')
-    check = accesslib.quickSubscriptionCheck(member=canary)
-    if check == "No Subscription":
-        logger.critical("No subscription found for Adam.Shey")
-        db.session.rollback()
-        return 1
+    if current_app.config['globalConfig'].Config.has_option('Payments','Canary'):
+      canary = current_app.config['globalConfig'].Config.get('Payments','Canary')
+      check = accesslib.quickSubscriptionCheck(member=canary)
+      if check == "No Subscription":
+          logger.critical("No subscription found for Adam.Shey")
+          db.session.rollback()
+          return 1
 
-  db.session.commit()
-  logger.debug("New Member/Sub data Committed")
-  return 0
+    db.session.commit()
+    logger.debug("New Member/Sub data Committed")
+    return 0
+  except OperationalError as e:
+    logger.error("syncWithSubscriptions: database locked/failed: %s" % str(e))
+    db.session.rollback()
+    return 2
+
+def syncWithSubscriptions_with_retry(isTest=False, retries=5, delay=2):
+  """Call syncWithSubscriptions, retrying if DB is locked (return code 2)."""
+  for attempt in range(retries):
+    res = syncWithSubscriptions(isTest)
+    if res != 2:
+      return res
+    logger.warning("syncWithSubscriptions hit DB lock (attempt %d/%d). Retrying in %ds..." % (attempt + 1, retries, delay))
+    time.sleep(delay)
+  return 2
   
 
 def searchMembers(searchstr):
@@ -387,7 +404,9 @@ Options:
         logger.info( "Non-production environments - no accounts will be created")
         isTest=True
 
-    syncWithSubscriptions(isTest)  
+    res = syncWithSubscriptions_with_retry(isTest)
+    if res != 0:
+      logger.error("cli_syncmemberpayments completed with status code %d" % res)
 
 def cli_createmembertest(cmd,**kwargs):
     google.createUser("Testy","McTesterson","testy.testerson","test@example.com","test123abcd!")
