@@ -21,6 +21,7 @@ from .. import membership
 from authlibs.templateCommon import *
 
 from sqlalchemy import case, DateTime
+from sqlalchemy.exc import OperationalError
 
 
 # You must call this modules "register_pages" with main app's "create_rotues"
@@ -149,15 +150,25 @@ def payment_membership(membership):
 @roles_required(['Admin','Finance'])
 def update_payments():
     """(Controller) Sync Payment data and update Member data (add missing, deactivate, etc)"""
-    # TODO: Error handling
-    pay.updatePaymentData()
-    isTest=False
-    if current_app.config['globalConfig'].DeployType.lower() != "production":
-      isTest=True
-      logger.error("Non-Production environment - NOT creating google/slack accounts")
-    membership.syncWithSubscriptions(isTest)
-    authutil.kick_backend()
-    flash("Payment and Member data adjusted")
+    try:
+        pay.updatePaymentData()
+        isTest=False
+        if current_app.config['globalConfig'].DeployType.lower() != "production":
+            isTest=True
+            logger.error("Non-Production environment - NOT creating google/slack accounts")
+        res = membership.syncWithSubscriptions(isTest)
+        if res == 2:
+            flash("Database is currently locked by another operation. Please try again in a few moments.", "warning")
+            return redirect(url_for('payments.payments'))
+        elif res == 1:
+            flash("Canary subscription check failed. Member sync aborted.", "danger")
+            return redirect(url_for('payments.payments'))
+        authutil.kick_backend()
+        flash("Payment and Member data adjusted")
+    except OperationalError as e:
+        logger.error("update_payments hit database lock: %s" % str(e))
+        db.session.rollback()
+        flash("Database is currently locked by another operation. Please try again in a few moments.", "warning")
     return redirect(url_for('payments.payments'))
 
 @blueprint.route('/<string:id>', methods=['GET'])
