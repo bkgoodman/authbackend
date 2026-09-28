@@ -217,7 +217,10 @@ def update_booking(resource):
     eventid = request.form.get('calendar_id','')
     start = parse_time_input(request.form.get('start'))
     end = parse_time_input(request.form.get('end'))
-    result = edit_booking(current_user.email,eventid,description,start,end)
+
+    user_name = f"{current_user.firstname} {current_user.lastname}".strip() if (getattr(current_user, 'firstname', None) and getattr(current_user, 'lastname', None)) else current_user.member.replace(".", " ")
+
+    result = edit_booking(current_user.email,eventid,description,start,end,user_name=user_name)
     if result is not None:
         flash (f"Failed: {result}","danger")
         return redirect(url_for('calendars.calendars'))
@@ -236,16 +239,15 @@ def create_booking(resource):
     description = request.form.get('description','')
     start = parse_time_input(request.form.get('start'))
     end = parse_time_input(request.form.get('end'))
+
+    user_name = f"{current_user.firstname} {current_user.lastname}".strip() if (getattr(current_user, 'firstname', None) and getattr(current_user, 'lastname', None)) else current_user.member.replace(".", " ")
+
     try:
-        event_id,result = calendar_create(current_user.email,resources[resource]['cal'],description,start,end)
+        event_id,result = calendar_create(current_user.email,resources[resource]['cal'],description,start,end,user_name=user_name)
     except BaseException as e:
         debug += f"\nBaseException {e}\n"
         return render_template('debug.html',debug=debug)
 
-    if description == "" or description == "No Description":
-        description = current_user.member.replace("."," ")
-    debug = f"EventID: {event_id} Result: {result}"
-    #return render_template('debug.html',name=resources[resource]['name'],debug=debug)
     return redirect(url_for('calendars.status_booking',resource=resource,eventid=event_id))
 
 def register_pages(app):

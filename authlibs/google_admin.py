@@ -370,14 +370,20 @@ def calendar_read(email,resource):
             isSelf = False
             isAccepted = False
             start = event['start'].get('dateTime', event['start'].get('date'))
-            #print (event)
-            if 'self' in event['organizer']: isSelf = event['organizer']['self']
-            if event['organizer']['email'].lower() == TARGET_USER_EMAIL.lower(): isSelf=True
-            #print (f"{event['summary']} {event['id']} isMyEvent={isSelf}")
-            #print ("Attendees:\n")
+            organizer_info = event.get('organizer', {})
+            creator_info = event.get('creator', {})
+            organizer_email = organizer_info.get('email', '')
+            if 'self' in organizer_info: isSelf = organizer_info['self']
+            if organizer_email.lower() == TARGET_USER_EMAIL.lower(): isSelf=True
+
+            # Fallback to creator email if organizer is set to the resource email
+            if organizer_email.lower() == RESOURCE_EMAIL.lower() and creator_info.get('email'):
+                organizer_email = creator_info.get('email')
+                if organizer_email.lower() == TARGET_USER_EMAIL.lower(): isSelf=True
+
             resourceCount=0
             start,end = get_event_time_reliable(event)
-            for a in event['attendees']:
+            for a in event.get('attendees', []):
                 displayName = "<None>"
                 responseStatus = "unknown"
                 isResource = False
@@ -388,22 +394,18 @@ def calendar_read(email,resource):
                     resourceCount += 1
                     if a['email'].lower() == RESOURCE_EMAIL.lower() and responseStatus == 'accepted':
                         isAccepted= True
-                #print (f"{a['email']} {displayName} {responseStatus} ACCEPTED={isAccepted}  Resource={isResource} From {start} To {end}")
-            # Response needs to be 'accepted'
-            #print (f"{event['summary']} {event['id']} {event['organizer']} SELF={isSelf} ACCAPTED={isAccepted}")
             if (isAccepted):
                 summary = event['summary'] if 'summary' in event else 'Reserved'
                 booking = {
                         'calendar_id':event['id'],
-                        'organizer_email':event['organizer']['email'],
-                        'user':event['organizer']['email'], # REWRITE LATER
+                        'organizer_email':organizer_email,
+                        'user':organizer_email, # REWRITE LATER
                         'isMine' : 1 if isSelf else 0,
                         'description' : summary,
                         'start':start.isoformat(),
                         'end':end.isoformat(),
                         }
                 bookings.append(booking)
-            #print(f"Event: {start} - {event['summary']}")
     return (bookings)
 
 
@@ -422,16 +424,25 @@ def delete_booking(user,event_id):
     print (f"Delete Calendar {event_id} OK\n")
     return False
 
-def edit_booking(user,event_id,description,start,end):
+def edit_booking(user,event_id,description,start,end,user_name=None):
     calendar_service = _buildCalendarService(user)
-    # Fetch the latest version of the event
-    updated_event = calendar_service.events().get(
-        calendarId='primary',
-        eventId=event_id
-    ).execute()
+
+    if not user_name:
+        local_part = user.split('@')[0]
+        user_name = local_part.replace('.', ' ').title()
+
+    clean_desc = (description or '').strip()
+    if clean_desc and clean_desc.lower() != 'no description':
+        summary = f"{user_name} - {clean_desc}"
+    else:
+        summary = f"{user_name} - Reserved"
+        clean_desc = "None"
+
+    event_body_desc = f"Reserved by: {user_name} ({user})\nNotes: {clean_desc}"
 
     patch = {
-      'description': description,
+      'summary': summary,
+      'description': event_body_desc,
       'start': {
         'dateTime': start.isoformat()
       },
@@ -469,23 +480,37 @@ def get_booking(user,event_id,resource):
     return resource_status
 
 
-def calendar_create(user,resource,description,start,end):
+def calendar_create(user,resource,description,start,end,user_name=None):
     # The user you want to act on behalf of
     TARGET_USER_EMAIL = user
     RESOURCE_EMAIL = resource
+
+    if not user_name:
+        local_part = user.split('@')[0]
+        user_name = local_part.replace('.', ' ').title()
+
+    clean_desc = (description or '').strip()
+    if clean_desc and clean_desc.lower() != 'no description':
+        summary = f"{user_name} - {clean_desc}"
+    else:
+        summary = f"{user_name} - Reserved"
+        clean_desc = "None"
+
+    event_body_desc = f"Reserved by: {user_name} ({user})\nNotes: {clean_desc}"
 
     # 1. Build the service
     calendar_service = _buildCalendarService(TARGET_USER_EMAIL)
 
     # 2. Define the event body (using RFC3339 format for datetime)
     event = {
-      'summary': description,
-      'location': 'Reservation Portal',
+      'summary': summary,
+      'location': 'MakeIt Labs Reservation Portal',
       'organizer': {
-          'user':user,
-          'self':True
+          'email': user,
+          'displayName': user_name,
+          'self': True
           },
-      'description': description,
+      'description': event_body_desc,
       'start': {
         'dateTime': start.isoformat()
       },
@@ -494,6 +519,7 @@ def calendar_create(user,resource,description,start,end):
       },
       'attendees': [
         {'email': RESOURCE_EMAIL, 'resource': True},
+        {'email': user, 'displayName': user_name, 'responseStatus': 'accepted'}
       ],
     }
 
