@@ -51,8 +51,14 @@ def my_classes():
     now = datetime.datetime.now(tz=ny_tz).replace(tzinfo=None)
     my_events = Event.query.filter(Event.id.in_(event_ids)).order_by(Event.name).all() if event_ids else []
     
+    target_eventbrite_ids = set()
+    for ev in my_events:
+        for ed in ev.dates:
+            if ed.time_start >= now:
+                target_eventbrite_ids.add(ed.eventbrite_id)
+                
     from .eventbrite import get_event_capacities
-    capacities = get_event_capacities()
+    capacities = get_event_capacities(target_eventbrite_ids=target_eventbrite_ids) if target_eventbrite_ids else {}
     
     event_warnings = {}
     for ev in my_events:
