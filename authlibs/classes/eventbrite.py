@@ -99,7 +99,7 @@ def sync_events():
     
     return True, "Synced successfully"
 
-def get_event_capacities():
+def get_event_capacities(target_eventbrite_ids=None):
     """
     Returns a dictionary of EventDate eventbrite_ids to their ticket availability status
     {
@@ -111,6 +111,9 @@ def get_event_capacities():
         return {}
         
     capacities = {}
+    if target_eventbrite_ids is not None:
+        target_eventbrite_ids = set(target_eventbrite_ids)
+
     try:
         url = f"https://www.eventbriteapi.com/v3/organizations/{org_id}/events/?status=live&expand=ticket_availability&token={token}"
         
@@ -139,8 +142,10 @@ def get_event_capacities():
             else:
                 url = None
                 
-        # Now fetch actual capacity numbers from ticket_classes for each event
+        # Now fetch actual capacity numbers from ticket_classes for target events only
         for event_id in list(capacities.keys()):
+            if target_eventbrite_ids is not None and event_id not in target_eventbrite_ids:
+                continue
             try:
                 tc_r = requests.get(f"https://www.eventbriteapi.com/v3/events/{event_id}/ticket_classes/?token={token}")
                 if tc_r.status_code == 200:
@@ -246,7 +251,8 @@ def notify_instructors():
     if not upcoming_dates:
         return
         
-    capacities = get_event_capacities()
+    target_ids = set(ed.eventbrite_id for ed in upcoming_dates)
+    capacities = get_event_capacities(target_eventbrite_ids=target_ids)
     
     for ed in upcoming_dates:
         event = ed.event
