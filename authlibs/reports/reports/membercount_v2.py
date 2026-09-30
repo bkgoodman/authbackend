@@ -64,15 +64,15 @@ def normalize_group_name(raw_name):
     if not raw_name:
         return None
     name_lower = raw_name.lower().strip()
-    if 'hobbyist' in name_lower:
-        return 'HobbyistMembership'
-    elif 'produo' in name_lower:
+    if 'produo' in name_lower:
         return 'ProDuoMember'
-    elif name_lower == 'pro' or 'promembership' in name_lower or 'pro member' in name_lower:
+    elif 'pro' in name_lower:
         return 'ProMembership'
-    elif 'freemember' in name_lower:
+    elif 'hobbyist' in name_lower:
+        return 'HobbyistMembership'
+    elif 'free' in name_lower:
         return 'FreeMember'
-    elif 'groupmember' in name_lower:
+    elif 'group' in name_lower:
         return 'GroupMember'
     return raw_name
 
