@@ -164,13 +164,12 @@ def main():
                 _ip = _items[0].get('plan') or _items[0].get('price') or {}
                 _prod = _ip.get('product', '')
 
-        canceled_at = s.get('canceled_at')
-        ended_at = s.get('ended_at')
-
-        # Active check: subscription not canceled/ended
-        if canceled_at is not None or ended_at is not None:
+        # Active check: use Stripe's status field directly
+        # canceled_at being set only means "cancel at period end" - sub is still active
+        sub_status = s.get('status', '')
+        if sub_status not in ('active', 'trialing'):
             if _prod == TRACE_PRODUCT:
-                trace_log.append(f"FILTERED: {s['id']} canceled_at={canceled_at} ended_at={ended_at} status={s.get('status')}")
+                trace_log.append(f"FILTERED: {s['id']} status={sub_status}")
             continue
 
         # Extract plan/product info - try top-level plan first, then subscription items
