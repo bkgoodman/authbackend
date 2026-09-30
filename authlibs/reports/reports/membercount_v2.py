@@ -3,19 +3,22 @@
 Member Count V2 Report
 
 Accurately counts members by:
-1. Loading repgroups.dat to map Stripe product/plan IDs to membership categories:
-   - FreeMember (including FIRST robotics)
-   - GroupMember
-   - HobbyistMembership (or hobbyist)
-   - ProMembership (or pro)
-   - ProDuoMember (or produo)
+1. Loading repgroups.dat to map Stripe product/plan IDs to membership categories.
+   ONLY these repgroups values are recognized as memberships:
+   - FreeMember        -> free seats
+   - FirstMembership   -> free seats (FIRST robotics teams)
+   - GroupMember        -> paid seats
+   - HobbyistMembership -> paid seats
+   - ProMembership      -> paid seats
+   - ProDuoMember       -> paid seats
+   Any other repgroups value (e.g. Workspace) is ignored.
 2. Classifying subscriptions into Paid vs Free:
-   - FreeMember product codes / FIRST robotics = Free
+   - FreeMember / FirstMembership product codes = Free
    - 100% off / Exempt coupons = Overridden to Free
-   - Other membership plans = Paid
-3. Parsing Stripe metadata (e.g., 'names', 'emails', 'students', 'count') for individual seat counts.
+   - All other recognized memberships = Paid
+3. Parsing Stripe metadata (e.g., 'names', 'emails') for individual seat counts.
    - Defaults ProDuoMember to 2 seats if no metadata list is present.
-4. Displaying a detailed breakdown by Group and Coupon type, plus an Ignored Subscriptions diagnostics section.
+4. Displaying a detailed breakdown by Group and Coupon type.
 """
 
 import os
@@ -23,6 +26,19 @@ import re
 import sys
 import stripe
 from datetime import datetime
+
+# Only these repgroups values are recognized as memberships
+VALID_GROUPS = {
+    'FreeMember',
+    'FirstMembership',
+    'GroupMember',
+    'HobbyistMembership',
+    'ProMembership',
+    'ProDuoMember'
+}
+
+# These groups are always counted as free seats
+FREE_GROUPS = {'FreeMember', 'FirstMembership'}
 
 EXEMPT_COUPONS = {
     '100PERCENTOFF',
@@ -32,6 +48,7 @@ EXEMPT_COUPONS = {
 }
 
 def load_repgroups():
+    """Load repgroups.dat and return a dict mapping product/plan IDs to group names."""
     group_map = {}
     paths = [
         'repgroups.dat',
@@ -49,36 +66,20 @@ def load_repgroups():
                             parts = line.split()
                             if len(parts) >= 2:
                                 group_map[parts[0]] = parts[1]
+                print(f"Loaded repgroups from {p}: {len(group_map)} entries", file=sys.stderr)
                 break
             except Exception as e:
                 print(f"Warning: Error reading {p}: {e}", file=sys.stderr)
-    
-    # Standard plan ID fallbacks
-    group_map['hobbyist'] = 'HobbyistMembership'
-    group_map['pro'] = 'ProMembership'
-    group_map['produo'] = 'ProDuoMember'
+
+    # Always add standard Stripe plan ID fallbacks (these use plan ID, not product ID)
+    group_map.setdefault('hobbyist', 'HobbyistMembership')
+    group_map.setdefault('pro', 'ProMembership')
+    group_map.setdefault('produo', 'ProDuoMember')
 
     return group_map
 
-def normalize_group_name(raw_name):
-    if not raw_name:
-        return None
-    name_lower = raw_name.lower().strip()
-    if 'produo' in name_lower:
-        return 'ProDuoMember'
-    elif 'pro' in name_lower:
-        return 'ProMembership'
-    elif 'hobbyist' in name_lower:
-        return 'HobbyistMembership'
-    elif 'first' in name_lower or 'robotics' in name_lower:
-        return 'FreeMember'
-    elif 'free' in name_lower:
-        return 'FreeMember'
-    elif 'group' in name_lower:
-        return 'GroupMember'
-    return raw_name
-
 def get_coupon_info(s):
+    """Extract coupon info from a Stripe subscription. Returns (is_100pct_free, coupon_label)."""
     try:
         discount = s.get('discount')
         if discount and discount.get('coupon'):
@@ -94,8 +95,9 @@ def get_coupon_info(s):
     return False, "No Coupon"
 
 def count_seats(s, group_name):
+    """Count individual seats from Stripe metadata. Falls back to defaults."""
     metadata = s.get('metadata') or {}
-    # Check list metadata fields
+    # Check list-style metadata fields
     for key in ['names', 'emails', 'members', 'users', 'students', 'members_list', 'team_members']:
         val = metadata.get(key)
         if val and isinstance(val, str) and val.strip():
@@ -132,7 +134,7 @@ def main():
 
     # Structure: counts[group_name][coupon_name] = {'paid': 0, 'free': 0, 'total': 0, 'subs': 0}
     counts = {}
-    ignored_subs = []
+    skipped_subs = []
 
     processed_subs = set()
     total_processed = 0
@@ -144,42 +146,28 @@ def main():
 
         canceled_at = s.get('canceled_at')
         ended_at = s.get('ended_at')
-        plan = s.get('plan') or {}
-        plan_active = plan.get('active', True)
 
-        # Active check aligned with original membercount script
-        if canceled_at is not None or ended_at is not None or not plan_active:
+        # Active check: subscription not canceled/ended
+        if canceled_at is not None or ended_at is not None:
             continue
 
+        plan = s.get('plan') or {}
         plan_id = plan.get('id', '')
         product_id = plan.get('product', '')
 
-        raw_group = repgroups.get(product_id) or repgroups.get(plan_id)
-        if not raw_group:
-            raw_group = plan_id
+        # Look up group from repgroups by product_id first, then plan_id
+        group_name = repgroups.get(product_id) or repgroups.get(plan_id)
 
-        group_name = normalize_group_name(raw_group)
-        is_free_coupon, coupon_name = get_coupon_info(s)
-
-        # If not in standardized groups, but present in repgroups, treat as mapped group
-        if not group_name and product_id in repgroups:
-            group_name = repgroups[product_id]
-
-        # If still unrecognized as a membership
-        valid_groups = ['HobbyistMembership', 'ProMembership', 'ProDuoMember', 'FreeMember', 'GroupMember']
-        if not group_name or (group_name not in valid_groups and raw_group not in repgroups.values()):
-            ignored_subs.append({
-                'id': s['id'],
-                'product': product_id,
-                'plan': plan_id,
-                'coupon': coupon_name,
-                'metadata': s.get('metadata') or {}
-            })
+        # Strict whitelist: only process recognized membership groups
+        if not group_name or group_name not in VALID_GROUPS:
             continue
 
         total_processed += 1
         seats = count_seats(s, group_name)
-        is_free = (group_name == 'FreeMember') or is_free_coupon
+        is_free_coupon, coupon_name = get_coupon_info(s)
+
+        # Free if the group is inherently free OR has a 100% exempt coupon
+        is_free = (group_name in FREE_GROUPS) or is_free_coupon
 
         if group_name not in counts:
             counts[group_name] = {}
@@ -235,16 +223,13 @@ def main():
     print("</tr>")
     print("</tbody></table>")
 
-    # Diagnostic section for Ignored Subscriptions if any exist
-    if ignored_subs:
-        print("<h4 class='mt-4 text-warning'>Ignored Active Subscriptions (Diagnostic Check)</h4>")
-        print(f"<p class='text-muted'>Found {len(ignored_subs)} active subscriptions not recognized as standard memberships:</p>")
-        print("<table class='table table-sm table-hover text-muted'>")
-        print("<thead><tr><th>Sub ID</th><th>Product ID</th><th>Plan ID</th><th>Coupon</th><th>Metadata</th></tr></thead><tbody>")
-        for ig in ignored_subs[:50]:  # Limit to 50 items
-            meta_str = str(ig['metadata']) if ig['metadata'] else ''
-            print(f"<tr><td><code>{ig['id']}</code></td><td><code>{ig['product']}</code></td><td><code>{ig['plan']}</code></td><td>{ig['coupon']}</td><td><small>{meta_str}</small></td></tr>")
-        print("</tbody></table>")
+    # Show repgroups mapping used (diagnostic)
+    print("<details class='mt-3'><summary class='text-muted'>Repgroups Mapping Used (click to expand)</summary>")
+    print("<table class='table table-sm text-muted mt-2'><thead><tr><th>Product/Plan ID</th><th>Group Name</th><th>Status</th></tr></thead><tbody>")
+    for pid, gname in sorted(repgroups.items()):
+        status = "✅ Counted" if gname in VALID_GROUPS else "⏭️ Ignored"
+        print(f"<tr><td><code>{pid}</code></td><td>{gname}</td><td>{status}</td></tr>")
+    print("</tbody></table></details>")
 
     print("</div>\n<pre>")
 
