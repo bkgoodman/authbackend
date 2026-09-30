@@ -144,6 +144,10 @@ def main():
     skipped_subs = []
 
     processed_subs = set()
+    # Diagnostic: trace what happens to a specific product's subscriptions
+    TRACE_PRODUCT = 'prod_BTnuDfBb21OmlD'  # FIRST Mentors
+    trace_log = []
+
     total_processed = 0
 
     for s in stripe.Subscription.auto_paging_iter():
@@ -151,11 +155,22 @@ def main():
             continue
         processed_subs.add(s['id'])
 
+        # Peek at product for tracing BEFORE any filtering
+        _plan = s.get('plan') or {}
+        _prod = _plan.get('product', '')
+        if not _prod:
+            _items = s.get('items', {}).get('data', [])
+            if _items:
+                _ip = _items[0].get('plan') or _items[0].get('price') or {}
+                _prod = _ip.get('product', '')
+
         canceled_at = s.get('canceled_at')
         ended_at = s.get('ended_at')
 
         # Active check: subscription not canceled/ended
         if canceled_at is not None or ended_at is not None:
+            if _prod == TRACE_PRODUCT:
+                trace_log.append(f"FILTERED: {s['id']} canceled_at={canceled_at} ended_at={ended_at} status={s.get('status')}")
             continue
 
         # Extract plan/product info - try top-level plan first, then subscription items
@@ -171,6 +186,9 @@ def main():
                 if not plan_id:
                     plan_id = item_plan.get('id', '')
                 product_id = item_plan.get('product', '')
+
+        if product_id == TRACE_PRODUCT:
+            trace_log.append(f"PASSED: {s['id']} plan={plan_id} product={product_id} status={s.get('status')} metadata={s.get('metadata')}")
 
         # Look up group from repgroups by product_id first, then plan_id
         group_name = repgroups.get(product_id) or repgroups.get(plan_id)
@@ -262,6 +280,14 @@ def main():
         for (prod, plan, grp), cnt in sorted(skip_counts.items(), key=lambda x: -x[1]):
             print(f"<tr><td><code>{prod}</code></td><td><code>{plan}</code></td><td>{grp}</td><td>{cnt}</td></tr>")
         print("</tbody></table></details>")
+
+    # FIRST Mentors diagnostic trace
+    if trace_log:
+        print(f"<details class='mt-3' open><summary class='text-warning'><strong>FIRST Mentors Trace ({len(trace_log)} subs seen)</strong></summary>")
+        print("<pre style='font-size: 0.8em; max-height: 400px; overflow-y: auto;'>")
+        for entry in trace_log:
+            print(entry)
+        print("</pre></details>")
 
     print("</div>\n<pre>")
 
