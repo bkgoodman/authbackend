@@ -47,6 +47,11 @@ EXEMPT_COUPONS = {
     'LCpqqG55'
 }
 
+# Normalize repgroups values that are synonyms for canonical group names
+REPGROUP_SYNONYMS = {
+    'ProMember': 'ProMembership',
+}
+
 def load_repgroups():
     """Load repgroups.dat and return a dict mapping product/plan IDs to group names."""
     group_map = {}
@@ -65,7 +70,9 @@ def load_repgroups():
                         if line and not line.startswith('#'):
                             parts = line.split()
                             if len(parts) >= 2:
-                                group_map[parts[0]] = parts[1]
+                                raw_group = parts[1]
+                                # Normalize synonyms
+                                group_map[parts[0]] = REPGROUP_SYNONYMS.get(raw_group, raw_group)
                 print(f"Loaded repgroups from {p}: {len(group_map)} entries", file=sys.stderr)
                 break
             except Exception as e:
@@ -151,15 +158,30 @@ def main():
         if canceled_at is not None or ended_at is not None:
             continue
 
+        # Extract plan/product info - try top-level plan first, then subscription items
         plan = s.get('plan') or {}
         plan_id = plan.get('id', '')
         product_id = plan.get('product', '')
+
+        # Fallback: check subscription items if top-level plan is missing product
+        if not product_id:
+            items = s.get('items', {}).get('data', [])
+            if items:
+                item_plan = items[0].get('plan') or items[0].get('price') or {}
+                if not plan_id:
+                    plan_id = item_plan.get('id', '')
+                product_id = item_plan.get('product', '')
 
         # Look up group from repgroups by product_id first, then plan_id
         group_name = repgroups.get(product_id) or repgroups.get(plan_id)
 
         # Strict whitelist: only process recognized membership groups
         if not group_name or group_name not in VALID_GROUPS:
+            skipped_subs.append({
+                'product': product_id,
+                'plan': plan_id,
+                'group': group_name or '(unmapped)',
+            })
             continue
 
         total_processed += 1
@@ -230,6 +252,16 @@ def main():
         status = "✅ Counted" if gname in VALID_GROUPS else "⏭️ Ignored"
         print(f"<tr><td><code>{pid}</code></td><td>{gname}</td><td>{status}</td></tr>")
     print("</tbody></table></details>")
+
+    # Show skipped active subscriptions grouped by product/group (diagnostic)
+    if skipped_subs:
+        from collections import Counter
+        skip_counts = Counter((s['product'], s['plan'], s['group']) for s in skipped_subs)
+        print(f"<details class='mt-3'><summary class='text-muted'>Skipped Active Subscriptions: {len(skipped_subs)} total (click to expand)</summary>")
+        print("<table class='table table-sm text-muted mt-2'><thead><tr><th>Product ID</th><th>Plan ID</th><th>Mapped Group</th><th>Count</th></tr></thead><tbody>")
+        for (prod, plan, grp), cnt in sorted(skip_counts.items(), key=lambda x: -x[1]):
+            print(f"<tr><td><code>{prod}</code></td><td><code>{plan}</code></td><td>{grp}</td><td>{cnt}</td></tr>")
+        print("</tbody></table></details>")
 
     print("</div>\n<pre>")
 
