@@ -4,18 +4,18 @@ Member Count V2 Report
 
 Accurately counts members by:
 1. Loading repgroups.dat to map Stripe product/plan IDs to membership categories:
-   - FreeMember
+   - FreeMember (including FIRST robotics)
    - GroupMember
    - HobbyistMembership (or hobbyist)
    - ProMembership (or pro)
    - ProDuoMember (or produo)
 2. Classifying subscriptions into Paid vs Free:
-   - FreeMember product codes = Free
+   - FreeMember product codes / FIRST robotics = Free
    - 100% off / Exempt coupons = Overridden to Free
    - Other membership plans = Paid
-3. Parsing Stripe metadata (e.g., 'names', 'emails') for individual seat counts.
+3. Parsing Stripe metadata (e.g., 'names', 'emails', 'students', 'count') for individual seat counts.
    - Defaults ProDuoMember to 2 seats if no metadata list is present.
-4. Displaying a detailed breakdown by Group and Coupon type (including Paid and Free seat counts).
+4. Displaying a detailed breakdown by Group and Coupon type, plus an Ignored Subscriptions diagnostics section.
 """
 
 import os
@@ -70,6 +70,8 @@ def normalize_group_name(raw_name):
         return 'ProMembership'
     elif 'hobbyist' in name_lower:
         return 'HobbyistMembership'
+    elif 'first' in name_lower or 'robotics' in name_lower:
+        return 'FreeMember'
     elif 'free' in name_lower:
         return 'FreeMember'
     elif 'group' in name_lower:
@@ -93,12 +95,23 @@ def get_coupon_info(s):
 
 def count_seats(s, group_name):
     metadata = s.get('metadata') or {}
-    for key in ['names', 'emails', 'members', 'users']:
+    # Check list metadata fields
+    for key in ['names', 'emails', 'members', 'users', 'students', 'members_list', 'team_members']:
         val = metadata.get(key)
         if val and isinstance(val, str) and val.strip():
             items = [item.strip() for item in re.split(r'[,;\n]', val) if item.strip()]
             if items:
                 return len(items)
+    # Check numeric metadata fields
+    for key in ['count', 'seats', 'num_members', 'total_members', 'quantity']:
+        val = metadata.get(key)
+        if val:
+            try:
+                num = int(val)
+                if num > 0:
+                    return num
+            except ValueError:
+                pass
     if group_name == 'ProDuoMember':
         return 2
     return 1
@@ -119,6 +132,7 @@ def main():
 
     # Structure: counts[group_name][coupon_name] = {'paid': 0, 'free': 0, 'total': 0, 'subs': 0}
     counts = {}
+    ignored_subs = []
 
     processed_subs = set()
     total_processed = 0
@@ -140,21 +154,31 @@ def main():
         plan_id = plan.get('id', '')
         product_id = plan.get('product', '')
 
-        # Find raw group mapping from repgroups.dat or plan_id
         raw_group = repgroups.get(product_id) or repgroups.get(plan_id)
         if not raw_group:
             raw_group = plan_id
 
         group_name = normalize_group_name(raw_group)
+        is_free_coupon, coupon_name = get_coupon_info(s)
 
-        # Only process recognized membership groups
-        if not group_name or group_name not in ['HobbyistMembership', 'ProMembership', 'ProDuoMember', 'FreeMember', 'GroupMember']:
+        # If not in standardized groups, but present in repgroups, treat as mapped group
+        if not group_name and product_id in repgroups:
+            group_name = repgroups[product_id]
+
+        # If still unrecognized as a membership
+        valid_groups = ['HobbyistMembership', 'ProMembership', 'ProDuoMember', 'FreeMember', 'GroupMember']
+        if not group_name or (group_name not in valid_groups and raw_group not in repgroups.values()):
+            ignored_subs.append({
+                'id': s['id'],
+                'product': product_id,
+                'plan': plan_id,
+                'coupon': coupon_name,
+                'metadata': s.get('metadata') or {}
+            })
             continue
 
         total_processed += 1
         seats = count_seats(s, group_name)
-        is_free_coupon, coupon_name = get_coupon_info(s)
-
         is_free = (group_name == 'FreeMember') or is_free_coupon
 
         if group_name not in counts:
@@ -210,6 +234,18 @@ def main():
     print(f"<td><strong>Grand Total</strong></td><td class='text-right'><strong>{grand_all}</strong></td><td class='text-right'><strong>{grand_paid}</strong></td><td class='text-right'><strong>{grand_free}</strong></td><td class='text-right'><strong>{grand_subs}</strong></td>")
     print("</tr>")
     print("</tbody></table>")
+
+    # Diagnostic section for Ignored Subscriptions if any exist
+    if ignored_subs:
+        print("<h4 class='mt-4 text-warning'>Ignored Active Subscriptions (Diagnostic Check)</h4>")
+        print(f"<p class='text-muted'>Found {len(ignored_subs)} active subscriptions not recognized as standard memberships:</p>")
+        print("<table class='table table-sm table-hover text-muted'>")
+        print("<thead><tr><th>Sub ID</th><th>Product ID</th><th>Plan ID</th><th>Coupon</th><th>Metadata</th></tr></thead><tbody>")
+        for ig in ignored_subs[:50]:  # Limit to 50 items
+            meta_str = str(ig['metadata']) if ig['metadata'] else ''
+            print(f"<tr><td><code>{ig['id']}</code></td><td><code>{ig['product']}</code></td><td><code>{ig['plan']}</code></td><td>{ig['coupon']}</td><td><small>{meta_str}</small></td></tr>")
+        print("</tbody></table>")
+
     print("</div>\n<pre>")
 
     sys.exit(0)
