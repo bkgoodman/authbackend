@@ -298,12 +298,28 @@ def fixMemberSubscription(sub):
     expires = datetime.utcfromtimestamp(sub['current_period_end'])
     created = datetime.utcfromtimestamp(sub['created'])
     updated = datetime.utcnow()
-    s = Subscription.query.filter(Subscription.customerid == sub['customer']).one()
+    s = Subscription.query.filter(Subscription.customerid == sub['customer']).first()
+
+    if not s:
+        logger.error(f"fixMemberSubscription: No Subscription record found in DB for customer {sub['customer']}")
+        return
 
     # Add Subscription to Database
     s.paysystem = "stripe"
     s.subid = sub.id
-    s.rate_plan = sub['plan']['id']
+    
+    rate_plan = None
+    if 'plan' in sub and sub['plan'] and 'id' in sub['plan']:
+        rate_plan = sub['plan']['id']
+    elif 'items' in sub and 'data' in sub['items'] and len(sub['items']['data']) > 0:
+        item = sub['items']['data'][0]
+        if 'price' in item and item['price'] and 'id' in item['price']:
+            rate_plan = item['price']['id']
+        elif 'plan' in item and item['plan'] and 'id' in item['plan']:
+            rate_plan = item['plan']['id']
+
+    if rate_plan:
+        s.rate_plan = rate_plan
     s.expires_date = expires
     s.created_date = created
     s.updated_date = updated
@@ -312,6 +328,7 @@ def fixMemberSubscription(sub):
     db.session.commit()
 
     db.session.add(Logs(member_id=s.member_id,event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_REACTIVATED.id))
+    db.session.commit()
     authutil.kick_backend()
     return
 
@@ -324,12 +341,19 @@ def sanistring(str):
 # an updated credit card
 @blueprint.route('/fix_postpay', methods=['GET','POST'])
 def fix_postpay():
-    # TODO ADD BETTER TEMPLATE
     stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
     checkout_session_id = request.args.get('session_id')
-    checkout_session = stripe.checkout.Session.retrieve(checkout_session_id)
+    if not checkout_session_id:
+        return render_template('message.html', title="Error", message="No checkout session ID provided.")
 
+    isDebug = current_app.config['globalConfig'].Config.get('General','Debug').lower() == "true"
     debug = "Postpay\n"
+
+    try:
+        checkout_session = stripe.checkout.Session.retrieve(checkout_session_id)
+    except BaseException as e:
+        return render_template('message.html', title="Error", message=f"Could not retrieve checkout session: {e}")
+
     debug += f"\n\nid: {checkout_session['id']}\n"
     debug += f"object: {checkout_session['object']}\n"
     debug += f"payment code: {checkout_session['payment_intent']}\n"
@@ -337,98 +361,104 @@ def fix_postpay():
 
     # Get the SetupIntent and Cust
     # Make it the DEFAULT payment
-    si = checkout_session['setup_intent']
-    c = checkout_session['customer']
+    si = checkout_session.get('setup_intent')
+    c = checkout_session.get('customer')
 
-    try:
-        si = stripe.SetupIntent.retrieve(si)
-        debug += f"si: {si}\n"
-        xx = stripe.Customer.modify(
-            c,
-            invoice_settings={
-                'default_payment_method': si['payment_method']
-            },
-        )
-        debug += f"modify: {xx}\n"
+    if si and c:
+        try:
+            if isinstance(si, str):
+                si_obj = stripe.SetupIntent.retrieve(si)
+            else:
+                si_obj = si
+            debug += f"si: {si_obj}\n"
+            pm = si_obj.get('payment_method')
+            if pm:
+                xx = stripe.Customer.modify(
+                    c,
+                    invoice_settings={
+                        'default_payment_method': pm
+                    },
+                )
+                debug += f"modify: {xx}\n"
+        except BaseException as e:
+            debug += f"Error in setting default: {e}\n"
 
-    except BaseException as e:
-        debug += f"Error in setting default: {e}\n"
-
-    # Now let's look at subscriptions:
+    # Process subscriptions for customer c
     ss = stripe.Subscription.list(customer=c)
-    if (len(ss['data']) == 1):
-        s = ss['data'][0]
-        debug += f"\n\n\nSUBSCRIPTION\n\n\n{s}\n"
-        subid = s['items']['data'][0]['subscription']
-        if (s['status'] == "paused" or s['pause_collection'] is not None):
-            debug += f"You have an active PAUSED\n"
-        elif (s['status'] == "trialing"):
-            debug += f"You have an active TRIALING\n"
-        elif (s['status'] == "unpaid"):
-            debug += f"You have an active UNPAID\n"
-        elif (s['status'] == "active"):
-            debug += f"You have an active subscription SubID: {subid}\n"
-            ## Try to pay this
-        # We're done
+    active_subs = [sub for sub in ss.get('data', []) if sub.get('status') in ('active', 'trialing', 'past_due', 'unpaid')]
+
+    message = ""
+    if len(active_subs) > 0:
+        for s in active_subs:
+            subid = s['items']['data'][0]['subscription'] if ('items' in s and 'data' in s['items'] and len(s['items']['data']) > 0) else s['id']
+            debug += f"Active subscription SubID: {subid} (Status: {s.get('status')})\n"
+            
+            # Attempt to pay any open invoices
+            try:
+                open_invoices = stripe.Invoice.list(customer=c, status='open')
+                for inv in open_invoices.get('data', []):
+                    try:
+                        stripe.Invoice.pay(inv['id'])
+                        debug += f"Paid open invoice {inv['id']}\n"
+                    except BaseException as ie:
+                        debug += f"Error paying invoice {inv['id']}: {ie}\n"
+            except BaseException as ie:
+                debug += f"Error listing open invoices: {ie}\n"
+
+            # Refresh subscription state
+            try:
+                refreshed_sub = stripe.Subscription.retrieve(s['id'])
+            except BaseException:
+                refreshed_sub = s
+
+            # Sync with database
+            fixMemberSubscription(refreshed_sub)
+
+        message = "Your credit card payment method has been successfully updated."
     else:
-        debug += f"No active subscription - let's find most recent one\n"
-        ss = stripe.Subscription.list(customer=c,status="ended")
+        debug += f"No active subscription - looking for most recent ended subscription\n"
+        ss_ended = stripe.Subscription.list(customer=c, status="ended")
         recent = None
         mostrecent = None
-        for s in ss['data']:
-            debug += f"Inactive sub: {s.id} {s.cancel_at} {s.ended_at} {s.metadata} Plan: {s.plan} Discounts: {s.discounts}\n"
-            if s.ended_at is not None and (recent is None or s.ended_at > recent):
-                recent = s.ended_at 
+        for s in ss_ended.get('data', []):
+            debug += f"Inactive sub: {s.get('id')} cancel_at: {s.get('cancel_at')} ended_at: {s.get('ended_at')} plan: {s.get('plan')}\n"
+            ended_val = s.get('ended_at') or s.get('canceled_at')
+            if ended_val is not None and (recent is None or ended_val > recent):
+                recent = ended_val
                 mostrecent = s
-            if s.canceled_at is not None and (recent is None or s.canceled_at > recent):
-                recent = s.canceled_at 
-                mostrecent = s
-        s = mostrecent
-        if s is None:
-            debug += "No subscriptions have been found for you. Please email for help\n"
+
+        if mostrecent is None:
+            message = "Your credit card was updated, but no previous subscription was found to reactivate. Please contact info@makeitlabs.com for help."
         else:
-            debug += f"RECENT sub: {s.id} {s.cancel_at} {s.ended_at} {s.metadata} Plan: {s.plan.id}\n\n"
-            debug += f"{s}\n"
+            plan_id = None
+            if mostrecent.get('plan') and mostrecent['plan'].get('id'):
+                plan_id = mostrecent['plan']['id']
+            elif mostrecent.get('items') and mostrecent['items'].get('data') and len(mostrecent['items']['data']) > 0:
+                item = mostrecent['items']['data'][0]
+                price_obj = item.get('price') or item.get('plan')
+                if price_obj and price_obj.get('id'):
+                    plan_id = price_obj['id']
 
+            if plan_id:
+                try:
+                    sub = stripe.Subscription.create(
+                        customer=c,
+                        metadata=mostrecent.get('metadata', {}),
+                        description="Membership renewal",
+                        collection_method="charge_automatically",
+                        items=[{"price": plan_id}]
+                    )
+                    debug += f"NewSub: {sub}\n"
+                    fixMemberSubscription(sub)
+                    message = "Your credit card was updated and your membership has been successfully reactivated!"
+                except BaseException as e:
+                    debug += f"Error Creating new subscription: {e}\n"
+                    message = f"Credit card updated, but error reactivating membership: {e}"
+            else:
+                message = "Credit card updated, but could not determine previous membership plan to reactivate."
 
-            # Plan.id should be same is s.items.data[0].price.id,
-            d = []
-            """
-
-            Military pro coupons are applied to CUSTOMERS.
-            They are automatically applied to subuscriptions
-            without us doing so to the subscruptions themselves
-
-            if len(s.discounts) > 0:
-                if s.discounts == 'militarypro';
-                    d = [{"coupon":"militarypro}]
-            """
-
-            try:
-                sub = stripe.Subscription.create(
-                    customer=c,
-                    metadata= s['metadata'],
-                    description="Membership renewal",
-                    collection_method="charge_automatically",
-                    items = [
-                        {
-                            "price" : s.plan.id,
-                            "discounts": d,
-                            }
-                        ],
-                )
-                debug += f"NewSub: {sub}\n"
-
-                # If we got here succesfully - make sure membership is reactivated for user.
-                fixMemberSubscription(sub)
-
-
-            except BaseException as e:
-                debug += f"Error Creating new subscription: {e}\n"
-
-
-
-    return render_template('debug.html',debug=debug)
+    logger.info(f"Traceback (fix_postpay debug):\n{debug}")
+    return render_template('message.html', title="Membership Updated", message=message, debug=debug if isDebug else None)
 
 def register_pages(app):
 	app.register_blueprint(blueprint)
