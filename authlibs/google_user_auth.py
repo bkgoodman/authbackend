@@ -7,7 +7,8 @@ from flask_dance.consumer.storage.sqla import SQLAlchemyStorage, OAuthConsumerMi
 from flask_login import current_user, login_user, logout_user
 from flask_dance.consumer import oauth_authorized
 from sqlalchemy.orm.exc import NoResultFound
-from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError
+from oauthlib.oauth2 import OAuth2Error
+from oauthlib.oauth2.rfc6749.errors import InvalidClientIdError, MismatchingStateError
 from .db_models import db, Member, OAuth, AnonymousMember, Role, UserRoles, AccessByMember
 from flask_login import LoginManager
 from flask_user import UserManager
@@ -53,6 +54,12 @@ def authinit(app):
 	# TEST - DOESNT WORK authorized_url="https://staging.makeitlabs.com/authit/google_login/google/authorized",
         offline=True
         )
+
+    @google_blueprint.errorhandler(OAuth2Error)
+    def handle_oauth_error(error):
+        logger.warning(f"OAuth error during Google login: {error}")
+        flash("Your login session timed out or was invalid. Please try logging in again.", "warning")
+        return redirect(url_for("google.login"))
 
     google_blueprint.backend = SQLAlchemyStorage(OAuth, db.session,
                                                  user=current_user,

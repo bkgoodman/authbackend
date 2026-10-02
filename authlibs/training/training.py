@@ -402,10 +402,15 @@ def training_delete(trainid):
 @login_required
 def get_endorsements(resid):
   res=[]
-  e = Resource.query.filter(Resource.id==int(resid)).one()
-  if e.permissions:
+  try:
+    rid = int(resid)
+  except ValueError:
+    return (json_dump([]), 400, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  e = Resource.query.filter(Resource.id==rid).one_or_none()
+  if e and e.permissions:
     res = e.permissions.strip().split()
-    return (json_dump(res,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+  return (json_dump(res,indent=2), 200, {'Content-type': 'application/json', 'Content-Language': 'en'})
+
 
   
   
