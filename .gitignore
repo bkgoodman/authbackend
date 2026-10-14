@@ -18,3 +18,4 @@ backups/
 **/*~
 *.docker
 **/*.key
+cgimisc/vars.py
