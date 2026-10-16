@@ -156,6 +156,12 @@ resources = {
                 "img" : "icon_waterjet.png",
                 "cal":"c_188f9bh42ku8ahn2lnqukpc25elbs@resource.calendar.google.com"
                 },
+        "fiber":{
+                "url":"Fiber",
+                "name":"Fiber Laser",
+                "img" : "icon_fiber.png",
+                "cal":"c_188d0nssif766ji6k0jai36vq837g@resource.calendar.google.com"
+                },
         }
 
 @blueprint.route('/', methods=['GET'])
