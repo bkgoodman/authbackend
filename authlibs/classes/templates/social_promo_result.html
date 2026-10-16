@@ -1,0 +1,143 @@
+{% extends "layout_bootstrap.html" %}
+
+{% block body %}
+<div class="container mt-4 mb-5">
+    <div class="row align-items-center mb-3">
+        <div class="col-md-7">
+            <h2>Social Media Graphic Ready</h2>
+            <p class="text-muted mb-0">Your high-resolution promo image is generated and ready to share on Instagram and Facebook.</p>
+        </div>
+        <div class="col-md-5 text-md-right mt-3 mt-md-0">
+            <a href="{{ url_for('classes.social_promo') }}" class="btn btn-outline-secondary mr-2">
+                &larr; Back to Edit
+            </a>
+            <button onclick="downloadPNG()" class="btn btn-success mr-2" id="btnDownloadPNG">
+                &#128247; Download PNG
+            </button>
+            <button onclick="downloadSVG()" class="btn btn-primary" id="btnDownloadSVG">
+                &#128190; Download SVG
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <span class="text-muted small"><strong>Resolution:</strong> 1080 &times; 1350 (4:5 Portrait &bull; Standard Instagram/Facebook feed)</span>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-info" onclick="copyImageToClipboard()" id="btnCopyClip">
+                    Copy to Clipboard
+                </button>
+            </div>
+        </div>
+        <div class="card-body text-center p-3" style="background-color: #0b111e; overflow-x: auto;">
+            <!-- SVG Container -->
+            <div id="svg-container" style="display: inline-block; max-width: 680px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: 12px; overflow: hidden;">
+                {{ svg | safe }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getSvgString() {
+    const svgElement = document.querySelector('#svg-container svg');
+    if (!svgElement) return null;
+    return new XMLSerializer().serializeToString(svgElement);
+}
+
+function downloadSVG() {
+    const svgString = getSvgString();
+    if (!svgString) return;
+    
+    const blob = new Blob([svgString], {type: "image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "MakeItLabs_Classes_Promo.svg";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function renderSvgToCanvas(callback) {
+    const svgElement = document.querySelector('#svg-container svg');
+    if (!svgElement) return;
+
+    const svgString = getSvgString();
+    const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = function() {
+        const width = parseInt(svgElement.getAttribute('width') || 1080);
+        const height = parseInt(svgElement.getAttribute('height') || 1350);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        // Draw image
+        ctx.drawImage(img, 0, 0, width, height);
+        URL.revokeObjectURL(url);
+        callback(canvas);
+    };
+    img.onerror = function() {
+        URL.revokeObjectURL(url);
+        alert("Unable to render image to canvas. You can download the SVG directly.");
+    };
+    img.src = url;
+}
+
+function downloadPNG() {
+    const btn = document.getElementById('btnDownloadPNG');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "Rendering PNG...";
+    btn.disabled = true;
+
+    renderSvgToCanvas(function(canvas) {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+
+        const pngUrl = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = "MakeItLabs_Classes_Promo.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+}
+
+function copyImageToClipboard() {
+    if (!navigator.clipboard || !window.ClipboardItem) {
+        alert("Clipboard copying of images is not supported in this browser. Please use 'Download PNG'.");
+        return;
+    }
+
+    const btn = document.getElementById('btnCopyClip');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = "Copying...";
+
+    renderSvgToCanvas(function(canvas) {
+        canvas.toBlob(function(blob) {
+            if (!blob) {
+                btn.innerHTML = originalText;
+                alert("Failed to create image blob.");
+                return;
+            }
+            navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+            ]).then(function() {
+                btn.innerHTML = "&#10003; Copied!";
+                setTimeout(function() { btn.innerHTML = originalText; }, 2500);
+            }).catch(function(err) {
+                btn.innerHTML = originalText;
+                alert("Could not copy image: " + err);
+            });
+        }, 'image/png');
+    });
+}
+</script>
+{% endblock %}

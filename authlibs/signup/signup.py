@@ -219,27 +219,83 @@ def postpay():
 
     r = redis.Redis()
     ses = r.get("checkoutsession/"+checkout_session['id'])
-    if ses is None:
-        debug += "No session data"
-    sessiondata = json.loads(ses)
-    debug += "Session data: "+ses.decode('utf8')
+    sessiondata = None
+    if ses is not None:
+        try:
+            sessiondata = json.loads(ses.decode('utf8') if isinstance(ses, bytes) else ses)
+            debug += "Session data: " + (ses.decode('utf8') if isinstance(ses, bytes) else str(ses)) + "\n"
+        except Exception as e:
+            debug += f"Failed to parse session data: {e}\n"
+    else:
+        debug += "No session data in Redis\n"
     
     # Now we have a real Stripe subscription, and the data the user registered with.
     # Put it all together.
 
-    sub =  stripe.Subscription.retrieve(checkout_session['subscription'])
+    sub = stripe.Subscription.retrieve(checkout_session['subscription'])
     debug += "\n\nSubscription:\n\n"
     debug += str(sub)
+
+    # Reconstruct sessiondata if Redis session expired or was missing
+    if sessiondata is None:
+        sessiondata = {}
+        meta_names = sub.get('metadata', {}).get('names', '')
+        meta_emails = sub.get('metadata', {}).get('emails', '')
+        names_list = [n.strip() for n in meta_names.split(',')] if meta_names else []
+        emails_list = [e.strip() for e in meta_emails.split(',')] if meta_emails else []
+
+        if names_list:
+            parts = names_list[0].split(' ', 1)
+            sessiondata['firstname'] = parts[0]
+            sessiondata['lastname'] = parts[1] if len(parts) > 1 else ''
+        else:
+            sessiondata['firstname'] = 'Member'
+            sessiondata['lastname'] = ''
+
+        cust_details = checkout_session.get('customer_details') or {}
+        sessiondata['email'] = emails_list[0] if emails_list else (cust_details.get('email') or '')
+        sessiondata['phone'] = cust_details.get('phone') or ''
+
+        plan_id = sub.get('plan', {}).get('id', 'hobbyist')
+        sessiondata['mtype'] = plan_id
+
+        if len(names_list) > 1 and len(emails_list) > 1:
+            sessiondata['mtype'] = 'produo'
+            parts2 = names_list[1].split(' ', 1)
+            sessiondata['firstname2'] = parts2[0]
+            sessiondata['lastname2'] = parts2[1] if len(parts2) > 1 else ''
+            sessiondata['email2'] = emails_list[1]
+            sessiondata['phone2'] = ''
+
+    # Determine customer's full name from subscription metadata or session data
+    cust_name = sub.get('metadata', {}).get('names')
+    if not cust_name and sessiondata:
+        cust_name = f"{sessiondata.get('firstname', '')} {sessiondata.get('lastname', '')}".strip()
+        if sessiondata.get('mtype') == 'produo' and sessiondata.get('firstname2'):
+            cust_name += f", {sessiondata.get('firstname2', '')} {sessiondata.get('lastname2', '')}".strip()
+
+    # Also set the Customer Name and Description to their name in Stripe!
+    if cust_name and sub.get('customer'):
+        cust_update = {
+            'name': cust_name,
+            'description': cust_name
+        }
+        if sessiondata.get('phone'):
+            cust_update['phone'] = sessiondata['phone']
+        if sessiondata.get('email'):
+            cust_update['email'] = sessiondata['email']
+
+        try:
+            stripe.Customer.modify(sub['customer'], **cust_update)
+            debug += f"\n\nUpdated Customer {sub['customer']} with {cust_update}\n"
+            logger.info(f"Signup: updated customer {sub['customer']} with {cust_update}")
+        except BaseException as e:
+            debug += f"\n\nError updating customer name: {e}\n"
+            logger.error(f"Signup: failed to update customer name for {sub['customer']}: {e}")
 
     # Set the payment method from this subscription as the customer's default
     # invoice payment method. Without this, the card is attached but not the
     # default, which causes vending/consumable charges to fail.
-    # Also set the Customer Description to their name!
-    
-    cust_update = {}
-    if 'names' in sub.get('metadata', {}):
-        cust_update['description'] = sub['metadata']['names']
-
     try:
         pm = sub.get('default_payment_method')
         if pm is None:
@@ -255,14 +311,15 @@ def postpay():
             # Fallback 2: use most recently attached card (same as fix script)
             try:
                 attached_pms = stripe.PaymentMethod.list(customer=sub['customer'], type="card")
-                if attached_pms['data']:
+                if attached_pms and attached_pms.get('data'):
                     pm = attached_pms['data'][0].id
                     debug += f"\n\nUsing attached card as fallback: {pm}\n"
             except BaseException as e3:
                 debug += f"\n\nAttached PM fallback failed: {e3}\n"
         if pm:
-            cust_update['invoice_settings'] = {'default_payment_method': pm}
+            stripe.Customer.modify(sub['customer'], invoice_settings={'default_payment_method': pm})
             debug += f"\n\nSet default payment method: {pm}\n"
+            logger.info(f"Signup: set default payment method {pm} for customer {sub['customer']}")
         else:
             debug += "\n\nWARNING: No payment method found to set as default\n"
             logger.warning(f"Signup: no payment method found for customer {sub['customer']}")
@@ -270,20 +327,11 @@ def postpay():
         debug += f"\n\nError setting default payment method: {e}\n"
         logger.error(f"Signup: failed to set default payment method for customer {sub['customer']}: {e}")
 
-    if cust_update:
-        try:
-            stripe.Customer.modify(sub['customer'], **cust_update)
-            debug += f"\n\nUpdated Customer {sub['customer']} with {cust_update}\n"
-        except BaseException as e:
-            debug += f"\n\nError updating customer: {e}\n"
-            logger.error(f"Signup: failed to update customer {sub['customer']}: {e}")
-
-    # Add subscription data into Redis for quick reference for 
-
+    # Add subscription data into Redis for quick reference
     sessiondata['subscription'] = checkout_session['subscription']
 
-    r.set("checkoutsession/"+checkout_session['id'],json.dumps(sessiondata))
-    r.expire("checkoutsession/"+checkout_session['id'],600)
+    r.set("checkoutsession/"+checkout_session['id'], json.dumps(sessiondata))
+    r.expire("checkoutsession/"+checkout_session['id'], 86400)
 
     plan = sub['plan']['id']
     planname = "hobbyist"
@@ -407,6 +455,7 @@ def payment():
     baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
+        customer_email=request.form.get("email"),
         line_items=[ line_item ],
         mode="subscription",
         discounts = discounts,
@@ -433,8 +482,8 @@ def payment():
         sessiondata["phone2"] = request.form.get("phone2")
         sessiondata["email2"] = request.form.get("email2")
             
-    r.set("checkoutsession/"+session['id'],json.dumps(sessiondata))
-    r.expire("checkoutsession/"+session['id'],600)
+    r.set("checkoutsession/"+session['id'], json.dumps(sessiondata))
+    r.expire("checkoutsession/"+session['id'], 86400)
     return redirect(session.url, code=303)
 
 @blueprint.route('/success', methods=['GET','POST'])

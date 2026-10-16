@@ -53,6 +53,12 @@ def reactivate_subscription(customer, custid, subid, debug=""):
                 }
             ],
         )
+        # Ensure customer name and description are set in Stripe
+        if 'names' in mostrecent.get('metadata', {}):
+            try:
+                stripe.Customer.modify(custid, name=mostrecent['metadata']['names'], description=mostrecent['metadata']['names'])
+            except BaseException as ce:
+                logger.warning(f"Reactivate: error updating customer name/desc for {custid}: {ce}")
         # Update local database
         fixMemberSubscription(sub)
         return render_template('message.html', title="Membership Reactivated",
@@ -382,6 +388,33 @@ def fix_postpay():
                 debug += f"modify: {xx}\n"
         except BaseException as e:
             debug += f"Error in setting default: {e}\n"
+
+    # Also check if customer name/description in Stripe is missing or starts with "MakeIt Labs"
+    if c:
+        try:
+            cust_obj = stripe.Customer.retrieve(c)
+            if cust_obj and (not cust_obj.get('name') or not cust_obj.get('description') or (cust_obj.get('description') and cust_obj['description'].startswith("MakeIt Labs"))):
+                cust_update = {}
+                found_name = None
+                ss_temp = stripe.Subscription.list(customer=c)
+                for s_item in ss_temp.get('data', []):
+                    if s_item.get('metadata', {}).get('names'):
+                        found_name = s_item['metadata']['names']
+                        break
+                if not found_name and cust_obj.get('email'):
+                    m = Member.query.filter(or_(func.lower(Member.email) == func.lower(cust_obj['email']), func.lower(Member.alt_email) == func.lower(cust_obj['email']))).first()
+                    if m:
+                        found_name = f"{m.firstname} {m.lastname}".strip() or m.member.replace('.', ' ')
+                if found_name:
+                    if not cust_obj.get('name'):
+                        cust_update['name'] = found_name
+                    if not cust_obj.get('description') or (cust_obj.get('description') and cust_obj['description'].startswith("MakeIt Labs")):
+                        cust_update['description'] = found_name
+                    if cust_update:
+                        stripe.Customer.modify(c, **cust_update)
+                        debug += f"Updated customer name/desc in Stripe: {cust_update}\n"
+        except BaseException as ce:
+            debug += f"Error checking/updating customer name: {ce}\n"
 
     # Process subscriptions for customer c
     ss = stripe.Subscription.list(customer=c)
