@@ -1,4 +1,4 @@
-<svg width="{{ svg_width|default(1080) }}" height="{{ svg_height|default(1350) }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {{ svg_width|default(1080) }} {{ svg_height|default(1350) }}">
+<svg width="{{ svg_width|default(1080) }}" height="{{ svg_height|default(1350) }}" viewBox="0 0 {{ svg_width|default(1080) }} {{ svg_height|default(1350) }}" xmlns="http://www.w3.org/2000/svg" style="display: block; width: 100%; height: auto; max-width: 100%;">
   <defs>
     <!-- Background Gradient -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -216,7 +216,8 @@
 
         <!-- Teaser Description -->
         {% if e.summary_lines %}
-          <text x="{{ card_x + 20 }}" y="{{ card_y + 405 }}" fill="#94A3B8" font-size="16.5" font-weight="400" class="font-sans">
+          {% set summary_y = card_y + 322 + (e.title_lines|length) * 29 + 14 %}
+          <text x="{{ card_x + 20 }}" y="{{ summary_y }}" fill="#94A3B8" font-size="16.5" font-weight="400" class="font-sans">
             {% for line in e.summary_lines %}
               <tspan x="{{ card_x + 20 }}" dy="{{ '0' if loop.first else '23' }}">{{ line }}</tspan>
             {% endfor %}

@@ -76,7 +76,7 @@ def categorize_class(name):
         cats.append("woodworking")
     if any(k in n for k in ["weld", "metal", "machin", "mill", "trak", "bridgeport", "pewter"]):
         cats.append("metalworking")
-    if any(k in n for k in ["laser", "kern", "epilog", "mopa", "cnc", "router", "waterjet"]):
+    if any(k in n for k in ["laser", "kern", "epilog", "mopa", "fiber", "cnc", "router", "waterjet"]):
         cats.append("laser-cnc")
     if any(k in n for k in ["ceramic", "glaz", "glass", "pottery", "art", "jewelry", "wire wrap", "apparel", "mat board", "ornament"]):
         cats.append("ceramics-arts")

@@ -179,7 +179,7 @@ def categorize_class_promo(name):
         return "Woodworking"
     if any(k in n for k in ["weld", "metal", "machin", "mill", "trak", "bridgeport", "pewter", "plasma"]):
         return "Metal & Welding"
-    if any(k in n for k in ["laser", "kern", "epilog", "mopa", "cnc", "router", "waterjet"]):
+    if any(k in n for k in ["laser", "kern", "epilog", "mopa", "fiber", "cnc", "router", "waterjet"]):
         return "Laser & CNC"
     if any(k in n for k in ["ceramic", "glaz", "glass", "pottery", "art", "jewelry", "wire wrap", "apparel", "mat board", "ornament", "sewing", "embroidery"]):
         return "Arts & Crafts"
@@ -387,7 +387,7 @@ def social_promo_generate():
             e['clip_rx'] = 12
             e['title_lines'] = wrap_text_lines(e['title'], max_chars=28, max_lines=2)
             e['summary_lines'] = wrap_text_lines(e['summary'], max_chars=38, max_lines=2)
-            e['cat_pill_w'] = max(90, len(e.get('category', '')) * 9 + 18)
+            e['cat_pill_w'] = max(90, len(e.get('category', '')) * 10 + 26)
         else: # 1 hero
             e['clip_x'] = 65
             e['clip_y'] = 265
