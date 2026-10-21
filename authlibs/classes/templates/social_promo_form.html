@@ -40,13 +40,13 @@
                         </div>
                         <div class="form-group col-md-4">
                             <label for="subhead"><strong>Subhead / Tagline:</strong></label>
-                            <input type="text" id="subhead" name="subhead" value="Hands-on Making &bull; Open to the Public &bull; Nashua, NH" class="form-control" placeholder="e.g. Learn a new skill at MakeIt Labs">
+                            <input type="text" id="subhead" name="subhead" value="Hands-on Making • Open to the Public • Nashua, NH" class="form-control" placeholder="e.g. Learn a new skill at MakeIt Labs">
                         </div>
                         <div class="form-group col-md-3">
                             <label for="aspect_ratio"><strong>Image Format:</strong></label>
                             <select id="aspect_ratio" name="aspect_ratio" class="form-control">
-                                <option value="portrait" selected>Instagram 4:5 (1080 &times; 1350) &bull; Feed &amp; Story</option>
-                                <option value="square">Square 1:1 (1080 &times; 1080) &bull; Grid</option>
+                                <option value="portrait" selected>Instagram 4:5 (1080 &times; 1350) • Feed &amp; Story</option>
+                                <option value="square">Square 1:1 (1080 &times; 1080) • Grid</option>
                             </select>
                         </div>
                     </div>
@@ -58,14 +58,24 @@
             <div class="row" id="classesGrid">
                 {% for c in classes %}
                 {% set idx = loop.index0 %}
+                {% set is_default = (idx < 3) %}
                 <div class="col-lg-6 mb-4">
-                    <div class="card h-100 class-select-card shadow-sm" id="card_{{ idx }}" style="transition: all 0.2s ease;">
+                    <div class="card h-100 class-select-card shadow-sm {% if is_default %}is-selected{% endif %}" 
+                         id="card_{{ idx }}" 
+                         data-idx="{{ idx }}"
+                         style="cursor: pointer; transition: all 0.2s ease;">
                         <div class="card-body">
                             <div class="d-flex align-items-start">
                                 <!-- Checkbox -->
                                 <div class="custom-control custom-checkbox mr-3 mt-1">
-                                    <input type="checkbox" class="custom-control-input class-checkbox" id="check_{{ idx }}" name="selected_indices" value="{{ idx }}" data-idx="{{ idx }}">
-                                    <label class="custom-control-label" for="check_{{ idx }}"></label>
+                                    <input type="checkbox" 
+                                           class="custom-control-input class-checkbox" 
+                                           id="check_{{ idx }}" 
+                                           name="selected_indices" 
+                                           value="{{ idx }}" 
+                                           data-idx="{{ idx }}" 
+                                           {% if is_default %}checked{% endif %}>
+                                    <label class="custom-control-label" for="check_{{ idx }}" style="cursor: pointer;"></label>
                                 </div>
 
                                 <!-- Thumbnail Image -->
@@ -95,7 +105,7 @@
                             </div>
 
                             <!-- Expandable customization inputs for this selected card -->
-                            <div class="mt-3 pt-3 border-top" id="custom_fields_{{ idx }}" style="display: none;">
+                            <div class="mt-3 pt-3 border-top custom-fields-panel" id="custom_fields_{{ idx }}">
                                 <div class="small text-muted mb-2 font-weight-bold text-uppercase">Customize Text for Graphic:</div>
                                 <div class="form-row">
                                     <div class="form-group col-md-8 mb-2">
@@ -136,7 +146,7 @@
                         <small class="text-muted d-none d-sm-inline">(Recommendation: 2, 3, or 4 classes look best)</small>
                     </div>
                     <div>
-                        <button type="submit" id="btnSubmit" class="btn btn-primary btn-lg" disabled>
+                        <button type="submit" id="btnSubmit" class="btn btn-primary btn-lg">
                             Generate Graphic &rarr;
                         </button>
                     </div>
@@ -147,10 +157,22 @@
 </div>
 
 <style>
+.class-select-card {
+    border: 2px solid transparent;
+}
+.class-select-card:hover {
+    border-color: #93c5fd;
+}
 .class-select-card.is-selected {
-    border-color: #0284c7;
+    border-color: #0284c7 !important;
     background-color: #f0f9ff;
     box-shadow: 0 4px 14px rgba(2, 132, 199, 0.15) !important;
+}
+.class-select-card .custom-fields-panel {
+    display: none;
+}
+.class-select-card.is-selected .custom-fields-panel {
+    display: block;
 }
 </style>
 
@@ -158,14 +180,13 @@
 function handleSelectChange(idx) {
     const cb = document.getElementById('check_' + idx);
     const card = document.getElementById('card_' + idx);
-    const customFields = document.getElementById('custom_fields_' + idx);
 
-    if (cb.checked) {
-        card.classList.add('is-selected');
-        if (customFields) customFields.style.display = 'block';
-    } else {
-        card.classList.remove('is-selected');
-        if (customFields) customFields.style.display = 'none';
+    if (cb && card) {
+        if (cb.checked) {
+            card.classList.add('is-selected');
+        } else {
+            card.classList.remove('is-selected');
+        }
     }
 
     updateCounter();
@@ -186,7 +207,7 @@ function updateCounter() {
             badge.textContent = `${count} Selected (Optimal)`;
             badge.className = "badge badge-success";
         } else if (count > 4) {
-            badge.textContent = `${count} Selected (Warning: Max 4 recommended)`;
+            badge.textContent = `${count} Selected (Warning: Max 4 will be used)`;
             badge.className = "badge badge-warning";
         } else {
             badge.textContent = `${count} Selected (Pick at least 2)`;
@@ -208,23 +229,53 @@ function updateCounter() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+function validatePromoForm() {
+    const checked = document.querySelectorAll('.class-checkbox:checked');
+    if (checked.length === 0) {
+        alert("Please select at least 1 class before generating the graphic.");
+        return false;
+    }
+    return true;
+}
+
+function initPromoForm() {
+    const grid = document.getElementById('classesGrid');
+    if (grid) {
+        grid.addEventListener('click', function(e) {
+            const card = e.target.closest('.class-select-card');
+            if (!card) return;
+            const tag = (e.target.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || tag === 'select' || tag === 'label' || tag === 'button') {
+                return;
+            }
+            const idx = card.getAttribute('data-idx');
+            const cb = document.getElementById('check_' + idx);
+            if (cb) {
+                cb.checked = !cb.checked;
+                handleSelectChange(idx);
+            }
+        });
+    }
+
     document.addEventListener('change', function(e) {
         if (e.target && e.target.classList.contains('class-checkbox')) {
-            handleSelectChange(e.target.value);
+            const idx = e.target.getAttribute('data-idx') || e.target.value;
+            handleSelectChange(idx);
         }
     });
 
-    // Check first 3 by default if none checked
-    const checkboxes = document.querySelectorAll('.class-checkbox');
-    if (checkboxes.length > 0) {
-        const toSelect = Math.min(3, checkboxes.length);
-        for (let i = 0; i < toSelect; i++) {
-            checkboxes[i].checked = true;
-            handleSelectChange(checkboxes[i].value);
-        }
+    const form = document.getElementById('promoForm');
+    if (form) {
+        form.onsubmit = validatePromoForm;
     }
+
     updateCounter();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPromoForm);
+} else {
+    initPromoForm();
+}
 </script>
 {% endblock %}
