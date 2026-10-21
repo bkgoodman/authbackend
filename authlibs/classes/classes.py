@@ -167,9 +167,32 @@ def get_logo_data_uri():
     ]:
         if os.path.exists(p):
             try:
-                with open(p, "rb") as f:
-                    b64 = base64.b64encode(f.read()).decode("utf-8")
-                    return f"data:image/svg+xml;base64,{b64}"
+                with open(p, "r", encoding="utf-8") as f:
+                    content = f.read()
+                cleaned = re.sub(r'<foreignObject[^>]*>(?:.*?</foreignObject>)?', '', content, flags=re.DOTALL)
+                b64 = base64.b64encode(cleaned.encode("utf-8")).decode("utf-8")
+                return f"data:image/svg+xml;base64,{b64}"
+            except Exception:
+                pass
+    return None
+
+def get_logo_svg_inner():
+    for p in [
+        os.path.join(current_app.root_path, "..", "static", "MakeIt Labs Logo 2016.svg"),
+        os.path.join(current_app.root_path, "static", "MakeIt Labs Logo 2016.svg"),
+        os.path.join(os.path.abspath('.'), "static", "MakeIt Labs Logo 2016.svg")
+    ]:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    text = f.read()
+                m = re.search(r'(<g\s+inkscape:label=\"Layer 1\".*?</g>\s*</svg>)', text, re.DOTALL)
+                if m:
+                    inner = m.group(1).rsplit('</svg>', 1)[0].strip()
+                    inner = re.sub(r'inkscape:[a-zA-Z0-9_-]+=\"[^\"]*\"', '', inner)
+                    inner = re.sub(r'sodipodi:[a-zA-Z0-9_-]+=\"[^\"]*\"', '', inner)
+                    inner = re.sub(r'<foreignObject[^>]*>(?:.*?</foreignObject>)?', '', inner, flags=re.DOTALL)
+                    return inner
             except Exception:
                 pass
     return None
@@ -337,9 +360,16 @@ def social_promo_generate():
         selected_indices = [k.replace('include_', '') for k in request.form.keys() if k.startswith('include_')]
 
     try:
-        indices = sorted([int(i) for i in selected_indices])
+        indices = sorted([int(i) for i in selected_indices if str(i).isdigit()])
     except Exception:
         indices = []
+
+    if not indices:
+        flash("No classes were selected. Please select 1 to 4 classes to generate a promo graphic.", "warning")
+        return redirect(url_for('classes.social_promo'))
+
+    if len(indices) > 4:
+        indices = indices[:4]
 
     headline = request.form.get('headline', 'UPCOMING WORKSHOPS & CLASSES').strip()
     subhead = request.form.get('subhead', 'Hands-on Making • Open to the Public • Nashua, NH').strip()
@@ -412,15 +442,19 @@ def social_promo_generate():
             e['cat_pill_w'] = max(120, len(e.get('category', '')) * 12 + 24)
 
     logo_data_uri = get_logo_data_uri()
+    logo_svg_inner = get_logo_svg_inner()
+    footer_text = "MAKEITLABS.COM • 25 CROWN ST, NASHUA, NH • DETAILS AT MAKEITLABS.COM"
 
     svg = render_template(
         'social_promo_svg.xml',
         events=events,
         headline=headline,
         subhead=subhead,
+        footer_text=footer_text,
         svg_width=svg_width,
         svg_height=svg_height,
-        logo_data_uri=logo_data_uri
+        logo_data_uri=logo_data_uri,
+        logo_svg_inner=logo_svg_inner
     )
 
     return render_template('social_promo_result.html', svg=svg)
