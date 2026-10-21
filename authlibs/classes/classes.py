@@ -3,6 +3,7 @@ from flask_user import current_user, login_required
 from authlibs.db_models import db, Event, EventDate, EventInstructor, Member
 from authlibs import utilities
 import datetime
+import re
 import os
 import json
 import base64
@@ -269,6 +270,18 @@ def get_promo_classes(force_refresh=False):
                     except Exception:
                         date_str = start_str
 
+                    series_id = next_item.get("series_id")
+                    item_url = next_item.get("url", "")
+                    if series_id:
+                        if "tickets-" in item_url:
+                            item_url = re.sub(r"tickets-\d+", f"tickets-{series_id}", item_url)
+                        else:
+                            item_url = f"https://www.eventbrite.com/e/{series_id}"
+                    if item_url.startswith("http://"):
+                        item_url = "https://" + item_url[7:]
+                    if logo_url and logo_url.startswith("http://"):
+                        logo_url = "https://" + logo_url[7:]
+
                     promo_list.append({
                         "id": next_item.get("id"),
                         "title": title,
@@ -276,7 +289,7 @@ def get_promo_classes(force_refresh=False):
                         "date_str": date_str,
                         "summary": summary,
                         "category": categorize_class_promo(title),
-                        "url": next_item.get("url", "")
+                        "url": item_url
                     })
                 if promo_list:
                     return promo_list

@@ -268,13 +268,13 @@ def fetch_events_from_eventbrite(force_refresh=False):
         cats = categorize_class(title)
 
         # Calculate sold out status across upcoming instances
-        sold_out_list = [
-            bool(x.get("ticket_availability", {}).get("is_sold_out", False))
-            for x in upcoming_items
+        available_items = [
+            x for x in upcoming_items
+            if not x.get("ticket_availability", {}).get("is_sold_out", False)
         ]
-        available_count = sum(1 for s in sold_out_list if not s)
-        all_sold = all(sold_out_list)
-        any_sold = any(sold_out_list)
+        available_count = len(available_items)
+        all_sold = (available_count == 0)
+        any_sold = (len(upcoming_items) > available_count)
 
         # Check waitlist on next or upcoming item
         waitlist_available = any(
@@ -282,11 +282,32 @@ def fetch_events_from_eventbrite(force_refresh=False):
             for x in upcoming_items
         )
 
+        # Prefer master series URL for recurring classes so Eventbrite shows all dates,
+        # or link to the first open date if not a series
+        series_id = next_item.get("series_id")
+        base_item_url = next_item.get("url") or EVENTBRITE_PROFILE_URL
+
+        if series_id:
+            if "tickets-" in base_item_url:
+                event_url = re.sub(r"tickets-\d+", f"tickets-{series_id}", base_item_url)
+            else:
+                event_url = f"https://www.eventbrite.com/e/{series_id}"
+        elif available_items and available_items[0].get("url"):
+            event_url = available_items[0]["url"]
+        else:
+            event_url = base_item_url
+
+        if event_url.startswith("http://"):
+            event_url = "https://" + event_url[7:]
+
+        if logo_url and logo_url.startswith("http://"):
+            logo_url = "https://" + logo_url[7:]
+
         classes.append({
             "id": next_item.get("id"),
             "series_id": next_item.get("series_id"),
             "title": title,
-            "url": next_item.get("url", EVENTBRITE_PROFILE_URL),
+            "url": event_url,
             "logo_url": logo_url,
             "summary": summary,
             "count": len(upcoming_items),
@@ -367,8 +388,12 @@ def render_classes_page(force_refresh=False):
                 btn_text = "Sold Out &bull; View on Eventbrite"
                 btn_class = "btn-register btn-soldout"
         else:
-            btn_text = "Register on Eventbrite"
-            btn_class = "btn-register"
+            if c["count"] > 1:
+                btn_text = "Select a Date on Eventbrite"
+                btn_class = "btn-register"
+            else:
+                btn_text = "Register on Eventbrite"
+                btn_class = "btn-register"
 
         soldout_attr = "true" if is_sold_out else "false"
         card_extra_class = "is-sold-out" if is_sold_out else ""
