@@ -156,6 +156,12 @@ resources = {
                 "img" : "icon_waterjet.png",
                 "cal":"c_188f9bh42ku8ahn2lnqukpc25elbs@resource.calendar.google.com"
                 },
+        "hamshack":{
+                "url":"Hamshack",
+                "name":"Hamshack",
+                "img" : "icon_hamshack.png",
+                "cal":"makeitlabs.com_18871j42ru8lgitri015g0rs3c8la@resource.calendar.google.com",
+                },
         "fiber":{
                 "url":"fiber",
                 "name":"Fiber Laser",
