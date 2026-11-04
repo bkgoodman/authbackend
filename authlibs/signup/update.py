@@ -334,6 +334,7 @@ def fixMemberSubscription(sub):
     db.session.commit()
 
     db.session.add(Logs(member_id=s.member_id,event_type=eventtypes.RATTBE_LOGEVENT_MEMBER_REACTIVATED.id))
+    db.session.add(Logs(member_id=s.member_id,event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_ACTIVATED_PAYSYS.id,message="Subscription reactivated"))
     db.session.commit()
     authutil.kick_backend()
     return
