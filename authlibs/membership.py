@@ -84,9 +84,8 @@ def syncWithSubscriptions(isTest=False):
         db.session.add(Logs(member_id=mid, event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_CANCELED_PAYSYS.id,
                             message="Subscription canceled/expired via payment system"))
 
-      payments.clear_pre_sync_active_members()
-
     db.session.commit()
+    payments.clear_pre_sync_active_members()
     logger.debug("New Member/Sub data Committed")
     return 0
   except OperationalError as e:
