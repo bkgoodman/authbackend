@@ -2,7 +2,7 @@
 
 from ..templateCommon import  *
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from .. import accesslib
 from .. import ago
 import subprocess
@@ -109,10 +109,10 @@ def logs():
                 q = q.filter(or_(*filter_group))
 
         if 'input_date_start' in request.values and request.values['input_date_start'] != "":
-            dt = datetime.datetime.strptime(request.values['input_date_start'],"%m/%d/%Y")
+            dt = datetime.strptime(request.values['input_date_start'],"%m/%d/%Y")
             q = q.filter(Logs.time_reported >= dt)
         if 'input_date_end' in request.values and request.values['input_date_end'] != "":
-            dt = datetime.datetime.strptime(request.values['input_date_end'],"%m/%d/%Y")+datetime.timedelta(days=1)
+            dt = datetime.strptime(request.values['input_date_end'],"%m/%d/%Y")+timedelta(days=1)
             q = q.filter(Logs.time_reported < dt)
 
 

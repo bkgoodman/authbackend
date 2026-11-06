@@ -28,15 +28,11 @@ setupDone = False
 _pre_sync_active_members = None
 
 def is_sub_active(sub, now=None):
-    """Check if a subscription record is considered active and unexpired."""
+    """Check if a subscription record is considered active in the payment system."""
     if not sub:
         return False
-    if now is None:
-        now = datetime.datetime.utcnow()
     act = str(sub.active).strip().lower()
     if act not in ('true', '1'):
-        return False
-    if not sub.expires_date or sub.expires_date <= now:
         return False
     return True
 
