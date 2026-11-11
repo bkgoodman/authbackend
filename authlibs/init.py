@@ -176,9 +176,18 @@ class ConfigClass(object):
 
   # SQLAlchemy setting
   SQLALCHEMY_BINDS = {
-          'main': "sqlite:///"+Database,
-          'logs': "sqlite:///"+LogDatabase,
+          'main': {
+              'url': "sqlite:///"+Database,
+              'connect_args': {'check_same_thread': False},
+          },
+          'logs': {
+              'url': "sqlite:///"+LogDatabase,
+              'connect_args': {'check_same_thread': False},
+          },
     }
+  SQLALCHEMY_ENGINE_OPTIONS = {
+      'connect_args': {'check_same_thread': False},
+  }
   SQLALCHEMY_TRACK_MODIFICATIONS = False
 
   # Load Waiver system data from file
