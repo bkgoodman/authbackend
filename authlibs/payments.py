@@ -115,7 +115,6 @@ def filterSubscriptions(subscriptions):
     noplan = list()
     nouserid = list()
     validsubs = list()
-    print("Filtering subscriptions - remember to check pinpay 'userid' to 'name' change")
     for sub in subscriptions:
         valid = True
         if not sub['email']:
@@ -251,16 +250,7 @@ def updatePaymentData(modules=None):
     for module in modules.split(","):
         logger.info("Module: %s" % module)
         subs = getSubscriptions(module)
-        print ("""
-
-
-        NOW WE HAVE PAY DATA
-
-
-        """)
-        logger.info(subs)
         fsubs = filterSubscriptions(subs)
-        logger.info(fsubs)
         # Snapshot existing subscription -> member_id links before clearing so
         # nightly sync never drops an already-linked member association.
         existing_subs = Subscription.query.filter(

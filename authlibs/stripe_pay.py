@@ -53,8 +53,7 @@ def getSubscriptions(status=None):
     return subscriptions
 
 def reportError(s):
-    print("ERROR: %s" % s)
-    logger.error("Stripe Error: %s" %s)
+    logger.warning("Stripe metadata notice: %s" % s)
 
 def getSubscriptionsJSON():
     '''Get a payment system independent JSON structure with subscription data'''
@@ -81,19 +80,19 @@ def getSubscriptionsJSON():
         phone = ''
         need_emails = True
         if 'plan' not in s:
-            print ("ERROR - no plan in ",s['customer'])
+            logger.debug("ERROR - no plan in %s" % s['customer'])
             continue
         if s['plan'] is None:
-            print ("NULL plan for  ",s['customer'])
+            logger.debug("NULL plan for %s" % s['customer'])
             continue
         if 'id' not in s['plan']:
-            print ("ERROR - no id in plan for ",s['customer'])
+            logger.debug("ERROR - no id in plan for %s" % s['customer'])
             continue
         plan = s['plan']['id']
 
         # NEW: Check for archived metadata flag to help with old records we still want to retain
         if 'archived' in s['metadata']:
-            print("Archived subscription (%s, %s), ignoring")
+            logger.debug("Archived subscription (%s), ignoring" % subid)
         # Customize: This section is specific to our Plan names in Stripe
         if plan in ['hobbyist']:
             plantype = "hobbyist"
@@ -105,7 +104,7 @@ def getSubscriptionsJSON():
             plantype = 'hobbyist'
         elif "WORKSPACE" in plan:
             # TODO: More alerting...
-            print("Workspace check: %s  Status: %s (%s)" % (s['plan']['id'], s['status'], subid))
+            logger.debug("Workspace check: %s Status: %s (%s)" % (s['plan']['id'], s['status'], subid))
             #continue BKG wants to remove
         else:
             plantype = "unknown"
@@ -116,7 +115,7 @@ def getSubscriptionsJSON():
             active = 'false (%s)' % s['status']
             # Remove "Cancelled" from list? this seems to show duplicate records for old subs.
             if s['status'] == "cancelled":
-                print("Cancelled entry, may simply be old subscription: %s : %s : %s" % (s['plan']['id'], subid, s['metadata']))
+                logger.debug("Cancelled entry, may simply be old subscription: %s : %s : %s" % (s['plan']['id'], subid, s['metadata']))
                 continue
 
 
@@ -141,14 +140,16 @@ def getSubscriptionsJSON():
         # - Expecting comma-delimited!
         if need_emails:
           if s['metadata'] == {}:
-            reportError("STRIPE PAYMENTS: SUBSCRIPTION %s: No metadata" % subid)
+            if active == 'true':
+              reportError("STRIPE PAYMENTS: ACTIVE SUBSCRIPTION %s: No metadata" % subid)
             continue
           if 'names' in s['metadata']:
             names = s['metadata']['names'].split(",")
           if 'emails' in s['metadata']:
             emails = s['metadata']['emails'].split(",")
           if len(names) != len(emails) or len(names) == 0:
-            reportError("STRIPE PAYMENTS: SUBSCRIPTION %s: Problem in Names or Emails metadata (%s)" % (subid,s['metadata']))
+            if active == 'true':
+              reportError("STRIPE PAYMENTS: ACTIVE SUBSCRIPTION %s: Problem in Names or Emails metadata (%s)" % (subid,s['metadata']))
             continue
 
         # Extract Group Metadata from record if present (optional)
