@@ -64,6 +64,8 @@ def syncWithSubscriptions(isTest=False):
     # Check subscription state transitions for existing members
     from . import payments
     pre_active = payments.get_pre_sync_active_members()
+    pre_status = payments.get_pre_sync_member_status()
+    notifications_to_send = []
     if pre_active is not None:
       now = datetime.utcnow()
       linked_subs = Subscription.query.filter(Subscription.member_id != None).all()
@@ -77,21 +79,108 @@ def syncWithSubscriptions(isTest=False):
         db.session.add(Logs(member_id=mid, event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_ACTIVATED_PAYSYS.id,
                             message="Subscription activated via payment system"))
 
-      # 2. Canceled/Expired: Was active before, now not active
+      # 2. Canceled/Expired: Was active (or past_due) before, now canceled
       canceled_ids = pre_active - post_active
       for mid in canceled_ids:
-        logger.info("Subscription Canceled by Payment System for member_id %s" % mid)
+        prev_act = pre_status.get(mid, '')
+        is_payment_issue = ('past_due' in prev_act) or ('unpaid' in prev_act)
+        if not is_payment_issue:
+          # Also check if Stripe subscription itself indicates payment failure or past_due history
+          sub_rec = Subscription.query.filter(Subscription.member_id == mid).first()
+          if sub_rec and sub_rec.subid and sub_rec.paysystem == 'stripe':
+            try:
+              import stripe
+              stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe', 'token')
+              st_sub = stripe.Subscription.retrieve(sub_rec.subid)
+              cd = st_sub.get('cancellation_details') or {}
+              if cd.get('reason') == 'payment_failed':
+                is_payment_issue = True
+              elif not cd.get('reason') and st_sub.get('latest_invoice'):
+                inv = stripe.Invoice.retrieve(st_sub['latest_invoice'])
+                if inv and not inv.get('paid') and inv.get('attempt_count', 0) > 0:
+                  is_payment_issue = True
+            except BaseException as se:
+              logger.warning("Could not check Stripe cancellation details for member_id %s: %s" % (mid, str(se)))
+
+        if is_payment_issue:
+          log_msg = "Subscription canceled due to payment issue"
+        else:
+          log_msg = "Subscription canceled via payment system"
+
+        logger.info("Subscription Canceled by Payment System for member_id %s (%s)" % (mid, log_msg))
         db.session.add(Logs(member_id=mid, event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_CANCELED_PAYSYS.id,
-                            message="Subscription canceled/expired via payment system"))
+                            message=log_msg))
+        notifications_to_send.append((mid, is_payment_issue))
 
     db.session.commit()
     payments.clear_pre_sync_active_members()
     logger.debug("New Member/Sub data Committed")
+
+    # Send cancellation notification emails after DB commit
+    if not isTest and notifications_to_send:
+      for (mid, is_payment_issue) in notifications_to_send:
+        send_cancellation_notice(mid, is_payment_issue)
+
     return 0
   except OperationalError as e:
     logger.error("syncWithSubscriptions: database locked/failed: %s" % str(e))
     db.session.rollback()
     return 2
+
+def send_cancellation_notice(member_id, is_payment_issue=False):
+  """Send an automated email notice to a member when their subscription is canceled."""
+  try:
+    m = Member.query.filter(Member.id == member_id).one_or_none()
+    if not m:
+      return
+    name = (" ".join(filter(None, [m.firstname, m.lastname]))).strip() or m.member.replace('.', ' ')
+    update_url = "https://portal.makeitlabs.com/membershipupdate"
+
+    if is_payment_issue:
+      subject = "Action Required: MakeIt Labs Membership Payment Issue"
+      body = (
+        f"Hello {name},\n\n"
+        f"Our payment system (Stripe) was unable to process your recurring membership payment after multiple attempts, "
+        f"and your MakeIt Labs subscription has been automatically canceled.\n\n"
+        f"Your membership has entered a 14-day grace period so your lab access will not be interrupted while you update your payment method. "
+        f"To update your credit card and reactivate your membership, please visit:\n\n"
+        f"  {update_url}\n\n"
+        f"Reactivating through this link will automatically restore your membership and keep your existing key fob, waivers, and tool authorizations intact.\n\n"
+        f"If you have any questions or need assistance, please contact board@makeitlabs.com.\n\n"
+        f"Thank you,\n"
+        f"MakeIt Labs\n"
+      )
+    else:
+      subject = "MakeIt Labs Membership Cancellation Confirmation"
+      body = (
+        f"Hello {name},\n\n"
+        f"This is a confirmation that your MakeIt Labs membership subscription has been canceled.\n\n"
+        f"Your lab access will remain active through the end of your current paid billing period. "
+        f"If this cancellation was unintentional, or if you would like to rejoin at any time in the future, you can easily reactivate your membership at:\n\n"
+        f"  {update_url}\n\n"
+        f"Reactivating through this link will restore your existing account, key fob, waivers, and tool authorizations without needing to repeat orientation.\n\n"
+        f"We hope to see you back at the lab! If you have any questions, please contact board@makeitlabs.com.\n\n"
+        f"Thank you,\n"
+        f"MakeIt Labs\n"
+      )
+
+    recipients = set()
+    if m.alt_email and m.alt_email.strip():
+      recipients.add(m.alt_email.strip())
+    if m.email and m.email.strip():
+      recipients.add(m.email.strip())
+
+    for recipient in recipients:
+      try:
+        google.genericEmailSender("info@makeitlabs.com", recipient, subject, body)
+        logger.info("Sent cancellation notice (%s) to %s for member_id %s" %
+                    ("payment_issue" if is_payment_issue else "explicit", recipient, member_id))
+      except BaseException as ee:
+        logger.error("Failed to send cancellation notice to %s for member_id %s: %s" %
+                     (recipient, member_id, str(ee)))
+  except BaseException as e:
+    logger.error("Error in send_cancellation_notice for member_id %s: %s" % (member_id, str(e)))
+
 
 def syncWithSubscriptions_with_retry(isTest=False, retries=5, delay=2):
   """Call syncWithSubscriptions, retrying if DB is locked (return code 2)."""
