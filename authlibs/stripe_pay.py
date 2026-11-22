@@ -122,6 +122,18 @@ def getSubscriptionsJSON():
 
         # expires_on = datetime.fromtimestamp(c['current_period_end']).strftime('%Y-%m-%d')
         expires = datetime.utcfromtimestamp(s['current_period_end'])
+        if s['status'] == 'canceled':
+            cancel_details = s.get('cancellation_details') or {}
+            if cancel_details.get('reason') == 'payment_failed':
+                ended_ts = s.get('ended_at') or s.get('canceled_at') or s['current_period_end']
+                expires = datetime.utcfromtimestamp(ended_ts)
+            elif s.get('ended_at') or s.get('canceled_at'):
+                ended_ts = s.get('ended_at') or s.get('canceled_at')
+                # If Stripe auto-canceled due to failed renewal (where ended_at is ~14-16 days
+                # after current_period_start and cancellation_details isn't populated),
+                # use ended_at so the 14-day grace period starts from the cancellation date.
+                if not cancel_details.get('reason') and s.get('current_period_start') and (ended_ts - s['current_period_start']) >= 7 * 86400:
+                    expires = datetime.utcfromtimestamp(ended_ts)
         created = datetime.utcfromtimestamp(s['created'])
         updated = datetime.utcnow()
 
@@ -217,6 +229,18 @@ def getSubscriptionsJSON2():
 
         # expires_on = datetime.fromtimestamp(c['current_period_end']).strftime('%Y-%m-%d')
         expires = datetime.utcfromtimestamp(s['current_period_end'])
+        if s['status'] == 'canceled':
+            cancel_details = s.get('cancellation_details') or {}
+            if cancel_details.get('reason') == 'payment_failed':
+                ended_ts = s.get('ended_at') or s.get('canceled_at') or s['current_period_end']
+                expires = datetime.utcfromtimestamp(ended_ts)
+            elif s.get('ended_at') or s.get('canceled_at'):
+                ended_ts = s.get('ended_at') or s.get('canceled_at')
+                # If Stripe auto-canceled due to failed renewal (where ended_at is ~14-16 days
+                # after current_period_start and cancellation_details isn't populated),
+                # use ended_at so the 14-day grace period starts from the cancellation date.
+                if not cancel_details.get('reason') and s.get('current_period_start') and (ended_ts - s['current_period_start']) >= 7 * 86400:
+                    expires = datetime.utcfromtimestamp(ended_ts)
         created = datetime.utcfromtimestamp(s['created'])
         updated = datetime.utcnow()
 

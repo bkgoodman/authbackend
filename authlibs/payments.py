@@ -26,35 +26,55 @@ logger = logging.getLogger(__name__)
 
 setupDone = False
 _pre_sync_active_members = None
+_pre_sync_member_status = None
 
 def is_sub_active(sub, now=None):
-    """Check if a subscription record is considered active in the payment system."""
+    """Check if a subscription record is considered active in the payment system.
+    Treat 'past_due' / 'unpaid' as still active (pending Stripe retry) so that
+    temporary card-retry cycles do not trigger false cancel/activate events,
+    and 'Canceled' is logged only when the subscription actually becomes canceled.
+    """
     if not sub:
         return False
     act = str(sub.active).strip().lower()
-    if act not in ('true', '1'):
-        return False
-    return True
+    if act in ('true', '1') or 'past_due' in act or 'unpaid' in act:
+        return True
+    return False
 
 def snapshot_active_members():
-    """Snapshot member IDs who currently have an active subscription before payment sync."""
-    global _pre_sync_active_members
+    """Snapshot member IDs who currently have an active subscription before payment sync,
+    along with their exact pre-sync status string so we can distinguish payment-failure
+    cancellations (past_due -> canceled) from explicit cancellations (true -> canceled).
+    """
+    global _pre_sync_active_members, _pre_sync_member_status
     now = datetime.datetime.utcnow()
     try:
         subs = Subscription.query.filter(Subscription.member_id != None).all()
         _pre_sync_active_members = set(s.member_id for s in subs if is_sub_active(s, now))
+        _pre_sync_member_status = {}
+        for s in subs:
+            act = str(s.active).strip().lower()
+            # If a member has multiple sub records, prefer an active/past_due status over canceled
+            if s.member_id not in _pre_sync_member_status or is_sub_active(s, now):
+                _pre_sync_member_status[s.member_id] = act
         logger.info("Snapshotted %d active members before payment update" % len(_pre_sync_active_members))
     except BaseException as e:
         logger.warning("Could not snapshot active members before payment update: %s" % str(e))
         _pre_sync_active_members = None
+        _pre_sync_member_status = None
 
 def get_pre_sync_active_members():
     global _pre_sync_active_members
     return _pre_sync_active_members
 
+def get_pre_sync_member_status():
+    global _pre_sync_member_status
+    return _pre_sync_member_status or {}
+
 def clear_pre_sync_active_members():
-    global _pre_sync_active_members
+    global _pre_sync_active_members, _pre_sync_member_status
     _pre_sync_active_members = None
+    _pre_sync_member_status = None
 
 
 def getLastUpdatedDate():
