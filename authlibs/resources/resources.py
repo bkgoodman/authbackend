@@ -1465,45 +1465,70 @@ def resource_acknowledgements(resource):
             authutil.kick_backend()
             flash("Acknowledgement created successfully", "success")
             
-        elif action == 'send':
+        elif action in ('send', 'send_unsent'):
             ack_id = request.form.get('ack_id')
             ack = Acknowledgement.query.filter((Acknowledgement.id == ack_id) & (Acknowledgement.resource_id == r.id)).one_or_none()
             if not ack:
                 flash("Acknowledgement not found", "warning")
             else:
-                authusers = db.session.query(AccessByMember.member_id, Member).join(Member, AccessByMember.member_id == Member.id).filter(AccessByMember.resource_id == r.id).all()
+                from ..google_admin import _buildEmailService
+                email_service = _buildEmailService()
+                res_name = r.name
+                ack_id_val = ack.id
+                ack_title = ack.title
+                ack_message = ack.message
+
+                authusers = db.session.query(AccessByMember.member_id, Member.email).join(Member, AccessByMember.member_id == Member.id).filter(AccessByMember.resource_id == r.id).all()
                 
-                existing = db.session.query(AcknowledgementUser).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
+                existing = db.session.query(AcknowledgementUser).filter(AcknowledgementUser.acknowledgement_id == ack_id_val).all()
                 existing_dict = {e.member_id: e for e in existing}
                 
                 send_count = 0
-                for mid, m in authusers:
+                fail_count = 0
+                for mid, member_email in authusers:
                     au = existing_dict.get(mid)
+                    is_new = False
                     if au is None:
-                        # New user, create record and send
+                        is_new = True
                         token = str(uuid.uuid4())
+                    elif action == 'send_unsent' or au.time_acknowledged is not None:
+                        # Already sent (when send_unsent) or already acknowledged, skip
+                        continue
+                    else:
+                        token = au.token
+                    
+                    # Send email (either new user or pending user)
+                    if member_email:
+                        link = url_for('api.api_acknowledge', token=token, _external=True)
+                        email_body = f"Please acknowledge the following notice for {res_name}: {ack_title}\n\n{ack_message}\n\nClick here to acknowledge: {link}"
+                        try:
+                            genericEmailSender("info@makeitlabs.com", member_email, ack_title, email_body, service=email_service)
+                            send_count += 1
+                        except Exception as e:
+                            logger.error(f"Failed sending acknowledgement email to {member_email}: {e}")
+                            fail_count += 1
+                            try:
+                                email_service = _buildEmailService()
+                            except Exception:
+                                pass
+                            continue
+                    
+                    if is_new:
                         au = AcknowledgementUser(
-                            acknowledgement_id=ack.id,
+                            acknowledgement_id=ack_id_val,
                             member_id=mid,
                             token=token
                         )
                         db.session.add(au)
                         db.session.commit()
                         existing_dict[mid] = au
-                    elif au.time_acknowledged is not None:
-                        # User has already acknowledged, skip
-                        continue
-                    
-                    # Send email (either new user or pending user)
-                    if m.email:
-                        link = url_for('api.api_acknowledge', token=au.token, _external=True)
-                        email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
-                        genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
-                        send_count += 1
                         
                 db.session.commit()
                 authutil.kick_backend()
-                flash(f"Sent to {send_count} users.", "success")
+                if fail_count:
+                    flash(f"Sent to {send_count} users ({fail_count} failed).", "warning")
+                else:
+                    flash(f"Sent to {send_count} users.", "success")
                 
         elif action == 'delete':
             ack_id = request.form.get('ack_id')
