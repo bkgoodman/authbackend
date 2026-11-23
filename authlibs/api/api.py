@@ -805,10 +805,17 @@ def api_acknowledge(token):
     if not au:
         return json_dump({'result': 'failure', 'reason': 'Invalid token'}), 404, {'Content-Type': 'application/json'}
     
+    now = datetime.datetime.now()
     if au.time_acknowledged is None:
-        au.time_acknowledged = datetime.datetime.now()
-        db.session.commit()
-        authutil.kick_backend()
+        au.time_acknowledged = now
+    # Also mark any duplicate token rows for the same member+acknowledgement
+    AcknowledgementUser.query.filter(
+        (AcknowledgementUser.acknowledgement_id == au.acknowledgement_id) &
+        (AcknowledgementUser.member_id == au.member_id) &
+        (AcknowledgementUser.time_acknowledged == None)
+    ).update({'time_acknowledged': au.time_acknowledged}, synchronize_session=False)
+    db.session.commit()
+    authutil.kick_backend()
 
     if request.method == 'GET':
         return render_template('acknowledge_success.html', au=au)

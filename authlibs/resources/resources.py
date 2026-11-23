@@ -52,7 +52,7 @@ def _send_ack_emails_bg(app, ack_id_val, ack_title, send_queue):
                         exists = AcknowledgementUser.query.filter(
                             (AcknowledgementUser.acknowledgement_id == ack_id_val) &
                             (AcknowledgementUser.member_id == item['mid'])
-                        ).one_or_none()
+                        ).first()
                         if not exists:
                             au = AcknowledgementUser(
                                 acknowledgement_id=ack_id_val,
@@ -1628,7 +1628,7 @@ def resource_acknowledgement_detail(resource, ack_id):
     if request.method == 'POST':
         action = request.form.get('action')
         member_id = request.form.get('member_id')
-        au = AcknowledgementUser.query.filter((AcknowledgementUser.acknowledgement_id == ack.id) & (AcknowledgementUser.member_id == member_id)).one_or_none()
+        au = AcknowledgementUser.query.filter((AcknowledgementUser.acknowledgement_id == ack.id) & (AcknowledgementUser.member_id == member_id)).order_by(AcknowledgementUser.time_acknowledged.desc(), AcknowledgementUser.id.desc()).first()
         
         if not au:
             flash("User record not found", "warning")
@@ -1642,12 +1642,28 @@ def resource_acknowledgement_detail(resource, ack_id):
                 genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
                 flash("Resent email.", "success")
         elif action == 'manual_ack':
-            au.time_acknowledged = datetime.datetime.now()
+            now = datetime.datetime.now()
+            AcknowledgementUser.query.filter(
+                (AcknowledgementUser.acknowledgement_id == ack.id) &
+                (AcknowledgementUser.member_id == member_id)
+            ).update({'time_acknowledged': now}, synchronize_session=False)
             db.session.commit()
             authutil.kick_backend()
             flash("Manually acknowledged.", "success")
             
-    users = db.session.query(AcknowledgementUser, Member).join(Member).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
+    raw_users = db.session.query(AcknowledgementUser, Member).join(Member).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
+    dedup_by_member = {}
+    for au_rec, mem_rec in raw_users:
+        prev = dedup_by_member.get(mem_rec.id)
+        if prev is None:
+            dedup_by_member[mem_rec.id] = (au_rec, mem_rec)
+        else:
+            # Prefer a row that has been acknowledged, or otherwise the newer row
+            if (not prev[0].time_acknowledged and au_rec.time_acknowledged) or (
+                bool(prev[0].time_acknowledged) == bool(au_rec.time_acknowledged) and au_rec.id > prev[0].id
+            ):
+                dedup_by_member[mem_rec.id] = (au_rec, mem_rec)
+    users = list(dedup_by_member.values())
     
     acknowledged = [u for u in users if u[0].time_acknowledged]
     acknowledged.sort(key=lambda u: u[0].time_acknowledged, reverse=True)
