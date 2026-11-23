@@ -211,13 +211,12 @@ def matchMissingMembers(missing):
     for s in missing:
         mm = Member.query.filter(Member.membership == s.membership).one_or_none()
         if mm:
-                logger.debug("MEMBERSHIP MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
                 if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
                   mm.group = s.group.strip()
                 # If we had already done a email/name match (below) - invalidate it so we dont get dupes
                 ss= Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
                 if (ss):
-                  logger.debug("-Invalidated prior sub match to - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                  logger.info("Invalidated prior sub match to - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
                   ss.member_id=None
                 s.member_id=mm.id
         else:
@@ -247,26 +246,26 @@ def matchMissingMembers(missing):
                         elif len(candidates) > 1:
                             raise ValueError("Multiple normalized matches")
                     if mm:
-                        logger.debug("email/name MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
                         if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
                           mm.group = s.group.strip()
                         # Avoid DUPLICATE match if MEMBERSHIP MATCH already done (above)
                         ss = Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
                         if ss and ss.active=="true":
-                          logger.debug("-Avoided overwrite ACTIVE sub match - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                          pass
                         elif ss:
-                          logger.debug("-Avoided overwrite INACTIVE prior sub match - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                          logger.info("Matched subscription %s (%s) to %s (replacing inactive sub %s)" % (s.subid,s.email,mm.member,ss.subid))
                           s.member_id = mm.id
                           mm.membership = s.membership
                         else:
-                          logger.debug("-Avoided overwrite NOSUB prior sub match")
+                          logger.info("Matched subscription %s (%s) to %s" % (s.subid,s.email,mm.member))
                           s.member_id = mm.id
                           mm.membership = s.membership
                         # We APPEAR to have a match Just update the sub record w/ existing member ID
                         # Remember - this gets committed at the VERY end when everything is DONE
                     else:
-                        # No match - create new one
-                        logger.debug("NO MATCH - %s %s %s" % (s.name,s.email,s.subid))
+                        # No match - create new one (only log if active)
+                        if s.active and s.active.lower() == "true":
+                            logger.info("Unmatched active subscription - %s %s %s" % (s.name,s.email,s.subid))
                         newMembers.append(s)
                 except:
                     mm=None
@@ -316,24 +315,18 @@ def addMissingMembers(missing):
     for b in bl_entries:
         ignorelist.append(b.entry)
     for p in missing:
-        logger.debug("Check add new for %s active %s expires %s" % (p.email,p.active,p.expires_date))
         if p.subid in ignorelist:
-            logger.debug("Explicitly ignoring subscription id %s" % p.subid)
             continue
         elif p.email in ignorelist:
-            logger.debug("Explicitly ignoring email %s" % p.email)
             continue
         elif p.customerid in ignorelist:
-            logger.debug("Explicitly ignoring customer id %s" % p.customerid)
             continue
         elif p.active.lower() != "true":
-            logger.debug("Skipping create for inactive sub %s id \"%s\"" % (p.customerid,p.active.lower()))
             continue
         elif p.expires_date < datetime.now():
-            logger.debug("Skipping create for expired sub %s" % p.customerid)
             continue
         else:
-            logger.debug("Missing member: %s (%s) (%s)" % (p.name,p.email,p.created_date))
+            logger.info("New missing member to create: %s (%s) (%s)" % (p.name,p.email,p.created_date))
             members.append({'name':p.name,'email':p.email,'plan':p.plan,'active':p.active,'created':p.created_date})
 
             # TODO - BKG BUG FIX this is where we need to know if this was an existing member or not - Refuse

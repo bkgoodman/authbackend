@@ -1471,14 +1471,13 @@ def resource_acknowledgements(resource):
             if not ack:
                 flash("Acknowledgement not found", "warning")
             else:
-                authusers = db.session.query(AccessByMember.member_id).filter(AccessByMember.resource_id == r.id).all()
-                member_ids = [u[0] for u in authusers]
+                authusers = db.session.query(AccessByMember.member_id, Member).join(Member, AccessByMember.member_id == Member.id).filter(AccessByMember.resource_id == r.id).all()
                 
                 existing = db.session.query(AcknowledgementUser).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
                 existing_dict = {e.member_id: e for e in existing}
                 
                 send_count = 0
-                for mid in member_ids:
+                for mid, m in authusers:
                     au = existing_dict.get(mid)
                     if au is None:
                         # New user, create record and send
@@ -1489,16 +1488,18 @@ def resource_acknowledgements(resource):
                             token=token
                         )
                         db.session.add(au)
+                        db.session.commit()
+                        existing_dict[mid] = au
                     elif au.time_acknowledged is not None:
                         # User has already acknowledged, skip
                         continue
                     
                     # Send email (either new user or pending user)
-                    m = Member.query.filter(Member.id == mid).one()
-                    link = url_for('api.api_acknowledge', token=au.token, _external=True)
-                    email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
-                    genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
-                    send_count += 1
+                    if m.email:
+                        link = url_for('api.api_acknowledge', token=au.token, _external=True)
+                        email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
+                        genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
+                        send_count += 1
                         
                 db.session.commit()
                 authutil.kick_backend()
@@ -1543,11 +1544,14 @@ def resource_acknowledgement_detail(resource, ack_id):
         if not au:
             flash("User record not found", "warning")
         elif action == 'resend':
-            m = Member.query.filter(Member.id == member_id).one()
-            link = url_for('api.api_acknowledge', token=au.token, _external=True)
-            email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
-            genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
-            flash("Resent email.", "success")
+            m = Member.query.filter(Member.id == member_id).one_or_none()
+            if not m or not m.email:
+                flash("Member or email not found", "warning")
+            else:
+                link = url_for('api.api_acknowledge', token=au.token, _external=True)
+                email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
+                genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
+                flash("Resent email.", "success")
         elif action == 'manual_ack':
             au.time_acknowledged = datetime.datetime.now()
             db.session.commit()
