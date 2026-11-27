@@ -52,7 +52,6 @@ def api_only(f):
     def decorated(*args, **kwargs):
         auth = request.authorization
         if not auth:
-            print ("NOT AUTH")
             return error_401()
         a = check_api_access(auth.username, auth.password)
         if not a:

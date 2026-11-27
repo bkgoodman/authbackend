@@ -212,7 +212,6 @@ def kick_backend():
       gc= current_app.config['globalConfig']
       topic= gc.mqtt_base_topic+"/control/broadcast/acl/update"
       mqtt_pub.single(topic, "update", hostname=gc.mqtt_host,port=gc.mqtt_port,**gc.mqtt_opts)
-      logger.debug("MQTT acl/update Backend Update")
     except BaseException as e:
         logger.debug("MQTT acl/update failed to publish: "+str(e))
 
