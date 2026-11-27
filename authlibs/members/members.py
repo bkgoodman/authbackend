@@ -585,8 +585,6 @@ def member_show(id):
  
    (warning,allowed,dooraccess)=(None,None,None)
 
- 
-   print ("RES IS",res,dir(res))
    if res:
      (member,subscription) = res
      subscription = Subscription.query.filter(Subscription.member_id == member.id).one_or_none()

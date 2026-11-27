@@ -29,14 +29,6 @@ TODO FIX BUG
 You can (and probably should) set OAUTHLIB_RELAX_TOKEN_SCOPE when running in production.
 """
 def our_login():
-    # Do something like this but not this
-    logger.error("OUR LOGIN (Unauthenticated?)")
-    logger.error("session %s"%dir(session))
-    logger.error("request %s "%dir(request))
-    logger.error("referer %s " % request.referrer)
-    logger.error("base_url %s " % request.base_url)
-    logger.error("url %s " % request.url)
-    logger.error("root %s " % request.root_url)
     session['after_login']=request.url
     return redirect(url_for('login'))
 
@@ -82,20 +74,16 @@ def authinit(app):
         mr =  Member.query.filter(Member.member == mid).one_or_none()
         if not mr:
           logger.error("User {0} Found no member record".format(user_id))
-        logger.debug("User {0} loaded".format(user_id))
         return mr
         #return Member.get(user_id)
 
     @userauth.route("/google_login")
     def google_login():
         if not google.authorized:
-            logger.debug("Not google authorized")
             session['next_url'] = request.args.get('next')
-            print ("NEXT URL IS",session['next_url'])
             return redirect(url_for("google.login"))
         resp = google.get(SCOPE)
         assert resp.ok, resp.text
-        print("SET GOOGLE TOKEN",google.token)
         session["google_token"]=google.token
         return resp.text
 
@@ -124,10 +112,6 @@ def authinit(app):
             query = Member.query.filter(Member.email.ilike(email))
 
             try:
-                print("SET GOOGLE DIR",dir(google))
-                print("SET GOOGLE TOKEN DIR",dir(google.token))
-                print("SET GOOGLE TOKEN2",google.token)
-                print("SET GOOGLE TOKEN2 has",google.token.keys())
                 session["google_token"]=google.token
                 user = query.all()
                 if len(user) > 1:

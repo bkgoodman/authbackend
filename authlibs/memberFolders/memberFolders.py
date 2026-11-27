@@ -248,7 +248,6 @@ def member_folder(folder,member,asshared=False):
         h.update(str(hashstring).encode())
         actual = h.hexdigest()
         sharedlink = (url_for('memberFolders.sharedfolder',member=member.member,secret=actual,folder=folder))
-        logger.warning(f"Calculated Shared folder as {actual} hashstring \"{hashstring}\"")
 
     top = folder.split("/")
     if folder == "":

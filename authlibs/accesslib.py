@@ -261,7 +261,6 @@ def access_query(resource_id,member_id=None,tags=True):
       if resource_id and member_id:
           #print ("JOIN ONE")
           q = q.join(AccessByMember, ((AccessByMember.resource_id == resource_id) & (AccessByMember.member_id == Member.id)))
-          print (q)
     q = q.add_column(case([(Subscription.plan != None , Subscription.plan ), 
         (Member.plan != None , Member.plan )], 
           else_ = "hobbyiest").label('plan'))
