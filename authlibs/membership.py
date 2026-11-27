@@ -251,6 +251,7 @@ def matchMissingMembers(missing):
                         # Avoid DUPLICATE match if MEMBERSHIP MATCH already done (above)
                         existing_subs = [es for es in Subscription.query.filter(Subscription.member_id == mm.id).all() if es.id != s.id]
                         active_existing = [es for es in existing_subs if str(es.active).strip().lower() in ('true', '1')]
+                        other_owner = Member.query.filter(Member.membership == s.membership, Member.id != mm.id).one_or_none() if s.membership else None
                         if active_existing:
                           pass
                         elif existing_subs:
@@ -262,11 +263,13 @@ def matchMissingMembers(missing):
                               es.member_id = None
                             logger.info("Matched subscription %s (%s) to %s (replacing inactive sub %s)" % (s.subid,s.email,mm.member,ss.subid))
                             s.member_id = mm.id
-                            mm.membership = s.membership
+                            if not other_owner:
+                              mm.membership = s.membership
                         else:
                           logger.info("Matched subscription %s (%s) to %s" % (s.subid,s.email,mm.member))
                           s.member_id = mm.id
-                          mm.membership = s.membership
+                          if not other_owner:
+                            mm.membership = s.membership
                         # We APPEAR to have a match Just update the sub record w/ existing member ID
                         # Remember - this gets committed at the VERY end when everything is DONE
                     else:
