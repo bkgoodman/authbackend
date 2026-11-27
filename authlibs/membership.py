@@ -214,10 +214,10 @@ def matchMissingMembers(missing):
                 if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
                   mm.group = s.group.strip()
                 # If we had already done a email/name match (below) - invalidate it so we dont get dupes
-                ss= Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
-                if (ss):
-                  logger.info("Invalidated prior sub match to - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
-                  ss.member_id=None
+                for ss in Subscription.query.filter(Subscription.member_id == mm.id).all():
+                  if ss.id != s.id:
+                    logger.info("Invalidated prior sub match to - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                    ss.member_id=None
                 s.member_id=mm.id
         else:
                 q = Member.query
@@ -249,13 +249,20 @@ def matchMissingMembers(missing):
                         if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
                           mm.group = s.group.strip()
                         # Avoid DUPLICATE match if MEMBERSHIP MATCH already done (above)
-                        ss = Subscription.query.filter(Subscription.member_id == mm.id).one_or_none()
-                        if ss and ss.active=="true":
+                        existing_subs = [es for es in Subscription.query.filter(Subscription.member_id == mm.id).all() if es.id != s.id]
+                        active_existing = [es for es in existing_subs if str(es.active).strip().lower() in ('true', '1')]
+                        if active_existing:
                           pass
-                        elif ss:
-                          logger.info("Matched subscription %s (%s) to %s (replacing inactive sub %s)" % (s.subid,s.email,mm.member,ss.subid))
-                          s.member_id = mm.id
-                          mm.membership = s.membership
+                        elif existing_subs:
+                          ss = existing_subs[0]
+                          s_active = str(s.active).strip().lower() in ('true', '1')
+                          s_newer = bool(s.expires_date and (not ss.expires_date or s.expires_date > ss.expires_date))
+                          if s_active or s_newer:
+                            for es in existing_subs:
+                              es.member_id = None
+                            logger.info("Matched subscription %s (%s) to %s (replacing inactive sub %s)" % (s.subid,s.email,mm.member,ss.subid))
+                            s.member_id = mm.id
+                            mm.membership = s.membership
                         else:
                           logger.info("Matched subscription %s (%s) to %s" % (s.subid,s.email,mm.member))
                           s.member_id = mm.id

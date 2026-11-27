@@ -36,7 +36,10 @@ def autoplot_logic(rundate=None,process_payment=False,process_invoice=False,debu
       if mem:
           #print (billables[0]['member'])
           #print (mem.stripe_name)
-          sub = Subscription.query.filter(Subscription.member_id == mem.id).one_or_none()
+          sub = Subscription.query.filter(Subscription.member_id == mem.id).order_by(
+              (Subscription.active == 'true').desc(),
+              Subscription.expires_date.desc()
+          ).first()
           if sub:
               data['Stripe ID']=sub.customerid
               data['Plan']=sub.plan
