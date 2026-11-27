@@ -35,7 +35,10 @@ blueprint = Blueprint("memberAudio", __name__, template_folder='templates', stat
 @blueprint.route('/', methods=['GET'])
 @login_required
 def audio():
-    s = Subscription.query.filter(current_user.id == Subscription.member_id).one_or_none()
+    s = Subscription.query.filter(current_user.id == Subscription.member_id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
     plan = (s.plan if s else current_user.plan or "").lower()
     is_pro = bool(plan and "pro" in plan)
 
@@ -60,7 +63,10 @@ def audio():
 @login_required
 @blueprint.route('/get', methods=['GET'])
 def getAudio():
-    s = Subscription.query.filter(current_user.id == Subscription.member_id).one_or_none()
+    s = Subscription.query.filter(current_user.id == Subscription.member_id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
     plan = (s.plan if s else current_user.plan or "").lower()
     if not (plan and "pro" in plan):
       flash("Entrance Audio is only available to Pro members", "danger")
@@ -93,7 +99,10 @@ def getAudio():
 @login_required
 @blueprint.route('/delete', methods=['GET'])
 def deleteAudio():
-    s = Subscription.query.filter(current_user.id == Subscription.member_id).one_or_none()
+    s = Subscription.query.filter(current_user.id == Subscription.member_id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
     plan = (s.plan if s else current_user.plan or "").lower()
     if not (plan and "pro" in plan):
       flash("Entrance Audio is only available to Pro members", "danger")
@@ -137,7 +146,10 @@ def setNickname():
 @blueprint.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload_file():
-    s = Subscription.query.filter(current_user.id == Subscription.member_id).one_or_none()
+    s = Subscription.query.filter(current_user.id == Subscription.member_id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
     plan = (s.plan if s else current_user.plan or "").lower()
     if not (plan and "pro" in plan):
       flash("Entrance Audio is only available to Pro members", "danger")

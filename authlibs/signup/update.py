@@ -327,11 +327,27 @@ def fixMemberSubscription(sub, was_active=False):
     expires = datetime.utcfromtimestamp(sub['current_period_end'])
     created = datetime.utcfromtimestamp(sub['created'])
     updated = datetime.utcnow()
-    s = Subscription.query.filter(Subscription.customerid == sub['customer']).first()
+    subs_for_cust = Subscription.query.filter(Subscription.customerid == sub['customer']).all()
 
-    if not s:
+    if not subs_for_cust:
         logger.error(f"fixMemberSubscription: No Subscription record found in DB for customer {sub['customer']}")
         return
+
+    # Prefer a record already linked to a member_id, and among those prefer active/latest
+    subs_for_cust.sort(
+        key=lambda x: (
+            x.member_id is not None,
+            str(x.active).strip().lower() in ('true', '1'),
+            x.expires_date or datetime.min,
+        ),
+        reverse=True,
+    )
+    s = subs_for_cust[0]
+    # Unlink any duplicate subscription rows for the same member_id
+    if s.member_id is not None:
+        for other in Subscription.query.filter(Subscription.member_id == s.member_id).all():
+            if other.id != s.id:
+                other.member_id = None
 
     db_was_active = str(s.active).strip().lower() in ('true', '1')
     now_active = sub.get('status') in ('active', 'trialing') if isinstance(sub, dict) or hasattr(sub, 'get') else True

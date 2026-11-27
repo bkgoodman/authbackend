@@ -109,17 +109,26 @@ def linkExistingMember(sub, plantype, firstname, lastname, email, plates=None):
     expires = datetime.utcfromtimestamp(sub['current_period_end'])
     created = datetime.utcfromtimestamp(sub['created'])
     updated = datetime.utcnow()
+    membership = "stripe:" + membername + ":" + email
 
-    # Find the existing Subscription row for this member
-    s = Subscription.query.filter(Subscription.member_id == mm.id).first()
+    # Find the existing Subscription row(s) for this member
+    existing_subs = Subscription.query.filter(Subscription.member_id == mm.id).all()
+    # Also check if a Subscription row with this membership string already exists
+    s = Subscription.query.filter(Subscription.membership == membership).first()
+    if s is None and existing_subs:
+        s = existing_subs[0]
+    for es in existing_subs:
+        if s is None or es.id != s.id:
+            es.member_id = None
+
     if s is None:
         # No subscription row yet — create one fresh
-        membership = "stripe:" + membername + ":" + email
         s = Subscription(membership=membership)
-        s.member_id = mm.id
         db.session.add(s)
 
     # Update it with the new Stripe subscription details
+    s.member_id    = mm.id
+    s.membership   = membership
     s.paysystem    = "stripe"
     s.subid        = sub.id
     s.customerid   = sub['customer']
@@ -133,10 +142,13 @@ def linkExistingMember(sub, plantype, firstname, lastname, email, plates=None):
     s.checked_date = datetime.utcnow()
     s.active       = 'true'
 
-    # Update the member's last-updated timestamp.
+    # Update the member's last-updated timestamp and membership pointer.
     # NOTE: Do NOT touch mm.active — it is a computed status string (e.g. 'Active',
     # 'Grace Period', 'Recent Expire') managed by the Stripe sync process, not a
     # flag we should set manually here.
+    mm.membership = membership
+    if email:
+        mm.alt_email = email
     mm.time_updated = updated
     if plates:
         mm.plates = plates[:50]

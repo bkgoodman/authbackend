@@ -239,7 +239,10 @@ def bin_edit(id):
       if (b.ProBin.member_id is None):
         sub = None
       else:
-        sub = Subscription.query.filter(Subscription.member_id == b.ProBin.member_id).one_or_none()
+        sub = Subscription.query.filter(Subscription.member_id == b.ProBin.member_id).order_by(
+            (Subscription.active == 'true').desc(),
+            Subscription.expires_date.desc()
+        ).first()
   except BaseException as e:
     flash("Error getting member subscription","danger")  
     print (f"Member Sugscription error - id {b.ProBin.member_id} - error: {e}\n")
@@ -316,7 +319,10 @@ def choose():
   
   ab={}
   iHaveABin=False
-  sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
+  sub = Subscription.query.filter(Subscription.member_id == current_user.id).order_by(
+      (Subscription.active == 'true').desc(),
+      Subscription.expires_date.desc()
+  ).first()
   iamPro = True if sub is not None and sub.rate_plan in ('pro', 'produo') else False
 
   c = ProBinChoice.query.filter(ProBinChoice.member_id == current_user.id)
@@ -466,7 +472,10 @@ def grid():
   
   ab={}
   iHaveABin=False
-  sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
+  sub = Subscription.query.filter(Subscription.member_id == current_user.id).order_by(
+      (Subscription.active == 'true').desc(),
+      Subscription.expires_date.desc()
+  ).first()
   iamPro = True if sub is not None and sub.rate_plan in ('pro', 'produo') else False
   if not iamPro:
       flash ("Storage bins are a \"Pro\"-Level membership perk. Please upgrade your membership to obtain bin privileges")
@@ -545,7 +554,10 @@ def singleBinStatus(bin_id):
   
   ab={}
   iHaveABin=False
-  sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
+  sub = Subscription.query.filter(Subscription.member_id == current_user.id).order_by(
+      (Subscription.active == 'true').desc(),
+      Subscription.expires_date.desc()
+  ).first()
   iamPro = True if sub is not None and sub.rate_plan in ('pro', 'produo') else False
   if not iamPro:
       flash ("Storage bins are a \"Pro\"-Level membership perk. Please upgrade your membership to obtain bin privileges")

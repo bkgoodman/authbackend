@@ -535,14 +535,15 @@ def member_edit(id):
           authutil.kick_backend()
         
     #(member,subscription)=Member.query.outerjoin(Subscription).filter(Member.member==mid).first()
-    member=db.session.query(Member,Subscription)
-    member = member.outerjoin(Subscription).outerjoin(Waiver).filter(Member.id==mid)
-    r = member.one_or_none()
-    if not r:
+    member = Member.query.filter(Member.id == mid).one_or_none()
+    if not member:
         flash("Member not found",'warning')
         return redirect(url_for("members.members"))
 
-    (member,subscription) = r
+    subscription = Subscription.query.filter(Subscription.member_id == member.id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
 
     # TODO this access display doesn't work at all
     access=db.session.query(Resource).add_column(AccessByMember.level).outerjoin(AccessByMember).outerjoin(Member)
@@ -571,23 +572,25 @@ def member_show(id):
    # URL-decode the member ID to handle quotes and special characters
    id = urllib.parse.unquote(id)
    mid = authutil._safestr(id)
-   member=db.session.query(Member)
-   member = member.outerjoin(Subscription,Subscription.member_id==mid)
-   member = member.add_columns(Subscription)
-   member = member.outerjoin(Waiver).filter(Member.member==mid)
-   res = member.one_or_none()
+   member = Member.query.filter(Member.member == mid).one_or_none()
 
-   if (not current_user.privs('Useredit')) and res[0].member != current_user.member:
+   if not member:
+       flash("Member not found",'warning')
+       return redirect(url_for("members.members"))
+
+   if (not current_user.privs('Useredit')) and member.member != current_user.member:
        if current_user.is_arm():
-         return redirect(url_for('members.member_editaccess',id=res[0].id))
+         return redirect(url_for('members.member_editaccess',id=member.id))
        flash("You cannot view that user",'warning')
        return redirect(url_for('members.members'))
  
    (warning,allowed,dooraccess)=(None,None,None)
 
-   if res:
-     (member,subscription) = res
-     subscription = Subscription.query.filter(Subscription.member_id == member.id).one_or_none()
+   if member:
+     subscription = Subscription.query.filter(Subscription.member_id == member.id).order_by(
+         (Subscription.active == 'true').desc(),
+         Subscription.expires_date.desc()
+     ).first()
 
      utc = dateutil.tz.gettz('UTC')
      eastern = dateutil.tz.gettz('US/Eastern')
@@ -951,9 +954,10 @@ def unassociate():
     mid = request.form['memberid']
     mem=Member.query.filter(Member.id==mid).one()
     mem.membership=None
-    sub=Subscription.query.filter(Subscription.member_id==mid).one()
+    subs=Subscription.query.filter(Subscription.member_id==mid).all()
     authutil.log(eventtypes.RATTBE_LOGEVENT_MEMBER_PAYMENT_UNLINKED.id,member_id=mid,doneby=current_user.id,commit=0)
-    sub.member_id=None
+    for sub in subs:
+        sub.member_id=None
     db.session.commit()
     flash ("Subscription unassociated","success")
     return redirect(url_for('members.member_show',id=mem.member))
@@ -1202,7 +1206,10 @@ def grantadmin():
 @roles_required(['Admin','Finance'])
 def payment_update(id):
   x = Member.query.filter(Member.id==id).one()
-  s = Subscription.query.filter(Subscription.member_id == x.id).one_or_none()
+  s = Subscription.query.filter(Subscription.member_id == x.id).order_by(
+      (Subscription.active == 'true').desc(),
+      Subscription.expires_date.desc()
+  ).first()
   #print ("FORM DATA IS",request.form)
   stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe','token')
   customer=[]
@@ -1429,7 +1436,10 @@ def member_cancel_subscription(id):
         flash("Member not found", "warning")
         return redirect(url_for('members.members'))
     
-    sub = Subscription.query.filter(Subscription.member_id == member.id).one_or_none()
+    sub = Subscription.query.filter(Subscription.member_id == member.id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
     if not sub or not sub.subid:
         flash("Subscription not found", "warning")
         return redirect(url_for('members.member_show', id=member.member))
@@ -1464,7 +1474,10 @@ def member_reactivate_subscription(id):
         flash("Member not found", "warning")
         return redirect(url_for('members.members'))
     
-    sub = Subscription.query.filter(Subscription.member_id == member.id).one_or_none()
+    sub = Subscription.query.filter(Subscription.member_id == member.id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
     if not sub or not sub.customerid:
         flash("Subscription not found", "warning")
         return redirect(url_for('members.member_show', id=member.member))
