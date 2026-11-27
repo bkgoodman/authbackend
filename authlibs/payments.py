@@ -261,9 +261,18 @@ def updatePaymentData(modules=None):
         links_by_membership = {}
         for es in existing_subs:
             if es.subid:
-                links_by_subid[(es.subid, (es.email or '').strip().lower())] = es.member_id
+                links_by_subid[(es.subid, (es.name or '').strip().lower(), (es.email or '').strip().lower())] = es.member_id
             if es.membership:
                 links_by_membership[es.membership] = es.member_id
+
+        # Also map existing Member.membership -> Member.id so a subscription
+        # whose membership string explicitly belongs to a Member is never
+        # mis-restored to a different member on a shared multi-person sub.
+        member_by_membership = {
+            m.membership: m.id
+            for m in Member.query.filter(Member.membership != None).all()
+            if m.membership
+        }
 
         # TODO - Make sure retrieval and filtering is working
         clearSubscriptionData(module)
@@ -275,9 +284,13 @@ def updatePaymentData(modules=None):
             Subscription.paysystem == module,
             Subscription.member_id == None
         ).all():
-            mid = links_by_subid.get((ns.subid, (ns.email or '').strip().lower()))
+            mid = None
+            if ns.membership:
+                mid = member_by_membership.get(ns.membership)
             if mid is None and ns.membership:
                 mid = links_by_membership.get(ns.membership)
+            if mid is None:
+                mid = links_by_subid.get((ns.subid, (ns.name or '').strip().lower(), (ns.email or '').strip().lower()))
             if mid is not None:
                 candidates_by_mid.setdefault(mid, []).append(ns)
 
@@ -298,7 +311,12 @@ def updatePaymentData(modules=None):
             if best_sub.membership:
                 m_rec = Member.query.filter(Member.id == mid).one_or_none()
                 if m_rec and m_rec.membership != best_sub.membership:
-                    m_rec.membership = best_sub.membership
+                    other_owner = member_by_membership.get(best_sub.membership)
+                    if other_owner is None or other_owner == mid:
+                        if m_rec.membership in member_by_membership:
+                            del member_by_membership[m_rec.membership]
+                        m_rec.membership = best_sub.membership
+                        member_by_membership[best_sub.membership] = mid
         if restored:
             logger.info("Restored %d existing subscription->member links for %s" % (restored, module))
 
