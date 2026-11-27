@@ -841,7 +841,10 @@ def billingdetail(resource,member_id,month=None,year=None):
     name = f"{member.firstname} {member.lastname}"
     period = f"{month}/{year}"
 
-    s = Subscription.query.filter(Subscription.member_id == member.id).one()
+    s = Subscription.query.filter(Subscription.member_id == member.id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
     iv = query_specific_invoice(s.customerid,res.short,period)
     invoices = []
     for i in iv:

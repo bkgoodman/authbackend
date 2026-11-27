@@ -260,6 +260,7 @@ def updatePaymentData(modules=None):
         addSubscriptionData(fsubs['valid'],module)
 
         restored = 0
+        candidates_by_mid = {}
         for ns in Subscription.query.filter(
             Subscription.paysystem == module,
             Subscription.member_id == None
@@ -268,8 +269,26 @@ def updatePaymentData(modules=None):
             if mid is None and ns.membership:
                 mid = links_by_membership.get(ns.membership)
             if mid is not None:
-                ns.member_id = mid
-                restored += 1
+                candidates_by_mid.setdefault(mid, []).append(ns)
+
+        for mid, cand_subs in candidates_by_mid.items():
+            # If multiple subscriptions matched this member (e.g. old canceled sub
+            # + new reactivated sub), pick only the single best subscription:
+            # active first, then latest expires_date, then latest created_date.
+            best_sub = max(
+                cand_subs,
+                key=lambda s: (
+                    is_sub_active(s),
+                    s.expires_date or datetime.datetime.min,
+                    s.created_date or datetime.datetime.min,
+                ),
+            )
+            best_sub.member_id = mid
+            restored += 1
+            if best_sub.membership:
+                m_rec = Member.query.filter(Member.id == mid).one_or_none()
+                if m_rec and m_rec.membership != best_sub.membership:
+                    m_rec.membership = best_sub.membership
         if restored:
             logger.info("Restored %d existing subscription->member links for %s" % (restored, module))
 

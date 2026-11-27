@@ -1510,7 +1510,10 @@ def api_v1_prostore_auto_process():
 
     for b in bins:
         pb = b.ProBin
-        sub = Subscription.query.filter(Subscription.member_id == pb.member_id).one_or_none()
+        sub = Subscription.query.filter(Subscription.member_id == pb.member_id).order_by(
+            (Subscription.active == 'true').desc(),
+            Subscription.expires_date.desc()
+        ).first()
         
         # State machine logic
         is_lapsed = sub is not None and sub.expires_date is not None and sub.expires_date < now

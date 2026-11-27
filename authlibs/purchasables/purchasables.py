@@ -125,7 +125,10 @@ def purchasable_delete(purchasable):
 @login_required
 def quick(purchasable,cost,ident):
 
-    sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
+    sub = Subscription.query.filter(Subscription.member_id == current_user.id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
     if sub is None:
         flash("No subscription found","danger")
         return redirect(url_for('purchasables.purchasables'))
@@ -152,7 +155,10 @@ def quick(purchasable,cost,ident):
 @login_required
 def purchasable_purchase():
 
-    sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
+    sub = Subscription.query.filter(Subscription.member_id == current_user.id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
     if sub is None:
         flash("No subscription found","danger")
         return redirect(url_for('purchasables.purchasables'))

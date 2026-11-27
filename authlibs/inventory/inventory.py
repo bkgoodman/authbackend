@@ -91,7 +91,10 @@ def store_purchase(purchasable_id):
         flash("Resource not found", "danger")
         return redirect(url_for('purchasables.purchasables'))
 
-    sub = Subscription.query.filter(Subscription.member_id == current_user.id).one_or_none()
+    sub = Subscription.query.filter(Subscription.member_id == current_user.id).order_by(
+        (Subscription.active == 'true').desc(),
+        Subscription.expires_date.desc()
+    ).first()
     if sub is None:
         flash("No subscription found", "danger")
         return redirect(url_for('inventory.store', purchasable_id=purchasable_id))
