@@ -112,14 +112,19 @@ def fix2(digest,now,email):
     fullname=""
     for m in members:
         fullname = m.member.replace("."," ")
-        for s in Subscription.query.filter(Subscription.member_id == m.id).all():
-            if s.active == "true":
-                active = s.active
-                plan = s.plan
-                rateplan = s.rate_plan
-                if s.subid not in subids: subids.append(s.subid)
-                if s.customerid not in custids: custids.append(s.customerid)
+        member_subs = Subscription.query.filter(Subscription.member_id == m.id).all()
+        # Prefer active subscriptions if multiple exist, otherwise include any linked subscription
+        active_member_subs = [s for s in member_subs if s.active == "true"]
+        target_subs = active_member_subs if len(active_member_subs) > 0 else member_subs
+        for s in target_subs:
+            active = s.active
+            plan = s.plan
+            rateplan = s.rate_plan
+            if s.subid and s.subid not in subids: subids.append(s.subid)
+            if s.customerid and s.customerid not in custids: custids.append(s.customerid)
 
+    if len(subids)==0 or len(custids)==0:
+        return render_template('message.html',message="No subscription record found for this membership. Please email info@makeitlabs.com for assistance.")
     if len(subids)!=1:
         return render_template('message.html',message="Multiple subscriptions exist. Please email for assistance.")
     if len(custids)!=1:
@@ -158,10 +163,11 @@ def fix2(digest,now,email):
 
     if action == 'cancel':
         # Cancel the active subscription
-        ss = stripe.Subscription.list(customer=custids[0])
-        if len(ss['data']) > 0:
+        ss = stripe.Subscription.list(customer=custids[0], status='all')
+        cancelable_subs = [s for s in ss.get('data', []) if s.get('status') in ('active', 'trialing', 'past_due', 'unpaid')]
+        if len(cancelable_subs) > 0:
             try:
-                stripe.Subscription.delete(ss['data'][0].id)
+                stripe.Subscription.delete(cancelable_subs[0].id)
                 return render_template('message.html', title="Membership Canceled",
                     message="Your membership has been canceled. You will retain access until the end of your current billing period.")
             except BaseException as e:
@@ -187,11 +193,13 @@ def fix2(digest,now,email):
         return redirect(session.url, code=303)
 
     # No action specified - show options based on membership status
-    ss = stripe.Subscription.list(customer=custids[0])
+    ss = stripe.Subscription.list(customer=custids[0], status='all')
+    active_stripe_subs = [s for s in ss.get('data', []) if s.get('status') in ('active', 'trialing', 'past_due', 'unpaid')]
     options = []
 
-    if len(ss['data']) > 0:
-        # Active subscription exists
+    if len(active_stripe_subs) > 0:
+        # Active or past_due subscription exists
+        sub_status = active_stripe_subs[0].get('status')
         options.append({
             'label': 'Update Credit Card on File',
             'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='updatecc'),
@@ -202,7 +210,10 @@ def fix2(digest,now,email):
             'url': url_for('membershipupdate.fix2', digest=digest, now=now, email=email, action='cancel'),
             'confirm': True
         })
-        message = "Your membership is currently active."
+        if sub_status in ('past_due', 'unpaid'):
+            message = "Your membership payment is currently past due. Please update your credit card to pay your open invoice."
+        else:
+            message = "Your membership is currently active."
     else:
         # No active subscription - membership has been canceled
         message = "Your membership is currently inactive."
@@ -264,18 +275,19 @@ def fix():
     else:
         altemail = members[0].alt_email
         email = members[0].email
+        target_email = email if (email and email.strip()) else altemail
         emailtext=f"Membership found: {email} {altemail}\n"
 
         now = int(datetime.utcnow().timestamp())
         secret_key =  current_app.config['globalConfig'].Config.get('General','SecretKey')
         sha = hashlib.sha256()
         sha.update(secret_key.encode('utf-8'))
-        sha.update(email.encode('utf-8'))
+        sha.update(target_email.encode('utf-8'))
         sha.update(now.to_bytes(8,byteorder="big"))
 
         baseurl = current_app.config['globalConfig'].Config.get('General','baseurl')
         digest = base64.urlsafe_b64encode(sha.digest()).decode()
-        url = baseurl+url_for("membershipupdate.fix2",now=now,digest=digest,email=email)
+        url = baseurl+url_for("membershipupdate.fix2",now=now,digest=digest,email=target_email)
         debug += f"UTCNOW: {now}\n"
         debug += f"Digest: {digest}\n"
         debug += f"URL: {url}\n"
@@ -288,7 +300,13 @@ def fix():
     else:
         debug = ""
         try:
-            genericEmailSender("info@makeitlabs.com",email,"Fix Membership Link",emailtext)
+            recipients = set()
+            if email and email.strip():
+                recipients.add(email.strip())
+            if altemail and altemail.strip():
+                recipients.add(altemail.strip())
+            for r_email in recipients:
+                genericEmailSender("info@makeitlabs.com",r_email,"Fix Membership Link",emailtext)
             message="A message has been sent from info@makeitlabs.com to the email address on-file for this membership, if one has been found. (Make sure it does not go to spam folder)."
         except BaseException as e:
             print (f"Email error: {e}")

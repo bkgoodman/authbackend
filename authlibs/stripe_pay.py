@@ -53,8 +53,7 @@ def getSubscriptions(status=None):
     return subscriptions
 
 def reportError(s):
-    print("ERROR: %s" % s)
-    logger.error("Stripe Error: %s" %s)
+    logger.warning("Stripe metadata notice: %s" % s)
 
 def getSubscriptionsJSON():
     '''Get a payment system independent JSON structure with subscription data'''
@@ -81,19 +80,19 @@ def getSubscriptionsJSON():
         phone = ''
         need_emails = True
         if 'plan' not in s:
-            print ("ERROR - no plan in ",s['customer'])
+            logger.debug("ERROR - no plan in %s" % s['customer'])
             continue
         if s['plan'] is None:
-            print ("NULL plan for  ",s['customer'])
+            logger.debug("NULL plan for %s" % s['customer'])
             continue
         if 'id' not in s['plan']:
-            print ("ERROR - no id in plan for ",s['customer'])
+            logger.debug("ERROR - no id in plan for %s" % s['customer'])
             continue
         plan = s['plan']['id']
 
         # NEW: Check for archived metadata flag to help with old records we still want to retain
         if 'archived' in s['metadata']:
-            print("Archived subscription (%s, %s), ignoring")
+            logger.debug("Archived subscription (%s), ignoring" % subid)
         # Customize: This section is specific to our Plan names in Stripe
         if plan in ['hobbyist']:
             plantype = "hobbyist"
@@ -105,7 +104,7 @@ def getSubscriptionsJSON():
             plantype = 'hobbyist'
         elif "WORKSPACE" in plan:
             # TODO: More alerting...
-            print("Workspace check: %s  Status: %s (%s)" % (s['plan']['id'], s['status'], subid))
+            logger.debug("Workspace check: %s Status: %s (%s)" % (s['plan']['id'], s['status'], subid))
             #continue BKG wants to remove
         else:
             plantype = "unknown"
@@ -116,12 +115,24 @@ def getSubscriptionsJSON():
             active = 'false (%s)' % s['status']
             # Remove "Cancelled" from list? this seems to show duplicate records for old subs.
             if s['status'] == "cancelled":
-                print("Cancelled entry, may simply be old subscription: %s : %s : %s" % (s['plan']['id'], subid, s['metadata']))
+                logger.debug("Cancelled entry, may simply be old subscription: %s : %s : %s" % (s['plan']['id'], subid, s['metadata']))
                 continue
 
 
         # expires_on = datetime.fromtimestamp(c['current_period_end']).strftime('%Y-%m-%d')
         expires = datetime.utcfromtimestamp(s['current_period_end'])
+        if s['status'] == 'canceled':
+            cancel_details = s.get('cancellation_details') or {}
+            if cancel_details.get('reason') == 'payment_failed':
+                ended_ts = s.get('ended_at') or s.get('canceled_at') or s['current_period_end']
+                expires = datetime.utcfromtimestamp(ended_ts)
+            elif s.get('ended_at') or s.get('canceled_at'):
+                ended_ts = s.get('ended_at') or s.get('canceled_at')
+                # If Stripe auto-canceled due to failed renewal (where ended_at is ~14-16 days
+                # after current_period_start and cancellation_details isn't populated),
+                # use ended_at so the 14-day grace period starts from the cancellation date.
+                if not cancel_details.get('reason') and s.get('current_period_start') and (ended_ts - s['current_period_start']) >= 7 * 86400:
+                    expires = datetime.utcfromtimestamp(ended_ts)
         created = datetime.utcfromtimestamp(s['created'])
         updated = datetime.utcnow()
 
@@ -129,14 +140,16 @@ def getSubscriptionsJSON():
         # - Expecting comma-delimited!
         if need_emails:
           if s['metadata'] == {}:
-            reportError("STRIPE PAYMENTS: SUBSCRIPTION %s: No metadata" % subid)
+            if active == 'true':
+              reportError("STRIPE PAYMENTS: ACTIVE SUBSCRIPTION %s: No metadata" % subid)
             continue
           if 'names' in s['metadata']:
             names = s['metadata']['names'].split(",")
           if 'emails' in s['metadata']:
             emails = s['metadata']['emails'].split(",")
           if len(names) != len(emails) or len(names) == 0:
-            reportError("STRIPE PAYMENTS: SUBSCRIPTION %s: Problem in Names or Emails metadata (%s)" % (subid,s['metadata']))
+            if active == 'true':
+              reportError("STRIPE PAYMENTS: ACTIVE SUBSCRIPTION %s: Problem in Names or Emails metadata (%s)" % (subid,s['metadata']))
             continue
 
         # Extract Group Metadata from record if present (optional)
@@ -217,6 +230,18 @@ def getSubscriptionsJSON2():
 
         # expires_on = datetime.fromtimestamp(c['current_period_end']).strftime('%Y-%m-%d')
         expires = datetime.utcfromtimestamp(s['current_period_end'])
+        if s['status'] == 'canceled':
+            cancel_details = s.get('cancellation_details') or {}
+            if cancel_details.get('reason') == 'payment_failed':
+                ended_ts = s.get('ended_at') or s.get('canceled_at') or s['current_period_end']
+                expires = datetime.utcfromtimestamp(ended_ts)
+            elif s.get('ended_at') or s.get('canceled_at'):
+                ended_ts = s.get('ended_at') or s.get('canceled_at')
+                # If Stripe auto-canceled due to failed renewal (where ended_at is ~14-16 days
+                # after current_period_start and cancellation_details isn't populated),
+                # use ended_at so the 14-day grace period starts from the cancellation date.
+                if not cancel_details.get('reason') and s.get('current_period_start') and (ended_ts - s['current_period_start']) >= 7 * 86400:
+                    expires = datetime.utcfromtimestamp(ended_ts)
         created = datetime.utcfromtimestamp(s['created'])
         updated = datetime.utcnow()
 

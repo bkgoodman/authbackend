@@ -64,6 +64,8 @@ def syncWithSubscriptions(isTest=False):
     # Check subscription state transitions for existing members
     from . import payments
     pre_active = payments.get_pre_sync_active_members()
+    pre_status = payments.get_pre_sync_member_status()
+    notifications_to_send = []
     if pre_active is not None:
       now = datetime.utcnow()
       linked_subs = Subscription.query.filter(Subscription.member_id != None).all()
@@ -77,21 +79,108 @@ def syncWithSubscriptions(isTest=False):
         db.session.add(Logs(member_id=mid, event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_ACTIVATED_PAYSYS.id,
                             message="Subscription activated via payment system"))
 
-      # 2. Canceled/Expired: Was active before, now not active
+      # 2. Canceled/Expired: Was active (or past_due) before, now canceled
       canceled_ids = pre_active - post_active
       for mid in canceled_ids:
-        logger.info("Subscription Canceled by Payment System for member_id %s" % mid)
+        prev_act = pre_status.get(mid, '')
+        is_payment_issue = ('past_due' in prev_act) or ('unpaid' in prev_act)
+        if not is_payment_issue:
+          # Also check if Stripe subscription itself indicates payment failure or past_due history
+          sub_rec = Subscription.query.filter(Subscription.member_id == mid).first()
+          if sub_rec and sub_rec.subid and sub_rec.paysystem == 'stripe':
+            try:
+              import stripe
+              stripe.api_key = current_app.config['globalConfig'].Config.get('Stripe', 'token')
+              st_sub = stripe.Subscription.retrieve(sub_rec.subid)
+              cd = st_sub.get('cancellation_details') or {}
+              if cd.get('reason') == 'payment_failed':
+                is_payment_issue = True
+              elif not cd.get('reason') and st_sub.get('latest_invoice'):
+                inv = stripe.Invoice.retrieve(st_sub['latest_invoice'])
+                if inv and not inv.get('paid') and inv.get('attempt_count', 0) > 0:
+                  is_payment_issue = True
+            except BaseException as se:
+              logger.warning("Could not check Stripe cancellation details for member_id %s: %s" % (mid, str(se)))
+
+        if is_payment_issue:
+          log_msg = "Subscription canceled due to payment issue"
+        else:
+          log_msg = "Subscription canceled via payment system"
+
+        logger.info("Subscription Canceled by Payment System for member_id %s (%s)" % (mid, log_msg))
         db.session.add(Logs(member_id=mid, event_type=eventtypes.RATTBE_LOGEVENT_CONFIG_SUB_CANCELED_PAYSYS.id,
-                            message="Subscription canceled/expired via payment system"))
+                            message=log_msg))
+        notifications_to_send.append((mid, is_payment_issue))
 
     db.session.commit()
     payments.clear_pre_sync_active_members()
     logger.debug("New Member/Sub data Committed")
+
+    # Send cancellation notification emails after DB commit
+    if not isTest and notifications_to_send:
+      for (mid, is_payment_issue) in notifications_to_send:
+        send_cancellation_notice(mid, is_payment_issue)
+
     return 0
   except OperationalError as e:
     logger.error("syncWithSubscriptions: database locked/failed: %s" % str(e))
     db.session.rollback()
     return 2
+
+def send_cancellation_notice(member_id, is_payment_issue=False):
+  """Send an automated email notice to a member when their subscription is canceled."""
+  try:
+    m = Member.query.filter(Member.id == member_id).one_or_none()
+    if not m:
+      return
+    name = (" ".join(filter(None, [m.firstname, m.lastname]))).strip() or m.member.replace('.', ' ')
+    update_url = "https://portal.makeitlabs.com/membershipupdate"
+
+    if is_payment_issue:
+      subject = "Action Required: MakeIt Labs Membership Payment Issue"
+      body = (
+        f"Hello {name},\n\n"
+        f"Our payment system (Stripe) was unable to process your recurring membership payment after multiple attempts, "
+        f"and your MakeIt Labs subscription has been automatically canceled.\n\n"
+        f"Your membership has entered a 14-day grace period so your lab access will not be interrupted while you update your payment method. "
+        f"To update your credit card and reactivate your membership, please visit:\n\n"
+        f"  {update_url}\n\n"
+        f"Reactivating through this link will automatically restore your membership and keep your existing key fob, waivers, and tool authorizations intact.\n\n"
+        f"If you have any questions or need assistance, please contact board@makeitlabs.com.\n\n"
+        f"Thank you,\n"
+        f"MakeIt Labs\n"
+      )
+    else:
+      subject = "MakeIt Labs Membership Cancellation Confirmation"
+      body = (
+        f"Hello {name},\n\n"
+        f"This is a confirmation that your MakeIt Labs membership subscription has been canceled.\n\n"
+        f"Your lab access will remain active through the end of your current paid billing period. "
+        f"If this cancellation was unintentional, or if you would like to rejoin at any time in the future, you can easily reactivate your membership at:\n\n"
+        f"  {update_url}\n\n"
+        f"Reactivating through this link will restore your existing account, key fob, waivers, and tool authorizations without needing to repeat orientation.\n\n"
+        f"We hope to see you back at the lab! If you have any questions, please contact board@makeitlabs.com.\n\n"
+        f"Thank you,\n"
+        f"MakeIt Labs\n"
+      )
+
+    recipients = set()
+    if m.alt_email and m.alt_email.strip():
+      recipients.add(m.alt_email.strip())
+    if m.email and m.email.strip():
+      recipients.add(m.email.strip())
+
+    for recipient in recipients:
+      try:
+        google.genericEmailSender("info@makeitlabs.com", recipient, subject, body)
+        logger.info("Sent cancellation notice (%s) to %s for member_id %s" %
+                    ("payment_issue" if is_payment_issue else "explicit", recipient, member_id))
+      except BaseException as ee:
+        logger.error("Failed to send cancellation notice to %s for member_id %s: %s" %
+                     (recipient, member_id, str(ee)))
+  except BaseException as e:
+    logger.error("Error in send_cancellation_notice for member_id %s: %s" % (member_id, str(e)))
+
 
 def syncWithSubscriptions_with_retry(isTest=False, retries=5, delay=2):
   """Call syncWithSubscriptions, retrying if DB is locked (return code 2)."""
@@ -122,13 +211,12 @@ def matchMissingMembers(missing):
     for s in missing:
         mm = Member.query.filter(Member.membership == s.membership).one_or_none()
         if mm:
-                logger.debug("MEMBERSHIP MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
                 if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
                   mm.group = s.group.strip()
                 # If we had already done a email/name match (below) - invalidate it so we dont get dupes
                 for ss in Subscription.query.filter(Subscription.member_id == mm.id).all():
                   if ss.id != s.id:
-                    logger.debug("-Invalidated prior sub match to - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                    logger.info("Invalidated prior sub match to - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
                     ss.member_id=None
                 s.member_id=mm.id
         else:
@@ -158,36 +246,33 @@ def matchMissingMembers(missing):
                         elif len(candidates) > 1:
                             raise ValueError("Multiple normalized matches")
                     if mm:
-                        logger.debug("email/name MATCH - %s %s %s IS %s" % (s.name,s.email,s.subid,mm.member))
                         if getattr(s, 'group', None) and s.group and (not mm.group or mm.group.strip() == ""):
                           mm.group = s.group.strip()
                         # Avoid DUPLICATE match if MEMBERSHIP MATCH already done (above)
                         existing_subs = [es for es in Subscription.query.filter(Subscription.member_id == mm.id).all() if es.id != s.id]
                         active_existing = [es for es in existing_subs if str(es.active).strip().lower() in ('true', '1')]
                         if active_existing:
-                          ss = active_existing[0]
-                          logger.debug("-Avoided overwrite ACTIVE sub match - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
+                          pass
                         elif existing_subs:
                           ss = existing_subs[0]
                           s_active = str(s.active).strip().lower() in ('true', '1')
                           s_newer = bool(s.expires_date and (not ss.expires_date or s.expires_date > ss.expires_date))
                           if s_active or s_newer:
                             for es in existing_subs:
-                              logger.debug("-Invalidated INACTIVE prior sub match - %s %s %s FOR %s" % (es.name,es.email,es.subid,mm.member))
                               es.member_id = None
+                            logger.info("Matched subscription %s (%s) to %s (replacing inactive sub %s)" % (s.subid,s.email,mm.member,ss.subid))
                             s.member_id = mm.id
                             mm.membership = s.membership
-                          else:
-                            logger.debug("-Avoided overwrite INACTIVE prior sub match - %s %s %s FOR %s" % (ss.name,ss.email,ss.subid,mm.member))
                         else:
-                          logger.debug("-Avoided overwrite NOSUB prior sub match")
+                          logger.info("Matched subscription %s (%s) to %s" % (s.subid,s.email,mm.member))
                           s.member_id = mm.id
                           mm.membership = s.membership
                         # We APPEAR to have a match Just update the sub record w/ existing member ID
                         # Remember - this gets committed at the VERY end when everything is DONE
                     else:
-                        # No match - create new one
-                        logger.debug("NO MATCH - %s %s %s" % (s.name,s.email,s.subid))
+                        # No match - create new one (only log if active)
+                        if s.active and s.active.lower() == "true":
+                            logger.info("Unmatched active subscription - %s %s %s" % (s.name,s.email,s.subid))
                         newMembers.append(s)
                 except:
                     mm=None
@@ -237,24 +322,18 @@ def addMissingMembers(missing):
     for b in bl_entries:
         ignorelist.append(b.entry)
     for p in missing:
-        logger.debug("Check add new for %s active %s expires %s" % (p.email,p.active,p.expires_date))
         if p.subid in ignorelist:
-            logger.debug("Explicitly ignoring subscription id %s" % p.subid)
             continue
         elif p.email in ignorelist:
-            logger.debug("Explicitly ignoring email %s" % p.email)
             continue
         elif p.customerid in ignorelist:
-            logger.debug("Explicitly ignoring customer id %s" % p.customerid)
             continue
         elif p.active.lower() != "true":
-            logger.debug("Skipping create for inactive sub %s id \"%s\"" % (p.customerid,p.active.lower()))
             continue
         elif p.expires_date < datetime.now():
-            logger.debug("Skipping create for expired sub %s" % p.customerid)
             continue
         else:
-            logger.debug("Missing member: %s (%s) (%s)" % (p.name,p.email,p.created_date))
+            logger.info("New missing member to create: %s (%s) (%s)" % (p.name,p.email,p.created_date))
             members.append({'name':p.name,'email':p.email,'plan':p.plan,'active':p.active,'created':p.created_date})
 
             # TODO - BKG BUG FIX this is where we need to know if this was an existing member or not - Refuse

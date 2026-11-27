@@ -113,11 +113,11 @@ def _addSubscriptionData(subs,paytype):
     bad = []
     for b in blacklist:
         bad.append(b.entry)
-    logger.info("BLACKLIST: %s" % bad)
+    logger.debug("BLACKLIST: %s" % bad)
     for sub in subs:
         #print  "FOUND",sub['name'],sub['email'],sub['active'], "Exp:",authutils.parse_datetime(sub['expires']), "Cre:",authutils.parse_datetime(sub['created'])
         if sub['customerid'] in bad:
-            logger.info("BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['name']))
+            logger.debug("BLACKLIST: IGNORING CUSTOMERID %s for %s" % (sub['customerid'],sub['name']))
         else:
             #print "PLANS",sub['planname'],sub['plantype']
             s = Subscription.query.filter(Subscription.membership.ilike(sub['membership'])).one_or_none()
@@ -129,23 +129,24 @@ def _addSubscriptionData(subs,paytype):
 
                 if s.active.lower() != "true"  and sub['active'].lower() == "true":
                     pass
-                    print ("REPLACING w/ INACTIVE record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'])
+                    #print ("REPLACING w/ INACTIVE record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'])
                 elif s.active.lower() == "true"  and sub['active'].lower() != "true":
                     # skip if old was active, but new is inactive
-                    print ("SKIPPING INACTIVE record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'])
+                    #print ("SKIPPING INACTIVE record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'])
                     continue 
                 elif s.expires_date < sub['expires']:
-                    print ("REPLACING NEWER EXPIRE records ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'],sub['active'],"VS Created",s.created_date,"expires",s.expires_date,s.active)
+                    pass
+                    #print ("REPLACING NEWER EXPIRE records ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'],sub['active'],"VS Created",s.created_date,"expires",s.expires_date,s.active)
                 elif s.created_date > sub['created']:
                     #print "Old",s.created_date
                     #print "New",authutil.parse_datetime(sub['created'])
-                    print ("SKIPPING older records ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'],sub['active'],"VS Created",s.created_date,"expires",s.expires_date,s.active)
+                    #print ("SKIPPING older records ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'],sub['active'],"VS Created",s.created_date,"expires",s.expires_date,s.active)
                     continue 
 
                 elif s.active.lower() == "true"  and sub['active'].lower() == "true":
-                    print ("WARNING - Two active records for  record for ",sub['name'],sub['email'],"Created",sub['created'],"Expires",sub['expires'])
+                    logger.warning("Two active subscription records for %s %s Created %s Expires %s" % (sub['name'],sub['email'],sub['created'],sub['expires']))
 
-                print ("OVERWRITE record for ",sub['name'],sub['email'],sub['created'])
+                #print ("OVERWRITE record for ",sub['name'],sub['email'],sub['created'])
             s.paysystem = paytype
             s.subid = sub['subid']
             s.customerid = sub['customerid']

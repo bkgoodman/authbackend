@@ -12,6 +12,68 @@ from . import graph
 from ..google_admin import genericEmailSender
 from functools import cmp_to_key
 import stripe
+import threading
+from flask import current_app
+
+_ack_send_lock = threading.Lock()
+_ack_send_status = {}
+
+def _send_ack_emails_bg(app, ack_id_val, ack_title, send_queue):
+    from authlibs.db_models import AcknowledgementUser
+    from ..google_admin import _buildEmailService
+    try:
+        with app.app_context():
+            try:
+                email_service = _buildEmailService()
+            except Exception as e:
+                logger.error(f"Failed initializing email service for acknowledgement {ack_id_val}: {e}")
+                email_service = None
+
+            for item in send_queue:
+                member_email = item['email']
+                if member_email:
+                    try:
+                        if email_service is None:
+                            email_service = _buildEmailService()
+                        genericEmailSender("info@makeitlabs.com", member_email, ack_title, item['email_body'], service=email_service)
+                        with _ack_send_lock:
+                            if ack_id_val in _ack_send_status:
+                                _ack_send_status[ack_id_val]['sent'] += 1
+                    except Exception as e:
+                        logger.error(f"Failed sending acknowledgement email to {member_email}: {e}")
+                        with _ack_send_lock:
+                            if ack_id_val in _ack_send_status:
+                                _ack_send_status[ack_id_val]['failed'] += 1
+                        email_service = None
+                        continue
+
+                if item['is_new']:
+                    try:
+                        exists = AcknowledgementUser.query.filter(
+                            (AcknowledgementUser.acknowledgement_id == ack_id_val) &
+                            (AcknowledgementUser.member_id == item['mid'])
+                        ).first()
+                        if not exists:
+                            au = AcknowledgementUser(
+                                acknowledgement_id=ack_id_val,
+                                member_id=item['mid'],
+                                token=item['token']
+                            )
+                            db.session.add(au)
+                            db.session.commit()
+                    except Exception as e:
+                        db.session.rollback()
+                        logger.error(f"Failed saving AcknowledgementUser for member {item['mid']}: {e}")
+
+            try:
+                authutil.kick_backend()
+            except Exception as e:
+                logger.error(f"Failed kick_backend after acknowledgement send: {e}")
+            db.session.remove()
+    finally:
+        with _ack_send_lock:
+            if ack_id_val in _ack_send_status:
+                _ack_send_status[ack_id_val]['running'] = False
 
 blueprint = Blueprint("resources", __name__, template_folder='templates', static_folder="static",url_prefix="/resources")
 # ----------------------------------------------------
@@ -1468,44 +1530,72 @@ def resource_acknowledgements(resource):
             authutil.kick_backend()
             flash("Acknowledgement created successfully", "success")
             
-        elif action == 'send':
+        elif action in ('send', 'send_unsent'):
             ack_id = request.form.get('ack_id')
             ack = Acknowledgement.query.filter((Acknowledgement.id == ack_id) & (Acknowledgement.resource_id == r.id)).one_or_none()
             if not ack:
                 flash("Acknowledgement not found", "warning")
             else:
-                authusers = db.session.query(AccessByMember.member_id).filter(AccessByMember.resource_id == r.id).all()
-                member_ids = [u[0] for u in authusers]
-                
-                existing = db.session.query(AcknowledgementUser).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
-                existing_dict = {e.member_id: e for e in existing}
-                
-                send_count = 0
-                for mid in member_ids:
-                    au = existing_dict.get(mid)
-                    if au is None:
-                        # New user, create record and send
-                        token = str(uuid.uuid4())
-                        au = AcknowledgementUser(
-                            acknowledgement_id=ack.id,
-                            member_id=mid,
-                            token=token
-                        )
-                        db.session.add(au)
-                    elif au.time_acknowledged is not None:
-                        # User has already acknowledged, skip
-                        continue
+                res_name = r.name
+                ack_id_val = ack.id
+                ack_title = ack.title
+                ack_message = ack.message
+
+                with _ack_send_lock:
+                    st = _ack_send_status.get(ack_id_val)
+                    already_running = bool(st and st.get('running'))
+
+                if already_running:
+                    flash(f"A background send is already in progress ({st['sent']}/{st['total']} sent, {st['failed']} failed).", "warning")
+                else:
+                    authusers = db.session.query(AccessByMember.member_id, Member.email).join(Member, AccessByMember.member_id == Member.id).filter(AccessByMember.resource_id == r.id).all()
                     
-                    # Send email (either new user or pending user)
-                    m = Member.query.filter(Member.id == mid).one()
-                    link = url_for('api.api_acknowledge', token=au.token, _external=True)
-                    email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
-                    genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
-                    send_count += 1
+                    existing = db.session.query(AcknowledgementUser).filter(AcknowledgementUser.acknowledgement_id == ack_id_val).all()
+                    existing_dict = {e.member_id: e for e in existing}
+                    
+                    send_queue = []
+                    for mid, member_email in authusers:
+                        if not member_email:
+                            continue
+                        au = existing_dict.get(mid)
+                        is_new = False
+                        if au is None:
+                            is_new = True
+                            token = str(uuid.uuid4())
+                        elif action == 'send_unsent' or au.time_acknowledged is not None:
+                            # Already sent (when send_unsent) or already acknowledged, skip
+                            continue
+                        else:
+                            token = au.token
                         
-                db.session.commit()
-                authutil.kick_backend()
-                flash(f"Sent to {send_count} users.", "success")
+                        link = url_for('api.api_acknowledge', token=token, _external=True)
+                        email_body = f"Please acknowledge the following notice for {res_name}: {ack_title}\n\n{ack_message}\n\nClick here to acknowledge: {link}"
+                        send_queue.append({
+                            'mid': mid,
+                            'email': member_email,
+                            'token': token,
+                            'is_new': is_new,
+                            'email_body': email_body
+                        })
+
+                    if not send_queue:
+                        flash("No matching users to send to.", "info")
+                    else:
+                        with _ack_send_lock:
+                            _ack_send_status[ack_id_val] = {
+                                'running': True,
+                                'sent': 0,
+                                'failed': 0,
+                                'total': len(send_queue)
+                            }
+                        app_obj = current_app._get_current_object()
+                        t = threading.Thread(
+                            target=_send_ack_emails_bg,
+                            args=(app_obj, ack_id_val, ack_title, send_queue),
+                            daemon=True
+                        )
+                        t.start()
+                        flash(f"Queued {len(send_queue)} emails to send in the background. Refresh 'View / Status' to monitor progress.", "success")
                 
         elif action == 'delete':
             ack_id = request.form.get('ack_id')
@@ -1541,23 +1631,42 @@ def resource_acknowledgement_detail(resource, ack_id):
     if request.method == 'POST':
         action = request.form.get('action')
         member_id = request.form.get('member_id')
-        au = AcknowledgementUser.query.filter((AcknowledgementUser.acknowledgement_id == ack.id) & (AcknowledgementUser.member_id == member_id)).one_or_none()
+        au = AcknowledgementUser.query.filter((AcknowledgementUser.acknowledgement_id == ack.id) & (AcknowledgementUser.member_id == member_id)).order_by(AcknowledgementUser.time_acknowledged.desc(), AcknowledgementUser.id.desc()).first()
         
         if not au:
             flash("User record not found", "warning")
         elif action == 'resend':
-            m = Member.query.filter(Member.id == member_id).one()
-            link = url_for('api.api_acknowledge', token=au.token, _external=True)
-            email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
-            genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
-            flash("Resent email.", "success")
+            m = Member.query.filter(Member.id == member_id).one_or_none()
+            if not m or not m.email:
+                flash("Member or email not found", "warning")
+            else:
+                link = url_for('api.api_acknowledge', token=au.token, _external=True)
+                email_body = f"Please acknowledge the following notice for {r.name}: {ack.title}\n\n{ack.message}\n\nClick here to acknowledge: {link}"
+                genericEmailSender("info@makeitlabs.com", m.email, ack.title, email_body)
+                flash("Resent email.", "success")
         elif action == 'manual_ack':
-            au.time_acknowledged = datetime.datetime.now()
+            now = datetime.datetime.now()
+            AcknowledgementUser.query.filter(
+                (AcknowledgementUser.acknowledgement_id == ack.id) &
+                (AcknowledgementUser.member_id == member_id)
+            ).update({'time_acknowledged': now}, synchronize_session=False)
             db.session.commit()
             authutil.kick_backend()
             flash("Manually acknowledged.", "success")
             
-    users = db.session.query(AcknowledgementUser, Member).join(Member).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
+    raw_users = db.session.query(AcknowledgementUser, Member).join(Member).filter(AcknowledgementUser.acknowledgement_id == ack.id).all()
+    dedup_by_member = {}
+    for au_rec, mem_rec in raw_users:
+        prev = dedup_by_member.get(mem_rec.id)
+        if prev is None:
+            dedup_by_member[mem_rec.id] = (au_rec, mem_rec)
+        else:
+            # Prefer a row that has been acknowledged, or otherwise the newer row
+            if (not prev[0].time_acknowledged and au_rec.time_acknowledged) or (
+                bool(prev[0].time_acknowledged) == bool(au_rec.time_acknowledged) and au_rec.id > prev[0].id
+            ):
+                dedup_by_member[mem_rec.id] = (au_rec, mem_rec)
+    users = list(dedup_by_member.values())
     
     acknowledged = [u for u in users if u[0].time_acknowledged]
     acknowledged.sort(key=lambda u: u[0].time_acknowledged, reverse=True)
