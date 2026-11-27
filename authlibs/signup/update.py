@@ -106,6 +106,8 @@ def fix2(digest,now,email):
     active="false"
     plan = None
     rateplan = None
+    altemail = None
+    url = None
     if len(members)==0:
         return render_template('message.html',title="Update or Reactivate Membership",message="No membership found for that email address")
 
@@ -268,6 +270,8 @@ def fix():
     ).all()
     debug += str(members)
 
+    altemail = None
+    url = None
     if len(members)==0:
         emailtext="No membership with that email was found.\n"
     elif len(members)>1:
@@ -299,18 +303,19 @@ def fix():
         debug += "\n\nDebug mode enabled - Email NOT sent - Email Text:\n\n"+emailtext
     else:
         debug = ""
-        try:
-            recipients = set()
-            if email and email.strip():
-                recipients.add(email.strip())
-            if altemail and altemail.strip():
-                recipients.add(altemail.strip())
-            for r_email in recipients:
-                genericEmailSender("info@makeitlabs.com",r_email,"Fix Membership Link",emailtext)
-            message="A message has been sent from info@makeitlabs.com to the email address on-file for this membership, if one has been found. (Make sure it does not go to spam folder)."
-        except BaseException as e:
-            print (f"Email error: {e}")
-            message=f"An error has occured trying to send email - use this link directly, instead: {url}"
+        message="A message has been sent from info@makeitlabs.com to the email address on-file for this membership, if one has been found. (Make sure it does not go to spam folder)."
+        if len(members) == 1:
+            try:
+                recipients = set()
+                if email and email.strip():
+                    recipients.add(email.strip())
+                if altemail and altemail.strip():
+                    recipients.add(altemail.strip())
+                for r_email in recipients:
+                    genericEmailSender("info@makeitlabs.com",r_email,"Fix Membership Link",emailtext)
+            except BaseException as e:
+                print (f"Email error: {e}")
+                message=f"An error has occured trying to send email - use this link directly, instead: {url}"
     return render_template('message.html',message=message,debug=debug)
 
 
